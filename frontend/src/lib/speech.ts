@@ -43,7 +43,7 @@ export const SPEECH_ERRORS: Record<string, string> = {
   'not-allowed': 'The microphone is blocked. Allow it in the browser, or type the tip.',
   'service-not-allowed': 'Speech recognition is not allowed here. Type the tip instead.',
   'no-speech': 'No speech heard. Hold the mic and speak, or type the tip.',
-  'audio-capture': 'No microphone found. Type the tip instead.',
+  'audio-capture': 'No built-in microphone found. Type the tip instead.',
   network: 'Speech recognition needs the network. Type the tip instead.',
 }
 export const speechErrorText = (code: string): string => SPEECH_ERRORS[code] ?? 'Speech recognition stopped. Type the tip instead.'

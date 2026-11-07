@@ -7,6 +7,42 @@ const SAMPLE_RATE = 16_000 // Whisper's input rate
 export const dictationSupported = (): boolean =>
   typeof Worker !== 'undefined' && typeof MediaRecorder !== 'undefined' && !!navigator.mediaDevices?.getUserMedia
 
+const AUDIO = { channelCount: 1, echoCancellation: false, noiseSuppression: false, autoGainControl: true } as const
+/** The laptop's own microphone: its name says so, and a phone or headset never does. */
+const BUILT_IN = /built-?in|macbook|internal/i
+const NOT_BUILT_IN = /iphone|ipad|bluetooth|airpods|continuity/i
+let builtInId: string | null = null
+
+/**
+ * Open the laptop's built-in microphone ONLY. The browser's default input can silently become an iPhone
+ * (macOS Continuity Microphone) or Bluetooth headset, which is why a recording can be silent. Device names
+ * are only visible after the first permission grant, so the first open uses the default, finds the built-in
+ * device, and reopens on it if the default was something else.
+ */
+export async function openBuiltInMic(): Promise<MediaStream> {
+  const open = (deviceId?: string) =>
+    navigator.mediaDevices.getUserMedia({ audio: { ...AUDIO, ...(deviceId ? { deviceId: { exact: deviceId } } : {}) } })
+  if (builtInId) {
+    try { return await open(builtInId) } catch { builtInId = null }
+  }
+  const first = await open()
+  const devices = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'audioinput')
+  const mine = devices.find((d) => BUILT_IN.test(d.label) && !NOT_BUILT_IN.test(d.label))
+  if (!mine) {
+    // No clearly built-in device (an external desktop mic, say). Keep the default unless it is a phone.
+    const cur = devices.find((d) => d.deviceId === first.getAudioTracks()[0]?.getSettings().deviceId)
+    if (cur && NOT_BUILT_IN.test(cur.label)) {
+      first.getTracks().forEach((t) => t.stop())
+      throw new DOMException('Only a phone or headset microphone was found', 'NotFoundError')
+    }
+    return first
+  }
+  builtInId = mine.deviceId
+  if (first.getAudioTracks()[0]?.getSettings().deviceId === mine.deviceId) return first
+  first.getTracks().forEach((t) => t.stop())
+  return open(mine.deviceId)
+}
+
 /** Loudest sample, 0..1. */
 export function peakOf(a: Float32Array): number {
   let m = 0
@@ -92,10 +128,10 @@ export class Dictation {
     return this.recorder !== null
   }
 
-  /** Open the microphone and record until `stop`. Throws with the browser's error name (NotAllowedError ...). */
+  /** Open the built-in microphone and record until `stop`. Throws with the browser's error name (NotAllowedError ...). */
   async start(): Promise<void> {
     if (this.recorder) return
-    this.stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: false, noiseSuppression: false, autoGainControl: true } })
+    this.stream = await openBuiltInMic()
     this.chunks = []
     const ctx = new AudioContext()
     const an = ctx.createAnalyser()
