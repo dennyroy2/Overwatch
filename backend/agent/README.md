@@ -28,7 +28,25 @@ py -m backend.agent.tip_cli --case <case_id> --post                             
 py -m pytest backend/agent -q
 ```
 
-## Not done (Rishaan's call)
+## Wiring to the dashboard tip box (`hook.py`)
 
-- No API route yet. The dashboard command bar needs something like `POST /tip {case_id, text}` in `backend/api/` that calls `parse_tip` and broadcasts the card.
+The tip box posts the officer's words as a plain note (`kind: "note"`, `source: "officer"`, `raw_text`, no location) and waits up to 6 s for a card with the **same id**. `hook.py` does the upgrade:
+
+- `needs_parsing(ev)`: is this a raw officer note?
+- `structure_note(note, case)`: the parsed card with the note's id, reading times in the case's time zone. It returns `None` when there is nothing to place, e.g. "she is scared of dogs", so the note stays as it is.
+- `schedule_upgrade(hub, note)`: parses in a thread, replaces the note in `hub.evidence` by id, and broadcasts. The street map is preloaded when the module is imported, so a tip comes back in a few milliseconds.
+
+**Server change needed (Rishaan's files, 7 lines):** review `server_hook.patch`, then from the repo root run
+
+```bash
+git apply backend/agent/server_hook.patch
+```
+
+- `backend/api/main.py`: call `schedule_upgrade(hub, ev)` for raw officer notes in `POST /evidence`.
+- `backend/api/fake_stream.py`: remember which *version* of each card the engine applied, not just its id. Otherwise the upgraded card (same id) is never applied and the ghosts don't react.
+
+Tested end to end: a note sent the way `frontend/src/lib/tips.ts` sends it comes back structured with the same id in under 30 ms, the engine applies it, a sighting triggers a Drone 2 request, and `/report` has no duplicates.
+
+## Still open
+
 - The confirm flow (re-POST the same `id` with `confirmed=true`) is ask #3 in `frontend/ASKS.md`.

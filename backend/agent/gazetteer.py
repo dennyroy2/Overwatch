@@ -15,6 +15,7 @@ import ast
 import json
 import math
 import re
+import threading
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -91,9 +92,17 @@ def load_places() -> list[Place]:
     return out
 
 
-@lru_cache(maxsize=1)
+_load_lock = threading.Lock()
+
+
 def load_streets() -> dict[str, list[tuple[float, float]]]:
-    """street key -> list of (lat, lon) of the graph nodes on that street."""
+    """street key -> list of (lat, lon) of the graph nodes on that street (loaded once, thread-safe)."""
+    with _load_lock:                    # two tips at once must not both load the 16 MB graph
+        return _load_streets()
+
+
+@lru_cache(maxsize=1)
+def _load_streets() -> dict[str, list[tuple[float, float]]]:
     import networkx as nx
 
     g = nx.read_graphml(GRAPH_FILE)
@@ -109,6 +118,12 @@ def load_streets() -> dict[str, list[tuple[float, float]]]:
             if key:
                 streets.setdefault(key, set()).update((u, v))
     return {k: [pos[n] for n in nodes] for k, nodes in streets.items()}
+
+
+def warm_up() -> None:
+    """Load the map data now so the first tip isn't slow. Safe to call more than once."""
+    load_places()
+    load_streets()
 
 
 def street_keys() -> list[str]:

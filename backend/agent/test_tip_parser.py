@@ -121,3 +121,57 @@ def test_llm_failure_falls_back_to_rules(monkeypatch):
     monkeypatch.setattr(httpx, "post", boom)
     r = parse_tip_verbose("Team 2 searched 3 blocks around 116 Street and 102 Avenue, no sign of her", CASE, now=NOW)
     assert r.method == "rules" and r.evidence.kind == "searched_area"
+
+
+# ------------------------------------------------------------------ hook (dashboard tip box flow)
+import asyncio
+
+from backend.agent.hook import needs_parsing, structure_note, upgrade_note
+from contracts.models import Evidence
+
+
+def _note(text, **kw):
+    base = dict(case_id="case_test", kind="note", source="officer", raw_text=text, summary=text[:160],
+                time=datetime.fromisoformat("2026-11-08T22:05:00+00:00"))   # sim time, sent in UTC
+    base.update(kw)
+    return Evidence(**base)
+
+
+def test_hook_keeps_id_and_reads_local_time():
+    note = _note("Bus driver says she got off at the Emily Murphy Park stop around 2:35")
+    card = structure_note(note, CASE)
+    assert card.id == note.id and card.case_id == note.case_id
+    assert card.kind == "sighting" and card.source == "transit"
+    assert card.time.strftime("%H:%M") == "14:35"          # 2:35 PM Edmonton, not 2:35 UTC
+    assert card.location is not None and card.confirmed is False
+
+
+def test_hook_skips_what_it_should():
+    assert not needs_parsing(_note("x", source="family"))                       # not from the tip box
+    assert not needs_parsing(_note("x", location=GeoPoint(lat=53.5, lon=-113.5)))   # already placed
+    assert structure_note(_note("Family says she is scared of dogs"), CASE) is None  # nothing to place
+
+
+def test_hook_officer_observation_stays_officer():
+    card = structure_note(_note("Spotted a woman matching the description near Victoria Park"), CASE)
+    assert card.source == "officer" and card.kind == "sighting"
+
+
+def test_upgrade_note_replaces_card_and_broadcasts():
+    class FakeHub:
+        def __init__(self, note):
+            self.profile, self.evidence, self.sent, self.lock = CASE, [note], [], asyncio.Lock()
+
+        async def broadcast(self, msg):
+            self.sent.append(msg)
+
+        def add_log(self, actor, action, detail):
+            from contracts.models import LogEntry
+            return LogEntry(actor=actor, action=action, detail=detail)
+
+    note = _note("Searched Victoria Park with Team 3, no sign of her")
+    hub = FakeHub(note)
+    card = asyncio.run(upgrade_note(hub, note))
+    assert len(hub.evidence) == 1 and hub.evidence[0].id == note.id
+    assert hub.evidence[0].kind == "searched_area"
+    assert hub.sent[0].type == "evidence" and hub.sent[0].data.id == note.id
