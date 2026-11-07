@@ -6,6 +6,7 @@
 // it is UPSERTED BY ID. Add/replace only; never "just append".
 import { create } from 'zustand'
 import { hasId } from '@/types'
+import { resolveSelection } from '@/lib/clusters'
 import type {
   Cluster, Evidence, FoundEvent, GeoPoint, LogEntry, Report, StreamMessage, SubjectProfile, TaskingRequest, WithId,
 } from '@/types'
@@ -43,6 +44,11 @@ export const logKey = (e: LogEntry): string => `${e.time}|${e.actor}|${e.action}
 
 export interface UiState {
   selectedClusterId: string | null
+  /**
+   * Where the selected cluster is. The backend names clusters by rank, so the id can change under us; the
+   * selection follows this PLACE and re-resolves the id each frame (lib/clusters.ts).
+   */
+  selectedPlace: GeoPoint | null
   /** null = live. A number is an index into recorded history (step 38). */
   replayIndex: number | null
   panels: { left: boolean; right: boolean; report: boolean; pip: boolean; newCase: boolean }
@@ -81,11 +87,14 @@ export interface StoreState {
   resetCaseData: () => void
   setUi: (patch: Partial<Omit<UiState, 'panels' | 'modes'>>) => void
   setDraftLastSeen: (p: GeoPoint | null) => void
+  /** Select a cluster (remembering its place) or clear the selection with null. */
+  selectCluster: (c: Cluster | null) => void
   setPanel: (panel: keyof UiState['panels'], open: boolean) => void
 }
 
 const initialUi = (): UiState => ({
   selectedClusterId: null,
+  selectedPlace: null,
   replayIndex: null,
   panels: { left: true, right: true, report: false, pip: false, newCase: true },
   draftLastSeen: null,
@@ -144,7 +153,19 @@ export const useStore = create<StoreState>()((set) => ({
       }
     }),
 
-  applyGhostMeta: (t, aliveFraction, clusters) => set({ ghostMeta: { t, aliveFraction }, clusters }),
+  applyGhostMeta: (t, aliveFraction, clusters) =>
+    set((s) => {
+      // Re-resolve the selection against this frame: follow the place, not the id.
+      const sel = resolveSelection(clusters, s.ui.selectedPlace)
+      const keep = s.ui.selectedPlace === null
+      return {
+        ghostMeta: { t, aliveFraction },
+        clusters,
+        ui: keep
+          ? s.ui
+          : { ...s.ui, selectedClusterId: sel ? sel.id : null, selectedPlace: sel ? sel.center : null },
+      }
+    }),
 
   hydrate: (r) =>
     set((s) => ({
@@ -158,6 +179,8 @@ export const useStore = create<StoreState>()((set) => ({
   resetCaseData: () => set((s) => ({ ...caseData(), ui: { ...initialUi(), panels: s.ui.panels } })),
 
   setUi: (patch) => set((s) => ({ ui: { ...s.ui, ...patch } })),
+  selectCluster: (c) =>
+    set((s) => ({ ui: { ...s.ui, selectedClusterId: c ? c.id : null, selectedPlace: c ? c.center : null } })),
   setDraftLastSeen: (draftLastSeen) => set((s) => ({ ui: { ...s.ui, draftLastSeen } })),
   setPanel: (panel, open) => set((s) => ({ ui: { ...s.ui, panels: { ...s.ui.panels, [panel]: open } } })),
 }))

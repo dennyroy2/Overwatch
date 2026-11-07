@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   degreesToMetres, distanceMetres, fromLngLat, fromLonLat, isInEdmonton, lngLatToLonLat, lonLatToLngLat,
-  metresToDegrees, offsetPoint, toLngLat, toLonLat, toLonLatPath,
+  lerpPoint, metresToDegrees, offsetPoint, toLngLat, toLonLat, toLonLatPath,
 } from './geo'
 
 // 124 St & Jasper Ave, the demo last-seen point (backend EDMONTON_DEFAULT)
@@ -65,3 +65,17 @@ describe('metres and degrees at Edmonton latitude', () => {
     expect(isInEdmonton(p)).toBe(true)
   })
 })
+
+describe('lerpPoint', () => {
+  it('moves part-way between two points and returns the ends at 0 and 1', () => {
+    const a = { lat: 53.5, lon: -113.5 }
+    const b = { lat: 53.6, lon: -113.3 }
+    expect(lerpPoint(a, b, 0)).toEqual(a)
+    expect(lerpPoint(a, b, 1)).toEqual(b)
+    const mid = lerpPoint(a, b, 0.5)
+    expect(mid.lat).toBeCloseTo(53.55, 6)
+    expect(mid.lon).toBeCloseTo(-113.4, 6)
+    expect(isInEdmonton(mid)).toBe(true)
+  })
+})
+

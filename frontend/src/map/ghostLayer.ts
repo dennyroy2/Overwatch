@@ -49,7 +49,7 @@ export const CORE = { radiusPixels: 2.2 } as const
  * amber-white, lighter than the ghosts (user choice), never cyan. The colour is LINEAR light, like every
  * colour here (see GHOST_RGB_LINEAR): (1.0, 0.62, 0.22) displays as a light amber (255, 205, 128).
  */
-export const TRAIL = { color: [255, 158, 56, 255] as [number, number, number, number], widthPixels: 1.6, opacity: 0.6 } as const
+export const TRAIL = { color: [255, 158, 56, 255] as [number, number, number, number], widthPixels: 1.2, opacity: 0.28 } as const
 
 /** One shared instance: a new extension object per frame would make deck.gl rebuild the shader. */
 const SOFT_EDGE = [new SoftDisc()]

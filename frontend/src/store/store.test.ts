@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useStore, upsertById, selectPendingCount } from './index'
+import { offsetPoint } from '@/lib/geo'
 import type { Evidence, TaskingRequest } from '@/types'
 
 const ev = (id: string, over: Partial<Evidence> = {}): Evidence => ({
@@ -57,5 +58,41 @@ describe('upsert by id', () => {
     const a = { byId: {}, order: [] as string[] }
     upsertById(a, { id: 'z' })
     expect(a.order).toEqual([])
+  })
+})
+
+describe('cluster selection in the store', () => {
+  const ORIGIN = { lat: 53.5422, lon: -113.5337 }
+  const mk = (id: string, east: number, p: number) => ({ id, center: offsetPoint(ORIGIN, east, 0), probability: p, evidence_ids: [] })
+
+  beforeEach(() => useStore.getState().resetCaseData())
+
+  it('select remembers the place, and the selection follows that place when ranks swap', () => {
+    const s = useStore.getState()
+    s.applyGhostMeta('t', 1, [mk('cl_0', 0, 0.4), mk('cl_1', 3000, 0.3)])
+    s.selectCluster(useStore.getState().clusters[0])
+    expect(useStore.getState().ui.selectedClusterId).toBe('cl_0')
+    // the clusters swap ranks: the selected place is now called cl_1
+    useStore.getState().applyGhostMeta('t', 1, [mk('cl_0', 3000, 0.45), mk('cl_1', 8, 0.35)])
+    expect(useStore.getState().ui.selectedClusterId).toBe('cl_1')
+  })
+
+  it('the selection clears when its place no longer has a cluster, and with selectCluster(null)', () => {
+    const s = useStore.getState()
+    s.applyGhostMeta('t', 1, [mk('cl_0', 0, 0.4)])
+    s.selectCluster(useStore.getState().clusters[0])
+    useStore.getState().applyGhostMeta('t', 1, [mk('cl_0', 9000, 0.4)])
+    expect(useStore.getState().ui.selectedClusterId).toBeNull()
+    expect(useStore.getState().ui.selectedPlace).toBeNull()
+    s.applyGhostMeta('t', 1, [mk('cl_0', 0, 0.4)])
+    s.selectCluster(useStore.getState().clusters[0])
+    useStore.getState().selectCluster(null)
+    expect(useStore.getState().ui.selectedClusterId).toBeNull()
+  })
+
+  it('no selection means ghost frames leave ui untouched', () => {
+    const before = useStore.getState().ui
+    useStore.getState().applyGhostMeta('t', 1, [mk('cl_0', 0, 0.4)])
+    expect(useStore.getState().ui).toBe(before)
   })
 })

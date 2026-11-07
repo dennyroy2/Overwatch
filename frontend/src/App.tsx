@@ -10,6 +10,7 @@ import { useStore } from '@/store'
 //   ?review=collapsed,pip,report   preview hidden panel states
 //   ?autostart=demo | unknown      open the demo case / a case id the server doesn't know
 if (import.meta.env.DEV && window.location.pathname !== '/styleguide') {
+  ;(window as unknown as Record<string, unknown>).__store = useStore
   const q = new URLSearchParams(window.location.search)
   const review = q.get('review') ?? ''
   const { setPanel } = useStore.getState()
