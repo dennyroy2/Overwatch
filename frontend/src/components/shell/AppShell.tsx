@@ -1,6 +1,7 @@
 import { ClipboardList, ListChecks } from 'lucide-react'
 import { selectPendingCount, useStore } from '@/store'
 import { NewCaseSheet } from '@/components/case/NewCaseSheet'
+import { TaskingList } from '@/components/tasking/TaskingList'
 import { EvidenceTimeline } from '@/components/timeline/EvidenceTimeline'
 import { DebugPanel } from '@/components/dev/DebugPanel'
 import { ConnectedStatusBar } from './ConnectedStatusBar'
@@ -18,6 +19,7 @@ export function AppShell({ map }: { map: React.ReactNode }) {
   const setPanel = useStore((s) => s.setPanel)
   const pending = useStore(selectPendingCount)
   const hasEvidence = useStore((s) => s.evidence.order.length > 0)
+  const hasRequests = useStore((s) => s.requests.order.length > 0)
   return (
     <div className="relative h-full w-full overflow-hidden bg-ground">
       <div className="absolute inset-0 z-0">{map}</div>
@@ -45,7 +47,9 @@ export function AppShell({ map }: { map: React.ReactNode }) {
           onToggle={() => setPanel('right', !panels.right)}
           pendingCount={pending}
           empty="No requests yet. Recommended searches appear here for you to approve, edit or reject."
-        />
+        >
+          {hasRequests ? <TaskingList /> : undefined}
+        </Rail>
         <PipSlot open={panels.pip} />
         <Scrubber />
         <CommandBar />

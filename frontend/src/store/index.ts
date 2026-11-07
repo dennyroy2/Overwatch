@@ -53,6 +53,8 @@ export interface UiState {
   /** The evidence card / map mark the officer clicked, and the one they are hovering (either side highlights the other). */
   selectedEvidenceId: string | null
   hoveredEvidenceId: string | null
+  /** The tasking request the pointer is on (its target area is outlined on the map). */
+  hoveredRequestId: string | null
   /** live, paused (a frozen picture) or playing back a recording (step 38). Position lives in stream/playback.ts. */
   replay: { mode: PlaybackMode }
   panels: { left: boolean; right: boolean; report: boolean; pip: boolean; newCase: boolean; sheetCollapsed: boolean }
@@ -107,6 +109,7 @@ export interface StoreState {
   setReplayMode: (mode: PlaybackMode) => void
   selectEvidence: (id: string | null) => void
   hoverEvidence: (id: string | null) => void
+  hoverRequest: (id: string | null) => void
   setReplayView: (v: ReplayView | null) => void
   /** Select a cluster (remembering its place) or clear the selection with null. */
   selectCluster: (c: Cluster | null) => void
@@ -118,6 +121,7 @@ const initialUi = (): UiState => ({
   selectedPlace: null,
   selectedEvidenceId: null,
   hoveredEvidenceId: null,
+  hoveredRequestId: null,
   replay: { mode: 'live' },
   panels: { left: true, right: true, report: false, pip: false, newCase: true, sheetCollapsed: false },
   draftLastSeen: null,
@@ -215,6 +219,7 @@ export const useStore = create<StoreState>()((set) => ({
   setUi: (patch) => set((s) => ({ ui: { ...s.ui, ...patch } })),
   selectEvidence: (id) => set((s) => ({ ui: { ...s.ui, selectedEvidenceId: id } })),
   hoverEvidence: (id) => set((s) => (s.ui.hoveredEvidenceId === id ? s : { ui: { ...s.ui, hoveredEvidenceId: id } })),
+  hoverRequest: (id) => set((s) => (s.ui.hoveredRequestId === id ? s : { ui: { ...s.ui, hoveredRequestId: id } })),
   setReplayMode: (mode) => set((s) => ({ ui: { ...s.ui, replay: { mode } } })),
   setReplayView: (replayView) => set({ replayView }),
   selectCluster: (c) =>
