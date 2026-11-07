@@ -70,3 +70,25 @@ def test_engine_stub_evidence_shrinks_spread():
     after = eng.pos.std(axis=0).mean()
     assert after < before
     assert eng.propose()[0].expected_gain > 0
+
+
+def test_posted_sighting_proposes_tasking_without_fake_beats(monkeypatch):
+    from backend.api import fake_stream
+    monkeypatch.setattr(fake_stream, "FAKE_BEATS_ON", False)
+    cid = _case()
+    with client.websocket_connect(f"/stream/{cid}") as ws:
+        ws.receive_json()  # stream is running
+        client.post("/evidence", json={
+            "case_id": cid, "kind": "sighting", "time": "2026-11-07T15:10:00Z",
+            "location": {"lat": 53.533, "lon": -113.525}, "radius_m": 150,
+            "source": "transit", "summary": "Bus driver sighting",
+        })
+        kinds = []
+        for _ in range(40):
+            msg = ws.receive_json()
+            kinds.append(msg["type"])
+            if msg["type"] == "evidence":
+                assert msg["data"]["source"] == "transit"  # no fake beats
+            if msg["type"] == "tasking":
+                break
+    assert "tasking" in kinds
