@@ -7,8 +7,8 @@
 import { API_URL } from '@/lib/config'
 import type { Decision, LogEntry, TaskingRequest } from '@/types'
 
-/** The signed-in officer. There is no login in the demo, so this is the fictional case's officer (decided with the user). */
-export const OFFICER = 'Officer Lee'
+import { OFFICER } from '@/lib/officer'
+export { OFFICER }
 
 /** Assets an officer can swap to when editing. The backend has no asset list yet, so these are the demo's. */
 export const ASSETS = ['Drone 1', 'Drone 2', 'Ground Team 1', 'Ground Team 2', 'Ground Team 3'] as const

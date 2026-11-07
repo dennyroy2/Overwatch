@@ -7,6 +7,7 @@ import { watchClusters } from '@/map/clusterMarkers'
 import { watchDraftLastSeen } from '@/map/draftMarker'
 import { watchEvidence } from '@/map/evidenceLayer'
 import { attachGhosts } from '@/map/ghostLayer'
+import { watchFound } from '@/map/foundMarker'
 import { watchRoutes } from '@/map/routeLayer'
 import { watchTasking } from '@/map/taskingLayer'
 import { loadStyle } from '@/map/style'
@@ -26,6 +27,7 @@ export function MapView() {
     let unwatchEvidence = () => {}
     let unwatchTasking = () => {}
     let unwatchRoutes = () => {}
+    let unwatchFound = () => {}
 
     void loadStyle().then((style) => {
       if (cancelled || !container.current) return
@@ -52,6 +54,7 @@ export function MapView() {
       unwatchEvidence = watchEvidence(map)
       unwatchTasking = watchTasking(map)
       unwatchRoutes = watchRoutes(map)
+      unwatchFound = watchFound(map)
       const ghostHandle = attachGhosts(map)
       detachGhosts = ghostHandle.dispose
       if (import.meta.env.DEV) {
@@ -72,6 +75,7 @@ export function MapView() {
       unwatchEvidence()
       unwatchTasking()
       unwatchRoutes()
+      unwatchFound()
       setMap(null)
       map?.remove()
     }

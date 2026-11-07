@@ -9,6 +9,7 @@ import { Rail } from './Rail'
 import { CommandBar } from './CommandBar'
 import { Scrubber } from './Scrubber'
 import { PipSlot, ReportSlot } from './Slots'
+import { FoundBanner } from './FoundBanner'
 import { Toaster } from './Toaster'
 
 /**
@@ -20,6 +21,7 @@ export function AppShell({ map }: { map: React.ReactNode }) {
   const setPanel = useStore((s) => s.setPanel)
   const pending = useStore(selectPendingCount)
   const hasEvidence = useStore((s) => s.evidence.order.length > 0)
+  const caseId = useStore((s) => s.caseProfile?.case_id ?? null)
   const hasRequests = useStore((s) => s.requests.order.length > 0)
   return (
     <div className="relative h-full w-full overflow-hidden bg-ground">
@@ -55,7 +57,8 @@ export function AppShell({ map }: { map: React.ReactNode }) {
         <Scrubber />
         <CommandBar />
         <Toaster />
-        <ReportSlot open={panels.report} onClose={() => setPanel('report', false)} />
+        <FoundBanner />
+        <ReportSlot open={panels.report} caseId={caseId} onClose={() => setPanel('report', false)} />
         {import.meta.env.DEV && <DebugPanel />}
       </div>
     </div>

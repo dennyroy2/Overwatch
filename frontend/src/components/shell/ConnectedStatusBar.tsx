@@ -1,4 +1,5 @@
 import { useStore } from '@/store'
+import { CloseSearchControl } from './CloseSearchControl'
 import { StatusBar } from './StatusBar'
 
 const pad = (n: number) => String(Math.floor(n)).padStart(2, '0')
@@ -31,6 +32,7 @@ export function ConnectedStatusBar() {
       aliveFraction={alive ?? undefined}
       connection={connection}
       viewNote={mode === 'paused' ? 'Paused view' : mode === 'playing' ? 'Replaying' : undefined}
+      actions={<CloseSearchControl />}
       onNewCase={() => { setPanel('sheetCollapsed', false); setPanel('newCase', true) }}
     />
   )

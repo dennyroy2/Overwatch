@@ -104,6 +104,10 @@ export interface StoreState {
   /** What the recording shows while paused or replaying (null when live). Never backend data: derived from it. */
   replayView: ReplayView | null
   found: FoundEvent | null
+  /** A close-search request is on its way (the button shows a pending state). */
+  closing: boolean
+  /** The "possible match" the officer dismissed as not a match (screen-only: the contract cannot record it yet, ask #17). */
+  foundDismissed: string | null
   ui: UiState
 
   setCaseProfile: (p: SubjectProfile | null) => void
@@ -121,6 +125,8 @@ export interface StoreState {
   selectEvidence: (id: string | null) => void
   hoverEvidence: (id: string | null) => void
   hoverRequest: (id: string | null) => void
+  setClosing: (closing: boolean) => void
+  dismissFound: (key: string | null) => void
   /** Remember that a decision was just sent (the card shows a spinner until the stream confirms it). */
   beginDecision: (requestId: string, choice: Choice) => void
   endDecision: (requestId: string) => void
@@ -157,6 +163,8 @@ const caseData = () => ({
   ghostMeta: { t: null as string | null, aliveFraction: null as number | null },
   replayView: null as ReplayView | null,
   found: null as FoundEvent | null,
+  closing: false,
+  foundDismissed: null as string | null,
 })
 
 function addLog(s: Pick<StoreState, 'log' | 'logKeys'>, entries: LogEntry[]) {
@@ -247,6 +255,8 @@ export const useStore = create<StoreState>()((set) => ({
   }),
   pushToast: (tone, text) => set((s) => ({ toasts: [...s.toasts.slice(-3), { id: ++toastSeq, tone, text }] })),
   dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
+  setClosing: (closing) => set({ closing }),
+  dismissFound: (foundDismissed) => set({ foundDismissed }),
   hoverRequest: (id) => set((s) => (s.ui.hoveredRequestId === id ? s : { ui: { ...s.ui, hoveredRequestId: id } })),
   setReplayMode: (mode) => set((s) => ({ ui: { ...s.ui, replay: { mode } } })),
   setReplayView: (replayView) => set({ replayView }),
