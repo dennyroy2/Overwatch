@@ -34,7 +34,7 @@ Scenario ──────┘                          └─► tasking reques
 
 `ghosts.data.positions` is `[[lon, lat, weight], ...]`, pushed ~5×/s.
 
-Stream settings (env vars): `OVERWATCH_GHOSTS` (default 5000), `OVERWATCH_FPS` (5), `OVERWATCH_SIM_SPEED` (sim minutes per tick, 0.5).
+Stream settings (env vars): `OVERWATCH_GHOSTS` (default 5000), `OVERWATCH_FPS` (5), `OVERWATCH_SIM_SPEED` (sim minutes per tick, 0.5), `OVERWATCH_FAKE_BEATS` (1; set to 0, or run `make api-live`, to turn off the built-in fake evidence when the scenario or real officers post evidence). Any posted sighting or clue triggers new tasking requests.
 
 ## Folder ownership
 | Folder | Owner |

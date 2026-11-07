@@ -19,6 +19,11 @@ from backend.engine.interface import SearchEngine, StubEngine
 FPS = float(os.getenv("OVERWATCH_FPS", "5"))
 GHOSTS = int(os.getenv("OVERWATCH_GHOSTS", "5000"))
 SIM_MINUTES_PER_TICK = float(os.getenv("OVERWATCH_SIM_SPEED", "0.5"))
+# Set OVERWATCH_FAKE_BEATS=0 when a real scenario (or real officers) post the evidence.
+FAKE_BEATS_ON = os.getenv("OVERWATCH_FAKE_BEATS", "1").lower() not in ("0", "false", "off", "no")
+
+# Evidence that should make the engine propose new tasking requests
+PROPOSE_ON = ("sighting", "clue")
 
 # Fictional demo beats (location approximate; Edmonton river valley area)
 FAKE_BEATS = [
@@ -41,11 +46,17 @@ def make_engine() -> SearchEngine:
     return StubEngine(n_ghosts=GHOSTS)
 
 
+async def _propose(hub: CaseHub, engine: SearchEngine) -> None:
+    for req in engine.propose():
+        hub.requests[req.id] = req
+        await hub.broadcast(TaskingMsg(data=req))
+
+
 async def run_fake_case(hub: CaseHub) -> None:
     engine = make_engine()
     start = hub.profile.last_seen_time or datetime.now(timezone.utc)
     engine.reset(hub.profile, start)
-    beats = list(FAKE_BEATS)
+    beats = list(FAKE_BEATS) if FAKE_BEATS_ON else []
     applied: set[str] = set()
     tick = 0
     seconds = 0.0
@@ -58,6 +69,8 @@ async def run_fake_case(hub: CaseHub) -> None:
             for ev in pending:
                 engine.apply(ev)
                 applied.add(ev.id)
+            if any(ev.kind in PROPOSE_ON for ev in pending):
+                await _propose(hub, engine)
 
             # Scripted fake beats
             while beats and seconds >= beats[0][0]:
@@ -68,10 +81,8 @@ async def run_fake_case(hub: CaseHub) -> None:
                 engine.apply(ev)
                 await hub.broadcast(EvidenceMsg(data=ev))
                 await hub.broadcast(LogMsg(data=hub.add_log("system", "evidence_added", ev.summary)))
-                if ev.kind in ("sighting", "clue"):
-                    for req in engine.propose():
-                        hub.requests[req.id] = req
-                        await hub.broadcast(TaskingMsg(data=req))
+                if ev.kind in PROPOSE_ON:
+                    await _propose(hub, engine)
 
             await hub.broadcast(GhostsMsg(data=engine.frame()))
             tick += 1
