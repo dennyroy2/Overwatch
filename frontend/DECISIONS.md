@@ -49,3 +49,7 @@ Contract `GeoPoint` = `{lat, lon}`. Ghost `positions` = `[lon, lat, weight]`. de
 |---|---|---|---|
 | 2026-11-06 | Ownership guard counts committed + staged + unstaged changes; untracked files only warn | Failing on any untracked file | Local untracked root files (roadmap, PRODUCT.md) would make the guard fail forever; untracked files can't reach a PR until added |
 | 2026-11-06 | Guard has a `CHECK_OWNERSHIP_FILES` test hook | Temporarily editing `contracts/` to test the guard | Hard rule 1: never touch files outside our folders, even briefly |
+| 2026-11-06 | `StreamMessage` alias is the union of the five `*Msg` schemas, defined in `types/index.ts` | Importing a generated `StreamMessage` | The contract's `StreamMessage` is an inline union in OpenAPI, so no named schema is generated; the union of the five `*Msg` types narrows on `type` exactly the same |
+| 2026-11-06 | `narrowing.check.ts` holds an exhaustive `switch` with a `never` check | Trusting the alias by eye | If Rishaan adds a message type and I regenerate, `npm run typecheck` fails until I handle it |
+| 2026-11-06 | Treat generated fields that have server defaults (`clusters?`, `confirmed?`, `reliability?`, `status?`, `mobility?`...) as possibly undefined in UI code | Assuming they are always present | openapi-typescript marks defaulted fields optional; the server does send them, but the types don't promise it |
+
