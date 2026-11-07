@@ -23,11 +23,15 @@ export interface DensityStats {
 }
 
 /** Local density of a frame. Cells grow if the swarm is too wide for the grid. Empty frame -> zeros. */
-export function densityStats(buf: Float32Array, count: number, cellMetres = CELL_METRES): DensityStats {
+/**
+ * `stride` is floats per ghost: the live buffer has 4, a replayed frame has 3. Longitude and latitude are the
+ * first two floats in both layouts.
+ */
+export function densityStats(buf: Float32Array, count: number, cellMetres = CELL_METRES, stride = FLOATS_PER_GHOST): DensityStats {
   if (count === 0) return { peak: 0, meanOccupied: 0 }
   let minLon = Infinity, maxLon = -Infinity, minLat = Infinity, maxLat = -Infinity
   for (let i = 0; i < count; i++) {
-    const o = i * FLOATS_PER_GHOST
+    const o = i * stride
     const lo = buf[o + OFFSET.longitude]
     const la = buf[o + OFFSET.latitude]
     if (lo < minLon) minLon = lo
@@ -44,7 +48,7 @@ export function densityStats(buf: Float32Array, count: number, cellMetres = CELL
   let peak = 0
   let occupied = 0
   for (let i = 0; i < count; i++) {
-    const o = i * FLOATS_PER_GHOST
+    const o = i * stride
     const x = Math.floor((buf[o + OFFSET.longitude] - minLon) / cellLon)
     const y = Math.floor((buf[o + OFFSET.latitude] - minLat) / cellLat)
     const c = ++scratch[y * nx + x]

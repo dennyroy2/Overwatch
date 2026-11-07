@@ -9,11 +9,15 @@ import { ScatterplotLayer } from '@deck.gl/layers'
 import { TripsLayer } from '@deck.gl/geo-layers'
 import type { Map as MapLibreMap } from 'maplibre-gl'
 import { createGroundSampler, type GroundSampler } from './elevation'
-import { CORE_OPACITY, GlowEase, densityStats } from './glow'
+import { CELL_METRES, CORE_OPACITY, GlowEase, densityStats } from './glow'
 import { SoftDisc, WarmCore } from './softDisc'
 import { currentBuffer, ghosts, onGhostFrame } from '@/stream/ghostBuffer'
 import { perf } from '@/stream/perf'
 import { GhostSmoother, type SmootherOutput } from '@/stream/smoother'
+import { history } from '@/stream/history'
+import { playback } from '@/stream/playback'
+import { ReplayRenderer, type ReplayFrame } from '@/stream/replay'
+import { useStore } from '@/store'
 import { TRAIL_MS, TrailBuffer, type TrailOutput } from '@/stream/trails'
 
 export interface GhostLayerHandle {
@@ -140,16 +144,34 @@ export function attachGhosts(map: MapLibreMap): GhostLayerHandle {
   const smoother = new GhostSmoother()
   const glow = new GlowEase()
   const trails = new TrailBuffer()
+  const renderer = new ReplayRenderer()
+  let lastLive: SmootherOutput | null = null
 
-  // Data side: a new frame arrived. Put ghosts on the ground, then tell the smoother.
+  // Data side: a new frame arrived. Put ghosts on the ground, record it, and tell the smoother.
+  // This always runs, even while the screen is paused: the stream keeps being recorded.
   const onFrame = () => {
     const count = ghosts.count
     if (count > 0 && sampleGround) sampler.apply(currentBuffer(), count)
     smoother.onFrame(ghosts.receivedAt, currentBuffer(), count, ghosts.respawned, ghosts.allRespawned)
     trails.onFrame(ghosts.receivedAt, count, smoother) // after the smoother: it reads what the smoother just decided
     perf.trails = trails.trailCount
-    if (count === 0) glow.reset()
-    else {
+    const store = useStore.getState()
+    history.onFrame({
+      arrivalMs: ghosts.receivedAt,
+      cur: currentBuffer(),
+      count,
+      allRespawned: smoother.respawnedAll,
+      wasRespawned: (i) => smoother.wasRespawned(i),
+      simTime: ghosts.simTime,
+      clusters: store.clusters,
+      alive: store.ghostMeta.aliveFraction,
+    })
+    if (count === 0) {
+      glow.reset()
+      playback.reset() // the case closed or was replaced: back to live
+      store.setReplayView(null)
+    } else if (playback.isLive) {
+      // Only the live picture drives the glow here; a paused or replayed picture sets it from its own frame.
       const d = densityStats(currentBuffer(), count)
       glow.setDensity(d.meanOccupied)
       perf.peakPerCell = d.peak
@@ -158,11 +180,59 @@ export function attachGhosts(map: MapLibreMap): GhostLayerHandle {
   }
   const off = onGhostFrame(onFrame)
 
+  // What the screen shows right now, so "pause" can freeze that exact frame.
+  playback.setCapture(() => {
+    const store = useStore.getState()
+    if (!lastLive || lastLive.count === 0) return null
+    return {
+      drawn: lastLive.pos,
+      count: lastLive.count,
+      weights: currentBuffer(),
+      simTime: ghosts.simTime,
+      clusters: store.clusters,
+      alive: store.ghostMeta.aliveFraction,
+    }
+  })
+  const offMode = playback.onChange(() => useStore.getState().setReplayMode(playback.mode))
+
   // Render side: every animation frame, blend and hand the result to deck.gl. No React involved.
   let raf = 0
   let drawnEmpty = false
   let fpsFrames = 0
   let fpsSince = performance.now()
+  // Replay bookkeeping: redraw a paused picture only while something is still changing (a seek, the glow easing).
+  let replayFrame: ReplayFrame | null = null
+  let renderedVersion = -1
+  let settleUntil = 0
+  let lastViewPush = 0
+  let lastKeyframe = -1
+
+  const drawReplay = (now: number) => {
+    if (playback.version !== renderedVersion || playback.mode === 'playing') {
+      renderedVersion = playback.version
+      replayFrame = renderer.render(history, playback.T)
+      if (replayFrame && replayFrame.out.count > 0) {
+        const d = densityStats(replayFrame.out.pos, replayFrame.out.count, CELL_METRES, 3)
+        glow.setDensity(d.meanOccupied)
+        perf.peakPerCell = d.peak
+        perf.typicalPerCell = d.meanOccupied
+        // Rings and the sim clock follow the recorded moment (throttled; they change slowly).
+        if (replayFrame.keyframe !== lastKeyframe || now - lastViewPush >= 100) {
+          lastKeyframe = replayFrame.keyframe
+          lastViewPush = now
+          useStore.getState().setReplayView({ clusters: replayFrame.clusters, simTime: replayFrame.simTime, alive: replayFrame.alive })
+        }
+      }
+      settleUntil = now + 700 // let the glow ease to its new level
+    }
+    glow.step(now)
+    perf.haloOpacity = glow.halo
+    if (replayFrame && replayFrame.out.count > 0 && now < settleUntil) {
+      overlay.setProps({ layers: makeLayers(replayFrame.out, TRAILS_ON ? replayFrame.trails : NO_TRAILS, glow) })
+      drawnEmpty = false
+    }
+  }
+
   const loop = (now: number) => {
     const t0 = performance.now()
     // Slice of ground-height work (a few ms at most); when a new grid swaps in, re-seat the ghosts on it.
@@ -170,16 +240,29 @@ export function attachGhosts(map: MapLibreMap): GhostLayerHandle {
       sampler.step(GROUND_BUDGET_MS)
       if (sampler.takeSwapped() && ghosts.count > 0) sampler.apply(currentBuffer(), ghosts.count)
     }
-    const out = smoother.tick(now)
-    if (out.count > 0) {
-      glow.step(now)
-      perf.haloOpacity = glow.halo
-      // With trails off (dev switch), skip building them too, so the measurement shows the real saving.
-      overlay.setProps({ layers: makeLayers(out, TRAILS_ON ? trails.tick(now, out.pos) : NO_TRAILS, glow) })
-      drawnEmpty = false
-    } else if (!drawnEmpty) {
-      overlay.setProps({ layers: [] })
-      drawnEmpty = true
+    playback.advance(now)
+    const out = smoother.tick(now) // always tick: the live picture keeps going behind a paused one
+    lastLive = out
+    if (!playback.isLive) {
+      drawReplay(now)
+    } else {
+      if (replayFrame) {
+        // Just went live again: drop the recorded picture and let the live one take over.
+        replayFrame = null
+        renderedVersion = -1
+        lastKeyframe = -1
+        useStore.getState().setReplayView(null)
+      }
+      if (out.count > 0) {
+        glow.step(now)
+        perf.haloOpacity = glow.halo
+        // With trails off (dev switch), skip building them too, so the measurement shows the real saving.
+        overlay.setProps({ layers: makeLayers(out, TRAILS_ON ? trails.tick(now, out.pos) : NO_TRAILS, glow) })
+        drawnEmpty = false
+      } else if (!drawnEmpty) {
+        overlay.setProps({ layers: [] })
+        drawnEmpty = true
+      }
     }
     perf.workMs = performance.now() - t0
     fpsFrames += 1
@@ -196,6 +279,8 @@ export function attachGhosts(map: MapLibreMap): GhostLayerHandle {
     w.__smoother = smoother
     w.__trails = trails
     w.__perf = perf
+    w.__history = history
+    w.__playback = playback
   }
   // New terrain tiles arriving is the only thing that can fill grid holes; camera moves don't matter.
   const onSourceData = (e: { sourceId?: string }) => { if (e.sourceId === 'terrain-dem') sampler.markStale() }
@@ -206,6 +291,8 @@ export function attachGhosts(map: MapLibreMap): GhostLayerHandle {
     sampler,
     dispose: () => {
       off()
+      offMode()
+      playback.setCapture(null)
       cancelAnimationFrame(raf)
       map.off('sourcedata', onSourceData)
       map.removeControl(overlay)

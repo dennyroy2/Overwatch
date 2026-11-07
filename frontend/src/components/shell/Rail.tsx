@@ -30,7 +30,7 @@ export function Rail({ side, title, icon: Icon, open, onToggle, pendingCount = 0
     <aside
       aria-label={title}
       className={cn(
-        'pointer-events-auto absolute bottom-[4.75rem] top-[4.25rem] z-10 overflow-hidden rounded-lg border bg-panel shadow-panel',
+        'pointer-events-auto absolute bottom-[var(--ow-dock)] top-[4.25rem] z-10 overflow-hidden rounded-lg border bg-panel shadow-panel',
         'transition-[width] duration-[var(--ow-dur-base)] ease-[var(--ow-ease-out)]',
         side === 'left' ? 'left-3' : 'right-3',
         attention ? 'border-amber' : 'border-line',

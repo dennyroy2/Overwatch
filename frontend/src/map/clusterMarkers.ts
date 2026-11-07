@@ -8,7 +8,7 @@
 import { Marker, type Map as MapLibreMap } from 'maplibre-gl'
 import { ClusterTracker, ringDiameterPx, topIndices, type Track } from '@/lib/clusters'
 import { distanceMetres, lerpPoint, toLngLat } from '@/lib/geo'
-import { useStore } from '@/store'
+import { selectDisplayedClusters, useStore } from '@/store'
 import type { Cluster, GeoPoint } from '@/types'
 
 /** How quickly a ring glides toward its newest centre (time constant, ms). */
@@ -77,13 +77,15 @@ export function watchClusters(map: MapLibreMap): () => void {
 
   const onMarkerClick = (m: ClusterMarker) => {
     const s = useStore.getState()
-    const cluster = s.clusters.find((c) => c.id === m.track.clusterId) ?? null
+    const cluster = selectDisplayedClusters(s).find((c) => c.id === m.track.clusterId) ?? null
     // Clicking the selected cluster again clears the selection.
     s.selectCluster(cluster && s.ui.selectedClusterId === cluster.id ? null : cluster)
   }
 
   const sync = () => {
-    const { clusters, ui } = useStore.getState()
+    const state = useStore.getState()
+    const clusters = selectDisplayedClusters(state)
+    const ui = state.ui
     if (clusters === lastClusters && ui.selectedClusterId === lastSelected) return
     lastClusters = clusters
     lastSelected = ui.selectedClusterId

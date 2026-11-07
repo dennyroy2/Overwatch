@@ -75,6 +75,8 @@
   --ow-gap-group: 0.75rem;   /* 12 */
   --ow-gap-section: 1.5rem;  /* 24 */
   --ow-rail-width: 22rem;
+  /* Height reserved at the bottom for the time bar (2.5rem) and command bar (3.5rem) plus gaps; panels stop above it */
+  --ow-dock: 7.5rem;
 
   /* Radius: institutional, small. One step per role. */
   --ow-radius-sm: 2px;  /* chips, bars */

@@ -7,6 +7,7 @@
 import { create } from 'zustand'
 import { hasId } from '@/types'
 import { resolveSelection } from '@/lib/clusters'
+import type { PlaybackMode } from '@/stream/playback'
 import type {
   Cluster, Evidence, FoundEvent, GeoPoint, LogEntry, Report, StreamMessage, SubjectProfile, TaskingRequest, WithId,
 } from '@/types'
@@ -49,13 +50,20 @@ export interface UiState {
    * selection follows this PLACE and re-resolves the id each frame (lib/clusters.ts).
    */
   selectedPlace: GeoPoint | null
-  /** null = live. A number is an index into recorded history (step 38). */
-  replayIndex: number | null
-  panels: { left: boolean; right: boolean; report: boolean; pip: boolean; newCase: boolean }
+  /** live, paused (a frozen picture) or playing back a recording (step 38). Position lives in stream/playback.ts. */
+  replay: { mode: PlaybackMode }
+  panels: { left: boolean; right: boolean; report: boolean; pip: boolean; newCase: boolean; sheetCollapsed: boolean }
   /** Last-seen point picked on the map while the New case sheet is open. Draft input, not backend data. */
   draftLastSeen: GeoPoint | null
   /** "why" mode etc. (step 37). */
   modes: { why: boolean }
+}
+
+export interface ReplayView {
+  clusters: readonly Cluster[]
+  /** Simulation time at the replayed moment, ms since the Unix epoch. */
+  simTime: number | null
+  alive: number | null
 }
 
 export interface ConnectionInfo {
@@ -73,6 +81,8 @@ export interface StoreState {
   logKeys: Record<string, true>
   clusters: Cluster[]
   ghostMeta: { t: string | null; aliveFraction: number | null }
+  /** What the recording shows while paused or replaying (null when live). Never backend data: derived from it. */
+  replayView: ReplayView | null
   found: FoundEvent | null
   ui: UiState
 
@@ -87,6 +97,8 @@ export interface StoreState {
   resetCaseData: () => void
   setUi: (patch: Partial<Omit<UiState, 'panels' | 'modes'>>) => void
   setDraftLastSeen: (p: GeoPoint | null) => void
+  setReplayMode: (mode: PlaybackMode) => void
+  setReplayView: (v: ReplayView | null) => void
   /** Select a cluster (remembering its place) or clear the selection with null. */
   selectCluster: (c: Cluster | null) => void
   setPanel: (panel: keyof UiState['panels'], open: boolean) => void
@@ -95,8 +107,8 @@ export interface StoreState {
 const initialUi = (): UiState => ({
   selectedClusterId: null,
   selectedPlace: null,
-  replayIndex: null,
-  panels: { left: true, right: true, report: false, pip: false, newCase: true },
+  replay: { mode: 'live' },
+  panels: { left: true, right: true, report: false, pip: false, newCase: true, sheetCollapsed: false },
   draftLastSeen: null,
   modes: { why: false },
 })
@@ -108,6 +120,7 @@ const caseData = () => ({
   logKeys: {} as Record<string, true>,
   clusters: [] as Cluster[],
   ghostMeta: { t: null as string | null, aliveFraction: null as number | null },
+  replayView: null as ReplayView | null,
   found: null as FoundEvent | null,
 })
 
@@ -179,6 +192,8 @@ export const useStore = create<StoreState>()((set) => ({
   resetCaseData: () => set((s) => ({ ...caseData(), ui: { ...initialUi(), panels: s.ui.panels } })),
 
   setUi: (patch) => set((s) => ({ ui: { ...s.ui, ...patch } })),
+  setReplayMode: (mode) => set((s) => ({ ui: { ...s.ui, replay: { mode } } })),
+  setReplayView: (replayView) => set({ replayView }),
   selectCluster: (c) =>
     set((s) => ({ ui: { ...s.ui, selectedClusterId: c ? c.id : null, selectedPlace: c ? c.center : null } })),
   setDraftLastSeen: (draftLastSeen) => set((s) => ({ ui: { ...s.ui, draftLastSeen } })),
@@ -188,3 +203,7 @@ export const useStore = create<StoreState>()((set) => ({
 /** Number of requests waiting on the officer. */
 export const selectPendingCount = (s: StoreState): number =>
   s.requests.order.reduce((n, id) => n + ((s.requests.byId[id].status ?? 'pending') === 'pending' ? 1 : 0), 0)
+
+/** The clusters to draw: the recorded moment while paused or replaying, the live ones otherwise. */
+export const selectDisplayedClusters = (s: StoreState): readonly Cluster[] =>
+  s.ui.replay.mode !== 'live' && s.replayView ? s.replayView.clusters : s.clusters

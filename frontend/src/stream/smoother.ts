@@ -109,6 +109,11 @@ export class GhostSmoother {
     return this.from
   }
 
+  /** True when EVERY slot is new in the newest frame (a new swarm, or the fallback after evidence). */
+  get respawnedAll(): boolean {
+    return this.allFlag
+  }
+
   /** True if slot `i` was respawned in the newest frame (every slot counts on a case's first frame and on the fallback). */
   wasRespawned(i: number): boolean {
     return this.allFlag || this.respawnFlags[i] === 1

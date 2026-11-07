@@ -7,7 +7,7 @@ export function PipSlot({ open }: { open: boolean }) {
   return (
     <section
       aria-label="Drone feed"
-      className="pointer-events-auto absolute bottom-[4.75rem] right-[calc(var(--ow-rail-width)+1.5rem)] z-10 w-[24rem] overflow-hidden rounded-lg border border-line bg-panel shadow-panel"
+      className="pointer-events-auto absolute bottom-[var(--ow-dock)] right-[calc(var(--ow-rail-width)+1.5rem)] z-10 w-[24rem] overflow-hidden rounded-lg border border-line bg-panel shadow-panel"
     >
       <div className="flex h-9 items-center gap-2 border-b border-line px-3">
         <Drone className="size-4 text-ink-2" aria-hidden />

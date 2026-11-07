@@ -24,6 +24,7 @@
   --color-amber-dim: var(--ow-amber-dim);
   --color-amber-wash: var(--ow-amber-wash);
   --color-on-amber: var(--ow-on-amber);
+  --color-warm: var(--ow-warm-white);
   --color-ai: var(--ow-cyan);
   --color-ai-dim: var(--ow-cyan-dim);
   --color-ai-wash: var(--ow-cyan-wash);
@@ -126,7 +127,7 @@
 /* MapLibre attribution: required by OpenFreeMap/OSM, themed to the palette, sits between the rails above the command bar */
 .maplibregl-map .maplibregl-ctrl-bottom-left {
   left: 50%;
-  bottom: 4.5rem;
+  bottom: var(--ow-dock);
   transform: translateX(-50%);
 }
 .maplibregl-ctrl-attrib {

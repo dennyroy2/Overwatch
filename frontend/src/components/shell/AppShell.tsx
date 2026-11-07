@@ -5,6 +5,7 @@ import { DebugPanel } from '@/components/dev/DebugPanel'
 import { ConnectedStatusBar } from './ConnectedStatusBar'
 import { Rail } from './Rail'
 import { CommandBar } from './CommandBar'
+import { Scrubber } from './Scrubber'
 import { PipSlot, ReportSlot } from './Slots'
 
 /**
@@ -42,6 +43,7 @@ export function AppShell({ map }: { map: React.ReactNode }) {
           empty="No requests yet. Recommended searches appear here for you to approve, edit or reject."
         />
         <PipSlot open={panels.pip} />
+        <Scrubber />
         <CommandBar />
         <ReportSlot open={panels.report} onClose={() => setPanel('report', false)} />
         {import.meta.env.DEV && <DebugPanel />}
