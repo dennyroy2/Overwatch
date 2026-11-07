@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-06T00:00:00Z",
+  "title": "Design System: Overwatch",
+  "extensions": {
+    "colorMeta": {
+      "ground": { "role": "neutral", "displayName": "Ground", "canonical": "#06080b", "tonalRamp": ["#06080b", "#0c1015", "#121820", "#1a222d", "#232c39", "#3a4757", "#8592a2", "#e9edf2"] },
+      "amber": { "role": "primary", "displayName": "Emergency Amber", "canonical": "#ffb224", "tonalRamp": ["#1a1100", "#3d2a08", "#7a5410", "#b87f18", "#ffb224", "#ffc24f", "#ffd68a", "#ffecc7"] },
+      "ai-cyan": { "role": "secondary", "displayName": "Calm AI Cyan", "canonical": "#5cd3e8", "tonalRamp": ["#08181b", "#0f3038", "#1d5a66", "#2f8a9b", "#5cd3e8", "#85e0ef", "#b0ecf5", "#dff7fb"] },
+      "danger": { "role": "status", "displayName": "Danger", "canonical": "#ff6459" },
+      "success": { "role": "status", "displayName": "Success", "canonical": "#41d392" }
+    },
+    "typographyMeta": {
+      "title-xl": { "displayName": "Case name", "purpose": "Case title, 28px semibold." },
+      "headline": { "displayName": "Panel title", "purpose": "Section and panel headings, 20px." },
+      "title": { "displayName": "Card title", "purpose": "Card headings, 16px." },
+      "body": { "displayName": "Body", "purpose": "Default interface text, 13px." },
+      "label": { "displayName": "Detail", "purpose": "Secondary detail, 12px." },
+      "data": { "displayName": "Data", "purpose": "Timestamps, units, percentages in tabular mono, 11px." },
+      "figure": { "displayName": "Figure", "purpose": "Expected-gain number in amber mono, 20px." }
+    },
+    "shadows": [
+      { "name": "panel", "value": "0 8px 24px rgb(0 0 0 / 0.45), 0 1px 2px rgb(0 0 0 / 0.5)", "purpose": "Cards and floating panels over the map. Never a coloured halo." }
+    ],
+    "motion": [
+      { "name": "ease-out", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Default easing (ease-out expo)." },
+      { "name": "dur-fast", "value": "120ms", "purpose": "Hover and press feedback." },
+      { "name": "dur-base", "value": "220ms", "purpose": "Panel and state transitions." },
+      { "name": "dur-slow", "value": "420ms", "purpose": "Larger reveals." },
+      { "name": "dur-camera", "value": "2400ms", "purpose": "Map fly-ins. All durations collapse to 0ms under prefers-reduced-motion." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Human approves a decision. Amber fill.",
+      "html": "<button class=\"ds-btn ds-btn-primary\">Approve</button>",
+      "css": ".ds-btn { height: 28px; padding: 0 10px; border: 1px solid transparent; border-radius: 4px; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 0.8rem; font-weight: 500; cursor: pointer; transition: background 120ms cubic-bezier(0.16,1,0.3,1), transform 120ms; } .ds-btn:active { transform: translateY(1px); } .ds-btn:focus-visible { outline: 2px solid var(--ow-amber, #ffb224); outline-offset: 2px; } .ds-btn-primary { background: var(--ow-amber, #ffb224); color: var(--ow-on-amber, #1a1100); } .ds-btn-primary:hover { background: rgb(255 178 36 / 0.8); }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Neutral alternative action such as Edit.",
+      "html": "<button class=\"ds-btn ds-btn-secondary\">Edit</button>",
+      "css": ".ds-btn { height: 28px; padding: 0 10px; border: 1px solid transparent; border-radius: 4px; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 0.8rem; font-weight: 500; cursor: pointer; transition: background 120ms; } .ds-btn:focus-visible { outline: 2px solid var(--ow-amber, #ffb224); outline-offset: 2px; } .ds-btn-secondary { background: var(--ow-bg-3, #1a222d); color: var(--ow-text-1, #e9edf2); } .ds-btn-secondary:hover { background: color-mix(in oklch, #1a222d, #e9edf2 5%); }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Low-emphasis action such as Reject.",
+      "html": "<button class=\"ds-btn ds-btn-ghost\">Reject</button>",
+      "css": ".ds-btn { height: 28px; padding: 0 10px; border: 1px solid transparent; border-radius: 4px; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 0.8rem; font-weight: 500; cursor: pointer; transition: background 120ms; } .ds-btn:focus-visible { outline: 2px solid var(--ow-amber, #ffb224); outline-offset: 2px; } .ds-btn-ghost { background: transparent; color: var(--ow-text-1, #e9edf2); } .ds-btn-ghost:hover { background: var(--ow-bg-2, #121820); }"
+    },
+    {
+      "name": "Reliability Meter",
+      "kind": "custom",
+      "refersTo": "reliability-fill",
+      "description": "Source reliability as an amber bar with mono percentage.",
+      "html": "<div class=\"ds-meter-row\"><div class=\"ds-meter\" role=\"meter\" aria-valuenow=\"75\" aria-valuemin=\"0\" aria-valuemax=\"100\"><div class=\"ds-meter-fill\"></div></div><span class=\"ds-meter-num\">75%</span></div>",
+      "css": ".ds-meter-row { display: flex; align-items: center; gap: 8px; width: 240px; } .ds-meter { flex: 1; height: 6px; border-radius: 2px; background: var(--ow-bg-3, #1a222d); } .ds-meter-fill { width: 75%; height: 100%; border-radius: 2px; background: var(--ow-amber, #ffb224); } .ds-meter-num { font-family: 'IBM Plex Mono', monospace; font-size: 0.6875rem; font-variant-numeric: tabular-nums slashed-zero; color: var(--ow-text-2, #a8b2bf); }"
+    },
+    {
+      "name": "Evidence Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "A sighting: neutral facts, cyan AI summary, amber reliability.",
+      "html": "<article class=\"ds-card\"><div class=\"ds-card-head\"><span class=\"ds-card-title\">Sighting</span><span class=\"ds-card-time\">12:04</span></div><p class=\"ds-ai\">Woman in a blue jacket got off near the river valley stop.</p><p class=\"ds-meta\">Bus driver · transit · entered 12:06</p></article>",
+      "css": ".ds-card { width: 320px; box-sizing: border-box; padding: 12px; border: 1px solid var(--ow-border, #232c39); border-radius: 4px; background: var(--ow-bg-1, #0c1015); color: var(--ow-text-1, #e9edf2); font-family: 'IBM Plex Sans', sans-serif; box-shadow: 0 8px 24px rgb(0 0 0 / 0.45), 0 1px 2px rgb(0 0 0 / 0.5); } .ds-card-head { display: flex; align-items: center; } .ds-card-title { font-size: 0.75rem; font-weight: 500; } .ds-card-time { margin-left: auto; font-family: 'IBM Plex Mono', monospace; font-size: 0.6875rem; color: var(--ow-text-3, #8592a2); } .ds-ai { margin: 8px 0 0; font-size: 0.875rem; color: var(--ow-cyan, #5cd3e8); } .ds-meta { margin: 4px 0 0; font-size: 0.75rem; color: var(--ow-text-2, #a8b2bf); }"
+    },
+    {
+      "name": "Tasking Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "A proposed drone tasking: amber expected-gain figure, cyan rationale, constraint row, three actions.",
+      "html": "<article class=\"ds-card\"><div class=\"ds-card-head\"><span class=\"ds-card-name\">Drone 2</span><span class=\"ds-card-time\">12 min</span></div><p class=\"ds-figure\">23<span>% of remaining probability</span></p><p class=\"ds-ai\" style=\"font-size:0.75rem\">Highest-probability area; not yet covered by any search.</p><ul class=\"ds-constraints\"><li>Battery</li><li>Line of sight</li><li>Airspace</li><li>Wind</li></ul></article>",
+      "css": ".ds-card { width: 320px; box-sizing: border-box; padding: 12px; border: 1px solid var(--ow-border, #232c39); border-radius: 4px; background: var(--ow-bg-1, #0c1015); color: var(--ow-text-1, #e9edf2); font-family: 'IBM Plex Sans', sans-serif; box-shadow: 0 8px 24px rgb(0 0 0 / 0.45), 0 1px 2px rgb(0 0 0 / 0.5); } .ds-card-head { display: flex; align-items: center; } .ds-card-name { font-size: 0.875rem; font-weight: 500; } .ds-card-time { margin-left: auto; font-family: 'IBM Plex Mono', monospace; font-size: 0.6875rem; color: var(--ow-text-3, #8592a2); } .ds-figure { margin: 8px 0 0; font-family: 'IBM Plex Mono', monospace; font-size: 1.25rem; font-variant-numeric: tabular-nums slashed-zero; color: var(--ow-amber, #ffb224); } .ds-figure span { font-family: 'IBM Plex Sans', sans-serif; font-size: 0.875rem; color: var(--ow-text-2, #a8b2bf); } .ds-ai { margin: 4px 0 0; color: var(--ow-cyan, #5cd3e8); } .ds-constraints { display: flex; gap: 12px; margin: 8px 0 0; padding: 0; list-style: none; font-size: 0.6875rem; color: var(--ow-text-2, #a8b2bf); } .ds-constraints li::before { content: '\\2713 '; color: var(--ow-success, #41d392); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Watch Floor",
+    "overview": "Overwatch looks like the room it serves: a dim operations centre where the map is the brightest thing and every other surface recedes. Panels sit over the map like consoles over a plot table. Nothing is decorative; each pixel is either terrain, a number, a decision, or a statement from the AI. The register is institutional (air-traffic control, dispatch), never startup.\n\nColour carries meaning, not mood. Amber, the only accent, belongs to the human: decisions, selection, probability. Cyan belongs to the AI and appears only on text, marks and links it produced. Everything else is a cool blue-black neutral ramp. Numbers are monospace and tabular so figures never jitter as they update. Density is high but calm: a 13px default, hairline borders, small radii, zero clutter.\n\nConfirmed rejections: purple gradients, card-in-card nesting, decorative glassmorphism. Ghost and particle colour stays warm, never cyan, because warmth encodes probability.",
+    "keyCharacteristics": [
+      "Dark, map-first; the darkest surface (#06080b) is map land.",
+      "One accent (amber); one voice colour (cyan) reserved for the AI.",
+      "IBM Plex Sans for interface, IBM Plex Mono with tabular, slashed-zero numerals for data.",
+      "Small institutional radii (2/4/6px), hairline borders, one shadow.",
+      "WCAG 2.1 AA: every text and accent token measures at least 4.5:1 on #06080b."
+    ],
+    "rules": [
+      { "name": "The One Hand Rule", "body": "Amber is the human hand. If a person chose it, selected it, or it expresses probability, it is amber; if the machine said it, it is not.", "section": "colors" },
+      { "name": "The AI Voice Rule", "body": "Cyan appears only on content the AI produced. Remove the AI and the cyan on screen should vanish with it.", "section": "colors" },
+      { "name": "The Warm Probability Rule", "body": "Ghost and particle colour stays warm, never cyan: warmth means probability.", "section": "colors" },
+      { "name": "The Measured Ink Rule", "body": "Text and accent colours must measure at least 4.5:1 on #06080b before they enter the palette.", "section": "colors" },
+      { "name": "The Tabular Rule", "body": "Every number a person reads as data is IBM Plex Mono with tabular, slashed-zero numerals, so values never jitter as they update.", "section": "typography" },
+      { "name": "The Thirteen Rule", "body": "Default interface text is 13px; larger sizes are for titles and the single hero figure, not for body copy.", "section": "typography" },
+      { "name": "The Empty Canvas Rule", "body": "The grid appears only where there is nothing else to show.", "section": "layout" },
+      { "name": "The No Halo Rule", "body": "Depth is black offset and blur, never a coloured glow; amber and cyan do not emit light.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do use amber (#ffb224) only for human decisions, selection and probability.",
+      "Do use cyan (#5cd3e8) only for content the AI produced.",
+      "Do set every data number in IBM Plex Mono with tabular, slashed-zero numerals.",
+      "Do keep text on the measured ink tiers (#e9edf2, #a8b2bf, #8592a2) and verify 4.5:1 against the surface it sits on.",
+      "Do keep radii at 2/4/6px and use one shadow.",
+      "Do reference tokens from `src/styles/tokens.css`; never hard-code colours elsewhere."
+    ],
+    "donts": [
+      "Don't use purple gradients.",
+      "Don't nest a card inside a card.",
+      "Don't use decorative glassmorphism.",
+      "Don't colour ghosts or particles cyan; they stay warm.",
+      "Don't use amber for AI content or cyan for human decisions.",
+      "Don't put the grid behind content."
+    ]
+  }
+}
