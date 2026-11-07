@@ -23,6 +23,7 @@ export function CommandBar() {
   const [status, setStatus] = useState<Status>('idle')
   const [message, setMessage] = useState('')
   const [listening, setListening] = useState(false)
+  const [level, setLevel] = useState(0)
   const [busy, setBusy] = useState<string | null>(null) // 'Loading speech model 40%' / 'Transcribing…'
   const inputRef = useRef<HTMLInputElement>(null)
   const speechRef = useRef<SpeechInput | null>(null)
@@ -93,6 +94,7 @@ export function CommandBar() {
     setMessage('')
     if (whisper) {
       const d = dict()
+      d.onLevel = setLevel
       d.onProgress = (pct) => setBusy(`Loading speech model ${Math.round(pct)}%`)
       try {
         await d.start()
@@ -123,7 +125,7 @@ export function CommandBar() {
         const spoken = await d.stop()
         setBusy('Transcribing…')
         if (spoken) setText(appendSpoken(textRef.current, spoken))
-        else fail(speechErrorText('no-speech'))
+        else fail(d.lastPeak < 0.003 ? 'The microphone is silent. Check the input device in System Settings, then try again.' : speechErrorText('no-speech'))
       } catch {
         fail('Could not transcribe that. Type the tip instead.')
       } finally {
@@ -137,7 +139,7 @@ export function CommandBar() {
   const trimmed = text.trim()
   // What the right-hand end of the box says, most important first.
   let note: { text: string; tone: 'amber' | 'danger' | 'success' | 'muted' } | null = null
-  if (listening) note = { text: 'Listening… release to stop', tone: 'amber' }
+  if (listening) note = { text: whisper ? `Listening ${'▮'.repeat(Math.round(level * 8)).padEnd(8, '▯')}` : 'Listening… release to stop', tone: 'amber' }
   else if (busy) note = { text: busy, tone: 'amber' }
   else if (status === 'error') note = { text: message, tone: 'danger' }
   else if (status === 'sent') note = { text: live ? 'Sent' : 'Sent · shows when you go live', tone: 'success' }
