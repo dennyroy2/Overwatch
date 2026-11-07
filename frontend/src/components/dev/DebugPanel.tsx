@@ -29,7 +29,7 @@ export function DebugPanel() {
   return (
     <div
       data-testid="debug-panel"
-      className="pointer-events-auto absolute bottom-[4.75rem] left-1/2 z-20 w-60 -translate-x-1/2 rounded-lg border border-line bg-panel p-3 font-mono text-xs shadow-panel"
+      className="pointer-events-auto absolute top-[4.25rem] left-1/2 z-20 w-60 -translate-x-1/2 rounded-lg border border-line bg-panel p-3 font-mono text-xs shadow-panel"
     >
       {row('connection', `${connection.state}${connection.attempt ? ` #${connection.attempt}` : ''}`)}
       {row('case', caseId ?? '-')}

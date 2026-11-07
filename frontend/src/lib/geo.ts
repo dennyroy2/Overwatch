@@ -60,3 +60,6 @@ export const EDMONTON_BOUNDS = { minLat: 53.3, maxLat: 53.75, minLon: -113.8, ma
 export const isInEdmonton = (p: GeoPoint): boolean =>
   p.lat >= EDMONTON_BOUNDS.minLat && p.lat <= EDMONTON_BOUNDS.maxLat &&
   p.lon >= EDMONTON_BOUNDS.minLon && p.lon <= EDMONTON_BOUNDS.maxLon
+
+/** Default "high over Alberta" camera target (step 10). */
+export const ALBERTA_CENTRE: GeoPoint = { lat: 54.5, lon: -114.5 }
