@@ -60,4 +60,8 @@ Contract `GeoPoint` = `{lat, lon}`. Ghost `positions` = `[lon, lat, weight]`. de
 | 2026-11-06 | Kept the subtle grid (`.bg-grid`), for empty canvas regions only | Removing it after the detector flagged "decorative grid" as advisory | The brief explicitly asks for a subtle grid; it is an advisory, not a ban |
 | 2026-11-06 | `PRODUCT.md` moved from repo root into `frontend/`; Impeccable's project root is `frontend/` so `.impeccable/` and `DESIGN.md` land there too | Leaving it at the repo root | Hard rule 1: the root isn't ours |
 | 2026-11-06 | Colour contrast measured (WCAG) on `#06080b`: text 17.1/9.3/6.3, amber 11.1, cyan 11.4, danger 6.9, success 10.5 | Trusting colours by eye | Roadmap done-when requires amber and cyan to pass on the darkest surface; `/styleguide` recomputes these live |
+| 2026-11-06 | Rails float over the map (`absolute`, outside layout flow) and collapse to a 3rem icon strip with a pending-count badge and amber border/pulse when items wait | Hiding the rail fully | A closed rail must never hide a pending request (human-approval guardrail). Map never resizes, so no MapLibre re-layout |
+| 2026-11-06 | Report slot is a placeholder in `components/shell/Slots.tsx`, not in `src/panels/` | Creating a stub `panels/ReportView.tsx` | Hard rule 1: panels/ is Varad's. Real import wired in step 24 once his file is on main (ask #9) |
+| 2026-11-06 | Rail open/closed lives in local `useState` for now | Zustand `ui` slice now | The store is designed as a whole in step 8; moving two booleans then is trivial |
+| 2026-11-06 | Dev-only `/?review=pip,report,collapsed,pending` previews hidden states | Temporary code edits to screenshot states | Lets states be reviewed without editing code; compiled out of production by `import.meta.env.DEV` |
 

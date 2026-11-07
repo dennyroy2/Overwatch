@@ -13,6 +13,6 @@ until the owner ships it. Mirror each open ask in the relevant PR description.
 | 6 | Rishaan | Agree the demo ghost count after step 18's measurements | 60 fps on the demo laptop | Open |
 | 7 | Akshat | Demo clip + flight-path file on Drive, in the agreed format | Geolocation and PiP (steps 25, 31, 34) | Open |
 | 8 | Akshat | Demo timeline beat times | Choreographing camera moves to evidence (step 39) | Open |
-| 9 | Varad | Commit the `frontend/src/panels/ReportView.tsx` stub with props `{ caseId: string; onClose: () => void }` | The report slot (steps 7, 24) | Open |
+| 9 | Varad | Commit the `frontend/src/panels/ReportView.tsx` stub with props `{ caseId: string; onClose: () => void }` | The report slot (steps 7, 24) | Open (checked 2026-11-06: not on `main` or `varad/benchmark`; report slot is a placeholder until it lands) |
 | 10 | Rishaan | `POST /decision` should also broadcast the updated `TaskingRequest` (new `status`) as a `tasking` message, not just a `log` entry | Step 22 says the card state must come from the stream. Right now only a log line is sent, so the card cannot reliably show approved/rejected. Until then I derive it from the `log` entry (`action: "decision"`, detail `"<asset>: approved"`), which is fragile | Open |
 | 11 | Rishaan | `POST /evidence` should upsert by `id` in `hub.evidence` (currently appends) | Agent re-sends structured notes with the same `id`; `/report` would otherwise return duplicates. Frontend dedupes by `id` on hydrate as a fallback | Open |
