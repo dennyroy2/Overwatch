@@ -174,11 +174,11 @@ function route(msg: StreamMessage): void {
     }
     case 'evidence':
       noteEvidence()
-      history.noteEvent(performance.now(), 'evidence') // a tick on the time bar
+      history.noteEvent(performance.now(), 'evidence', msg.data.id) // a tick on the time bar
       store().applyMessage(msg)
       return
     case 'tasking':
-      history.noteEvent(performance.now(), 'tasking')
+      history.noteEvent(performance.now(), 'tasking', msg.data.id)
       store().applyMessage(msg)
       return
     case 'found':

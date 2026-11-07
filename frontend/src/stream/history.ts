@@ -37,6 +37,8 @@ export interface Keyframe {
 export interface HistoryEvent {
   t: number
   kind: 'evidence' | 'tasking' | 'found'
+  /** The evidence or request id, so cards and pins can follow the replay time. */
+  id?: string
 }
 
 /** What the recorder needs to know about the frame that just arrived. */
@@ -57,6 +59,8 @@ export class History {
   epoch: number | null = null
   keyframes: Keyframe[] = []
   events: HistoryEvent[] = []
+  /** When each evidence/request id was FIRST seen, ms since epoch (an upsert later never moves it). */
+  firstSeen = new Map<string, number>()
   private count = 0
   private pendingFlags = new Uint8Array(0)
   private pendingAny = false
@@ -67,6 +71,7 @@ export class History {
     this.epoch = null
     this.keyframes = []
     this.events = []
+    this.firstSeen = new Map()
     this.count = 0
     this.pendingAny = false
     this.pendingAll = false
@@ -163,9 +168,15 @@ export class History {
   }
 
   /** Record that an evidence, tasking or found message arrived (draws a tick on the time bar). */
-  noteEvent(arrivalMs: number, kind: HistoryEvent['kind']): void {
+  noteEvent(arrivalMs: number, kind: HistoryEvent['kind'], id?: string): void {
     if (this.epoch === null) return
-    this.events.push({ t: arrivalMs - this.epoch, kind })
+    const t = arrivalMs - this.epoch
+    // An upsert of a known id (a note that gets structured) is not a new tick and does not move its first-seen time.
+    if (id !== undefined) {
+      if (this.firstSeen.has(id)) return
+      this.firstSeen.set(id, t)
+    }
+    this.events.push({ t, kind, id })
   }
 
   /** Approximate size of the recording in bytes (for the dev HUD and tests). */

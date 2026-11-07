@@ -108,4 +108,17 @@ describe('History', () => {
     h.onFrame(frame(1000, [1]))
     expect(h.liveT(4500)).toBe(3500)
   })
+
+  it('remembers when each id was FIRST seen; an upsert of the same id is not a new tick', () => {
+    const h = new History()
+    h.onFrame(frame(0, [1]))
+    h.noteEvent(2000, 'evidence', 'ev_a')
+    h.noteEvent(5000, 'evidence', 'ev_a') // the note is structured and re-sent with the same id
+    h.noteEvent(6000, 'tasking', 'req_1')
+    expect(h.firstSeen.get('ev_a')).toBe(2000)
+    expect(h.firstSeen.get('req_1')).toBe(6000)
+    expect(h.events.map((e) => e.id)).toEqual(['ev_a', 'req_1'])
+    h.reset()
+    expect(h.firstSeen.size).toBe(0)
+  })
 })

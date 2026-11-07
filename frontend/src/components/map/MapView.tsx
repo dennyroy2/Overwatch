@@ -5,6 +5,7 @@ import { overviewCamera, watchCase } from '@/map/camera'
 import { setMap } from '@/map/mapRef'
 import { watchClusters } from '@/map/clusterMarkers'
 import { watchDraftLastSeen } from '@/map/draftMarker'
+import { watchEvidence } from '@/map/evidenceLayer'
 import { attachGhosts } from '@/map/ghostLayer'
 import { loadStyle } from '@/map/style'
 import { currentBuffer, ghosts } from '@/stream/ghostBuffer'
@@ -20,6 +21,7 @@ export function MapView() {
     let detachGhosts = () => {}
     let unwatchDraft = () => {}
     let unwatchClusters = () => {}
+    let unwatchEvidence = () => {}
 
     void loadStyle().then((style) => {
       if (cancelled || !container.current) return
@@ -43,6 +45,7 @@ export function MapView() {
       unwatch = watchCase(map)
       unwatchDraft = watchDraftLastSeen(map)
       unwatchClusters = watchClusters(map)
+      unwatchEvidence = watchEvidence(map)
       const ghostHandle = attachGhosts(map)
       detachGhosts = ghostHandle.dispose
       if (import.meta.env.DEV) {
@@ -60,6 +63,7 @@ export function MapView() {
       detachGhosts()
       unwatchDraft()
       unwatchClusters()
+      unwatchEvidence()
       setMap(null)
       map?.remove()
     }

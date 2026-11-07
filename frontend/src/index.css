@@ -203,3 +203,59 @@
 @media (prefers-reduced-motion: reduce) {
   .ow-cluster__pulse { animation: none; }
 }
+
+
+/* "Parsing": a quiet cyan sweep while the AI turns a typed note into a structured card (step 19) */
+.ow-shimmer { animation: ow-shimmer 1.6s var(--ow-ease-out) infinite; }
+@keyframes ow-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ow-shimmer { animation: none; width: 100%; opacity: 0.5; }
+}
+
+
+/* Evidence pins (step 19): warm-white, amber when selected, never cyan. The body scales, not the marker element
+   (MapLibre positions the element itself with a transform). */
+.ow-pin {
+  position: relative;
+  display: block;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.ow-pin__body {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 9999px;
+  border: 2px solid var(--ow-warm-white);
+  background: rgb(12 16 21 / 0.92);
+  color: var(--ow-warm-white);
+  box-shadow: 0 0 0 1.5px rgb(0 0 0 / 0.7), 0 2px 8px rgb(0 0 0 / 0.6);
+  transition: transform var(--ow-dur-fast) var(--ow-ease-out), border-color var(--ow-dur-fast) var(--ow-ease-out);
+}
+.ow-pin[data-kind="favourite_place"] .ow-pin__body { width: 20px; height: 20px; }
+.ow-pin[data-hover="true"] .ow-pin__body,
+.ow-pin:focus-visible .ow-pin__body { transform: scale(1.18); }
+.ow-pin[data-selected="true"] .ow-pin__body { border-color: var(--ow-amber); color: var(--ow-amber); transform: scale(1.18); }
+.ow-pin:focus-visible { outline: 2px solid var(--ow-amber); outline-offset: 3px; border-radius: 9999px; }
+.ow-pin--new::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 2px solid var(--ow-warm-white);
+  pointer-events: none;
+  animation: ow-pin-pulse 1.4s var(--ow-ease-out) 1 forwards;
+}
+@keyframes ow-pin-pulse {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(3); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ow-pin--new::after { animation: none; opacity: 0; }
+}

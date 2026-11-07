@@ -96,3 +96,44 @@ describe('cluster selection in the store', () => {
     expect(useStore.getState().ui).toBe(before)
   })
 })
+
+describe('evidence entered-time and selection', () => {
+  beforeEach(() => useStore.getState().resetCaseData())
+
+  it('records when each card was first seen, live or from the hydrate snapshot, and never moves it on an upsert', () => {
+    const s = useStore.getState()
+    s.hydrate({ case: profile(), evidence: [ev('old')], requests: [], log: [] })
+    expect(useStore.getState().evidenceMeta.old.live).toBe(false) // arrived in the snapshot: no camera ease for it
+    s.applyMessage({ type: 'evidence', data: ev('fresh') })
+    const first = useStore.getState().evidenceMeta.fresh
+    expect(first.live).toBe(true)
+    s.applyMessage({ type: 'evidence', data: ev('fresh', { kind: 'sighting', summary: 'structured' }) }) // the same note, structured
+    expect(useStore.getState().evidenceMeta.fresh).toEqual(first)
+    s.hydrate({ case: profile(), evidence: [ev('fresh')], requests: [], log: [] }) // a re-hydrate must not downgrade it
+    expect(useStore.getState().evidenceMeta.fresh.live).toBe(true)
+  })
+
+  it('selects and hovers cards, ignoring a repeated hover', () => {
+    const s = useStore.getState()
+    s.selectEvidence('a')
+    s.hoverEvidence('b')
+    expect(useStore.getState().ui.selectedEvidenceId).toBe('a')
+    expect(useStore.getState().ui.hoveredEvidenceId).toBe('b')
+    const ui = useStore.getState().ui
+    s.hoverEvidence('b')
+    expect(useStore.getState().ui).toBe(ui) // no new state, no re-render
+    s.selectEvidence(null)
+    s.hoverEvidence(null)
+    expect(useStore.getState().ui.selectedEvidenceId).toBeNull()
+    expect(useStore.getState().ui.hoveredEvidenceId).toBeNull()
+  })
+
+  it('closing the case forgets entered times and selection', () => {
+    const s = useStore.getState()
+    s.applyMessage({ type: 'evidence', data: ev('x') })
+    s.selectEvidence('x')
+    s.resetCaseData()
+    expect(useStore.getState().evidenceMeta).toEqual({})
+    expect(useStore.getState().ui.selectedEvidenceId).toBeNull()
+  })
+})

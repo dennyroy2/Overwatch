@@ -220,7 +220,7 @@ export function attachGhosts(map: MapLibreMap): GhostLayerHandle {
         if (replayFrame.keyframe !== lastKeyframe || now - lastViewPush >= 100) {
           lastKeyframe = replayFrame.keyframe
           lastViewPush = now
-          useStore.getState().setReplayView({ clusters: replayFrame.clusters, simTime: replayFrame.simTime, alive: replayFrame.alive })
+          useStore.getState().setReplayView({ t: playback.T, clusters: replayFrame.clusters, simTime: replayFrame.simTime, alive: replayFrame.alive })
         }
       }
       settleUntil = now + 700 // let the glow ease to its new level
