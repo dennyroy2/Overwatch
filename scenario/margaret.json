@@ -1,0 +1,49 @@
+{
+  "case": {
+    "name": "Margaret",
+    "age": 79,
+    "condition": "dementia",
+    "mobility": "low",
+    "clothing": ["blue puffer jacket", "grey slacks", "white sneakers"],
+    "notes": "Fictional demo case. Early-stage dementia. Lives near 124 St. Walks most afternoons.",
+    "last_seen": {"lat": 53.5422, "lon": -113.5337},
+    "last_seen_time": "2026-11-08T14:00:00-07:00"
+  },
+  "beats": [
+    {
+      "at_s": 2, "minutes_after": 0,
+      "kind": "last_seen", "source": "family", "reliability": 0.95,
+      "location": {"lat": 53.5422, "lon": -113.5337}, "radius_m": 50,
+      "summary": "Daughter: last saw Margaret at 124 St & Jasper Ave around 2 PM",
+      "raw_text": "My mom left her apartment on 124 Street around two. She was wearing her blue puffer jacket."
+    },
+    {
+      "at_s": 8, "minutes_after": 0,
+      "kind": "favourite_place", "source": "family", "reliability": 0.8,
+      "location": {"lat": 53.5424, "lon": -113.5091}, "radius_m": 150,
+      "summary": "Family: she walks to the coffee shop at 109 St & Jasper most afternoons",
+      "raw_text": "She loves the coffee shop on 109 Street, she goes there almost every day."
+    },
+    {
+      "at_s": 18, "minutes_after": 50,
+      "kind": "searched_area", "source": "ground_team", "reliability": 0.9, "detection_prob": 0.7,
+      "location": {"lat": 53.5424, "lon": -113.5091}, "radius_m": 300,
+      "summary": "Ground Team 1 searched 300 m around the 109 St coffee shop. Nothing found.",
+      "raw_text": "Team 1 cleared the blocks around the coffee shop on 109 and Jasper, no sign of her."
+    },
+    {
+      "at_s": 28, "minutes_after": 35,
+      "kind": "sighting", "source": "transit", "reliability": 0.75,
+      "location": {"lat": 53.5328, "lon": -113.5395}, "radius_m": 100,
+      "summary": "Bus driver: woman in a blue puffer jacket got off at Groat Rd & Emily Murphy Park Rd",
+      "raw_text": "I'm a bus driver. An older lady in a blue jacket got off at the Emily Murphy Park stop on Groat Road, maybe 2:35."
+    },
+    {
+      "at_s": 45, "minutes_after": 95,
+      "kind": "clue", "source": "drone_ai", "reliability": 0.82,
+      "location": {"lat": 53.5340, "lon": -113.5370}, "radius_m": 50,
+      "summary": "Drone 2: possible blue puffer jacket on wooded slope, Emily Murphy Park (82%)",
+      "raw_text": null
+    }
+  ]
+}
