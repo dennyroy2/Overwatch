@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Check, Mic, SendHorizontal } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { appendSpoken, Dictation, dictationSupported } from '@/lib/dictation'
 import { getRecognitionCtor, SpeechInput, speechErrorText } from '@/lib/speech'
 import { buildNote, sendTip, TipError } from '@/lib/tips'
 import { clockTime, isTypingTarget } from '@/lib/ui'
@@ -22,10 +23,16 @@ export function CommandBar() {
   const [status, setStatus] = useState<Status>('idle')
   const [message, setMessage] = useState('')
   const [listening, setListening] = useState(false)
+  const [busy, setBusy] = useState<string | null>(null) // 'Loading speech model 40%' / 'Transcribing…'
   const inputRef = useRef<HTMLInputElement>(null)
   const speechRef = useRef<SpeechInput | null>(null)
   const sentTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const Ctor = useMemo(() => getRecognitionCtor(), [])
+  const whisper = useMemo(() => dictationSupported(), [])
+  const dictRef = useRef<Dictation | null>(null)
+  const textRef = useRef(text)
+  useEffect(() => { textRef.current = text }, [text])
+  const dict = () => (dictRef.current ??= new Dictation())
 
   const caseId = useStore((s) => s.caseProfile?.case_id ?? null)
   const live = useStore((s) => s.ui.replay.mode === 'live')
@@ -44,6 +51,7 @@ export function CommandBar() {
     return () => {
       window.removeEventListener('keydown', onKey)
       speechRef.current?.abort()
+      dictRef.current?.dispose()
       if (sentTimer.current) clearTimeout(sentTimer.current)
     }
   }, [])
@@ -73,27 +81,64 @@ export function CommandBar() {
     }
   }
 
-  function startListening() {
-    if (!Ctor || listening) return
-    speechRef.current ??= new SpeechInput(Ctor)
+  function fail(msg: string) {
+    setStatus('error')
+    setMessage(msg)
+  }
+
+  // Preferred: Whisper in the browser (accurate, private). Fallback: the browser's own recogniser.
+  async function startListening() {
+    if (listening || busy) return
     setStatus('idle')
     setMessage('')
+    if (whisper) {
+      const d = dict()
+      d.onProgress = (pct) => setBusy(`Loading speech model ${Math.round(pct)}%`)
+      try {
+        await d.start()
+        setListening(true)
+        void d.preload().then(() => setBusy(null), () => {})
+      } catch (err) {
+        const name = err instanceof DOMException ? err.name : ''
+        fail(name === 'NotAllowedError' ? speechErrorText('not-allowed') : speechErrorText('audio-capture'))
+      }
+      return
+    }
+    if (!Ctor) return
+    speechRef.current ??= new SpeechInput(Ctor)
     setListening(true)
     speechRef.current.start(text, {
       onText: setText,
       onEnd: () => setListening(false),
-      onError: (code) => {
-        setStatus('error')
-        setMessage(speechErrorText(code))
-      },
+      onError: (code) => fail(speechErrorText(code)),
     })
   }
-  const stopListening = () => speechRef.current?.stop()
+  async function stopListening() {
+    if (whisper) {
+      const d = dictRef.current
+      if (!d?.recording) return
+      setListening(false)
+      setBusy((b) => b ?? 'Transcribing…')
+      try {
+        const spoken = await d.stop()
+        setBusy('Transcribing…')
+        if (spoken) setText(appendSpoken(textRef.current, spoken))
+        else fail(speechErrorText('no-speech'))
+      } catch {
+        fail('Could not transcribe that. Type the tip instead.')
+      } finally {
+        setBusy(null)
+      }
+      return
+    }
+    speechRef.current?.stop()
+  }
 
   const trimmed = text.trim()
   // What the right-hand end of the box says, most important first.
   let note: { text: string; tone: 'amber' | 'danger' | 'success' | 'muted' } | null = null
   if (listening) note = { text: 'Listening… release to stop', tone: 'amber' }
+  else if (busy) note = { text: busy, tone: 'amber' }
   else if (status === 'error') note = { text: message, tone: 'danger' }
   else if (status === 'sent') note = { text: live ? 'Sent' : 'Sent · shows when you go live', tone: 'success' }
   else if (trimmed) note = { text: `Officer note · ${previewTime}`, tone: 'muted' }
@@ -107,10 +152,10 @@ export function CommandBar() {
         type="button"
         variant="secondary"
         size="icon"
-        disabled={!Ctor}
-        aria-label={Ctor ? 'Hold to speak' : 'Speech is not available in this browser'}
+        disabled={!whisper && !Ctor}
+        aria-label={whisper || Ctor ? 'Hold to speak' : 'Speech is not available in this browser'}
         aria-pressed={listening}
-        title={Ctor ? 'Hold to speak' : 'Speech needs Chrome. Type the tip instead.'}
+        title={whisper || Ctor ? 'Hold to speak' : 'Speech needs Chrome. Type the tip instead.'}
         className={cn(listening && 'border border-amber text-amber')}
         onPointerDown={(e) => {
           e.preventDefault()
@@ -137,6 +182,7 @@ export function CommandBar() {
             // (no case yet), which would leave the officer with no explanation.
             else if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); void submit() }
           }}
+          onFocus={() => { if (whisper) void dict().preload().catch(() => {}) }}
           aria-label="Add a tip to the case"
           aria-invalid={status === 'error'}
           autoComplete="off"
