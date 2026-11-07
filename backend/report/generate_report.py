@@ -67,7 +67,12 @@ def esc(s) -> str:
 
 
 def t(dt: datetime | None) -> str:
-    return dt.strftime("%b %d, %H:%M") if dt else "—"
+    """Show times in this computer's local time zone (Edmonton on the demo laptop)."""
+    if not dt:
+        return "—"
+    if dt.tzinfo is not None:
+        dt = dt.astimezone()
+    return dt.strftime("%b %d, %H:%M")
 
 
 def ll(p) -> str:
@@ -78,13 +83,18 @@ def nice(s: str) -> str:
     return s.replace("_", " ").capitalize()
 
 
-def table(header: list[str], rows: list[list], widths: list[float]) -> Table:
+def table(header: list[str], rows: list[list], widths: list[float], empty: str = "None yet.") -> Table:
     data = [[Paragraph(h, HEAD) for h in header]]
+    is_empty = not rows
+    if is_empty:
+        data.append([Paragraph(f"<i>{esc(empty)}</i>", SMALL)] + [""] * (len(header) - 1))
     data += [[c if isinstance(c, Paragraph) else Paragraph(esc(c), CELL) for c in r] for r in rows]
     tb = Table(data, colWidths=[w * PAGE_W for w in widths], repeatRows=1)
     style = [("BACKGROUND", (0, 0), (-1, 0), INK), ("VALIGN", (0, 0), (-1, -1), "TOP"),
              ("LINEBELOW", (0, 0), (-1, -1), 0.4, RULE),
              ("TOPPADDING", (0, 0), (-1, -1), 4), ("BOTTOMPADDING", (0, 0), (-1, -1), 4)]
+    if is_empty:
+        style.append(("SPAN", (0, 1), (-1, 1)))
     style += [("BACKGROUND", (0, i), (-1, i), ZEBRA) for i in range(2, len(data), 2)]
     tb.setStyle(TableStyle(style))
     return tb
@@ -172,6 +182,8 @@ def build_pdf(report: Report, out_path: str | None = None, chart_path: str | Non
     # Evidence
     ev: list[Evidence] = sorted(report.evidence, key=lambda e: e.time)
     s.append(Paragraph(f"Evidence ({len(ev)})", H2))
+    s.append(Paragraph("Times are when each event happened, as reported.", SMALL))
+    s.append(Spacer(1, 4))
     s.append(table(
         ["Time", "Kind", "Source", "Details", "Location", "Reliab.", "Conf."],
         [[t(e.time), nice(e.kind), nice(e.source), e.summary, ll(e.location),
@@ -188,14 +200,16 @@ def build_pdf(report: Report, out_path: str | None = None, chart_path: str | Non
         [[r.asset, Paragraph("<br/>".join("• " + esc(x) for x in r.reasons) or "—", CELL),
           f"{r.expected_gain:.0%}", f"{r.duration_min:g} min", decision_cell(r, by_asset)]
          for r in report.requests],
-        [0.14, 0.46, 0.08, 0.1, 0.22]))
+        [0.14, 0.46, 0.08, 0.1, 0.22], empty="No deployments requested."))
 
     # Full log
     log = sorted(report.log, key=lambda e: e.time)
     s.append(Paragraph(f"Activity log ({len(log)})", H2))
+    s.append(Paragraph("Times are when each action was entered in Overwatch.", SMALL))
+    s.append(Spacer(1, 4))
     s.append(table(["Time", "Actor", "Action", "Detail"],
                    [[t(e.time), e.actor, nice(e.action), e.detail] for e in log],
-                   [0.13, 0.15, 0.15, 0.57]))
+                   [0.13, 0.15, 0.15, 0.57], empty="No activity logged."))
 
     # Optional benchmark chart
     if chart_path and os.path.exists(chart_path):

@@ -244,7 +244,9 @@ export function ReportView({ caseId, onClose }: ReportViewProps) {
 
             {/* evidence */}
             <Section title="Evidence" count={derived.evidence.length}>
-              <ul className="divide-y divide-line rounded-md border border-line">
+              <p className="mb-2 text-xs text-ink-3">Times are when each event happened, as reported.</p>
+              {derived.evidence.length === 0 && <p className="text-sm italic text-ink-3">No evidence yet.</p>}
+              <ul className="divide-y divide-line rounded-md border border-line empty:hidden">
                 {derived.evidence.map((e) => (
                   <li key={e.id} className="flex gap-3 px-3 py-2 text-sm">
                     <span className="w-24 shrink-0 font-mono text-xs text-ink-3">{fmtTime(e.time)}</span>
@@ -266,6 +268,9 @@ export function ReportView({ caseId, onClose }: ReportViewProps) {
               <p className="mb-2 text-xs text-ink-3">
                 Overwatch recommends. An officer approves or rejects every deployment.
               </p>
+              {report.requests.length === 0 && (
+                <p className="text-sm italic text-ink-3">No deployments requested.</p>
+              )}
               <ul className="space-y-2">
                 {report.requests.map((r) => {
                   const d = findDecision(report.log, r);
@@ -298,7 +303,9 @@ export function ReportView({ caseId, onClose }: ReportViewProps) {
 
             {/* log */}
             <Section title="Activity log" count={derived.log.length}>
-              <ol className="rounded-md border border-line font-mono text-xs">
+              <p className="mb-2 text-xs text-ink-3">Times are when each action was entered in Overwatch.</p>
+              {derived.log.length === 0 && <p className="text-sm italic text-ink-3">No activity logged.</p>}
+              <ol className="rounded-md border border-line font-mono text-xs empty:hidden">
                 {derived.log.map((e, i) => (
                   <li key={i} className="flex gap-3 border-b border-line px-3 py-1.5 last:border-b-0">
                     <span className="w-24 shrink-0 text-ink-3">{fmtTime(e.time)}</span>
