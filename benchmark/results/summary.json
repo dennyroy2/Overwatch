@@ -1,0 +1,27 @@
+{
+  "overwatch": {
+    "found_rate": 0.7,
+    "found_within_1km2": 0.4,
+    "found_within_3km2": 0.6,
+    "median_area_km2": 1.45,
+    "median_team_hours": 2.9
+  },
+  "standard_search": {
+    "found_rate": 0.65,
+    "found_within_1km2": 0.35,
+    "found_within_3km2": 0.45,
+    "median_area_km2": 5.38,
+    "median_team_hours": 10.8
+  },
+  "area_reduction": "73% less area searched (median)",
+  "settings": {
+    "cases": 20,
+    "ghosts": 1000,
+    "cell_m": 100.0,
+    "pod": 0.8,
+    "team_km2_per_hour": 0.5,
+    "graph": "synthetic",
+    "real_engine": false,
+    "note": "Simulation only. Not data from real incidents."
+  }
+}
