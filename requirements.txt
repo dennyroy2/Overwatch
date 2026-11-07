@@ -7,3 +7,4 @@ osmnx>=1.9
 httpx>=0.27
 websockets>=12
 pytest>=8
+reportlab>=4.0

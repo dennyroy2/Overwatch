@@ -180,6 +180,93 @@
         }
       }
     },
+    "/report/{case_id}/pdf": {
+      "get": {
+        "summary": "Report Pdf",
+        "operationId": "report_pdf_report__case_id__pdf_get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/pdf": {}
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/case/{case_id}/close": {
+      "post": {
+        "summary": "Close Search",
+        "description": "Ends the search. Log actions match the report: found_confirmed, search_closed.",
+        "operationId": "close_search_case__case_id__close_post",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloseSearch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Close Search Case  Case Id  Close Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/schema/stream": {
       "get": {
         "summary": "Stream Schema",
@@ -229,6 +316,28 @@
   },
   "components": {
     "schemas": {
+      "CloseSearch": {
+        "properties": {
+          "found": {
+            "type": "boolean",
+            "title": "Found",
+            "default": false
+          },
+          "officer": {
+            "type": "string",
+            "title": "Officer",
+            "default": "Officer"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "title": "CloseSearch",
+        "description": "Officer ends the search. found=True logs found_confirmed before search_closed."
+      },
       "Cluster": {
         "properties": {
           "id": {
