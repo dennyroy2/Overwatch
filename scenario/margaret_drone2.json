@@ -1,0 +1,455 @@
+{
+  "clip": "data/footage/margaret_drone2.mp4",
+  "note": "Video is not in git (data/footage/ is ignored). Get it from the team drive and put it at that path.",
+  "asset": "Drone 2",
+  "beat": 5,
+  "width": 1280,
+  "height": 720,
+  "fps": 30,
+  "duration_s": 14.5,
+  "subject": {
+    "lat": 53.534,
+    "lon": -113.537,
+    "first_visible_s": 3.0,
+    "description": "person lying on grassy bank by the water: grey hooded jacket, dark track pants with white side stripes",
+    "how_to_find_in_frame": "largest box in subject_box_xywh_norm (YOLO format: x_center, y_center, width, height, 0-1). Small boxes elsewhere are bystanders; treat them as a ground team."
+  },
+  "suggested_timing": {
+    "detector_flag_at_s": 3.5,
+    "explanation": "Start the clip ~3.5 s before the drone_ai clue (beat 5, at_s 45 in margaret.json) is posted, i.e. play it at demo second ~41.5."
+  },
+  "route": [
+    {
+      "t_s": 0.0,
+      "lat": 53.533379,
+      "lon": -113.538293,
+      "alt_m": 40,
+      "heading_deg": 51
+    },
+    {
+      "t_s": 1.0,
+      "lat": 53.53341,
+      "lon": -113.538229,
+      "alt_m": 40,
+      "heading_deg": 51
+    },
+    {
+      "t_s": 2.0,
+      "lat": 53.533441,
+      "lon": -113.538164,
+      "alt_m": 40,
+      "heading_deg": 51
+    },
+    {
+      "t_s": 3.0,
+      "lat": 53.533473,
+      "lon": -113.538099,
+      "alt_m": 40,
+      "heading_deg": 51
+    },
+    {
+      "t_s": 4.0,
+      "lat": 53.533504,
+      "lon": -113.538034,
+      "alt_m": 40,
+      "heading_deg": 51
+    },
+    {
+      "t_s": 5.0,
+      "lat": 53.533535,
+      "lon": -113.537969,
+      "alt_m": 40,
+      "heading_deg": 51
+    },
+    {
+      "t_s": 6.0,
+      "lat": 53.533566,
+      "lon": -113.537904,
+      "alt_m": 40,
+      "heading_deg": 51
+    },
+    {
+      "t_s": 7.0,
+      "lat": 53.533597,
+      "lon": -113.537839,
+      "alt_m": 40,
+      "heading_deg": 51
+    },
+    {
+      "t_s": 8.0,
+      "lat": 53.533628,
+      "lon": -113.537774,
+      "alt_m": 40,
+      "heading_deg": 51
+    },
+    {
+      "t_s": 9.0,
+      "lat": 53.533659,
+      "lon": -113.53771,
+      "alt_m": 40,
+      "heading_deg": 51
+    },
+    {
+      "t_s": 10.0,
+      "lat": 53.533691,
+      "lon": -113.537645,
+      "alt_m": 40,
+      "heading_deg": 51
+    },
+    {
+      "t_s": 11.0,
+      "lat": 53.533722,
+      "lon": -113.53758,
+      "alt_m": 40,
+      "heading_deg": 51
+    },
+    {
+      "t_s": 12.0,
+      "lat": 53.533753,
+      "lon": -113.537515,
+      "alt_m": 40,
+      "heading_deg": 51
+    },
+    {
+      "t_s": 13.0,
+      "lat": 53.533784,
+      "lon": -113.53745,
+      "alt_m": 40,
+      "heading_deg": 51
+    },
+    {
+      "t_s": 14.0,
+      "lat": 53.533815,
+      "lon": -113.537385,
+      "alt_m": 40,
+      "heading_deg": 51
+    },
+    {
+      "t_s": 14.5,
+      "lat": 53.533831,
+      "lon": -113.537353,
+      "alt_m": 40,
+      "heading_deg": 51
+    }
+  ],
+  "route_note": "Synthetic flight path (no real flight log exists for this footage). Straight sweep from the Groat Rd & Emily Murphy Park Rd stop toward the subject at 40 m altitude, camera tilted forward.",
+  "frames": [
+    {
+      "index": 0,
+      "source": "SARD gss769",
+      "start_s": 0.0,
+      "end_s": 2.0,
+      "subject_visible": false,
+      "subject_box_xywh_norm": null,
+      "people_labelled": 5
+    },
+    {
+      "index": 1,
+      "source": "SARD gss768",
+      "start_s": 2.0,
+      "end_s": 3.0,
+      "subject_visible": false,
+      "subject_box_xywh_norm": null,
+      "people_labelled": 5
+    },
+    {
+      "index": 2,
+      "source": "SARD gss767",
+      "start_s": 3.0,
+      "end_s": 3.5,
+      "subject_visible": true,
+      "subject_box_xywh_norm": [
+        0.057,
+        0.869,
+        0.1089,
+        0.0861
+      ],
+      "people_labelled": 6
+    },
+    {
+      "index": 3,
+      "source": "SARD gss766",
+      "start_s": 3.5,
+      "end_s": 4.0,
+      "subject_visible": true,
+      "subject_box_xywh_norm": [
+        0.1052,
+        0.7898,
+        0.0979,
+        0.0815
+      ],
+      "people_labelled": 6
+    },
+    {
+      "index": 4,
+      "source": "SARD gss765",
+      "start_s": 4.0,
+      "end_s": 4.5,
+      "subject_visible": true,
+      "subject_box_xywh_norm": [
+        0.1141,
+        0.7505,
+        0.0958,
+        0.0676
+      ],
+      "people_labelled": 5
+    },
+    {
+      "index": 5,
+      "source": "SARD gss764",
+      "start_s": 4.5,
+      "end_s": 5.0,
+      "subject_visible": true,
+      "subject_box_xywh_norm": [
+        0.1096,
+        0.7454,
+        0.0943,
+        0.0667
+      ],
+      "people_labelled": 6
+    },
+    {
+      "index": 6,
+      "source": "SARD gss763",
+      "start_s": 5.0,
+      "end_s": 5.5,
+      "subject_visible": true,
+      "subject_box_xywh_norm": [
+        0.0995,
+        0.7435,
+        0.0938,
+        0.0685
+      ],
+      "people_labelled": 5
+    },
+    {
+      "index": 7,
+      "source": "SARD gss762",
+      "start_s": 5.5,
+      "end_s": 6.0,
+      "subject_visible": true,
+      "subject_box_xywh_norm": [
+        0.093,
+        0.7384,
+        0.0943,
+        0.0676
+      ],
+      "people_labelled": 5
+    },
+    {
+      "index": 8,
+      "source": "SARD gss761",
+      "start_s": 6.0,
+      "end_s": 6.5,
+      "subject_visible": true,
+      "subject_box_xywh_norm": [
+        0.1448,
+        0.7046,
+        0.0885,
+        0.0704
+      ],
+      "people_labelled": 5
+    },
+    {
+      "index": 9,
+      "source": "SARD gss760",
+      "start_s": 6.5,
+      "end_s": 7.0,
+      "subject_visible": true,
+      "subject_box_xywh_norm": [
+        0.1594,
+        0.688,
+        0.0854,
+        0.0685
+      ],
+      "people_labelled": 5
+    },
+    {
+      "index": 10,
+      "source": "SARD gss759",
+      "start_s": 7.0,
+      "end_s": 7.5,
+      "subject_visible": true,
+      "subject_box_xywh_norm": [
+        0.2193,
+        0.6569,
+        0.0792,
+        0.0676
+      ],
+      "people_labelled": 5
+    },
+    {
+      "index": 11,
+      "source": "SARD gss758",
+      "start_s": 7.5,
+      "end_s": 8.0,
+      "subject_visible": true,
+      "subject_box_xywh_norm": [
+        0.2107,
+        0.6597,
+        0.0828,
+        0.0657
+      ],
+      "people_labelled": 5
+    },
+    {
+      "index": 12,
+      "source": "SARD gss757",
+      "start_s": 8.0,
+      "end_s": 8.5,
+      "subject_visible": true,
+      "subject_box_xywh_norm": [
+        0.2307,
+        0.7514,
+        0.0917,
+        0.0861
+      ],
+      "people_labelled": 5
+    },
+    {
+      "index": 13,
+      "source": "SARD gss756",
+      "start_s": 8.5,
+      "end_s": 9.0,
+      "subject_visible": true,
+      "subject_box_xywh_norm": [
+        0.2596,
+        0.9148,
+        0.1089,
+        0.1185
+      ],
+      "people_labelled": 5
+    },
+    {
+      "index": 14,
+      "source": "SARD gss755",
+      "start_s": 9.0,
+      "end_s": 9.5,
+      "subject_visible": true,
+      "subject_box_xywh_norm": [
+        0.2286,
+        0.9394,
+        0.1125,
+        0.1194
+      ],
+      "people_labelled": 5
+    },
+    {
+      "index": 15,
+      "source": "SARD gss754",
+      "start_s": 9.5,
+      "end_s": 10.0,
+      "subject_visible": true,
+      "subject_box_xywh_norm": [
+        0.163,
+        0.9301,
+        0.1135,
+        0.1194
+      ],
+      "people_labelled": 5
+    },
+    {
+      "index": 16,
+      "source": "SARD gss753",
+      "start_s": 10.0,
+      "end_s": 10.5,
+      "subject_visible": true,
+      "subject_box_xywh_norm": [
+        0.1732,
+        0.8731,
+        0.1005,
+        0.1185
+      ],
+      "people_labelled": 1
+    },
+    {
+      "index": 17,
+      "source": "SARD gss752",
+      "start_s": 10.5,
+      "end_s": 11.0,
+      "subject_visible": true,
+      "subject_box_xywh_norm": [
+        0.1755,
+        0.8347,
+        0.0885,
+        0.1194
+      ],
+      "people_labelled": 1
+    },
+    {
+      "index": 18,
+      "source": "SARD gss751",
+      "start_s": 11.0,
+      "end_s": 11.5,
+      "subject_visible": true,
+      "subject_box_xywh_norm": [
+        0.3315,
+        0.7704,
+        0.0672,
+        0.1074
+      ],
+      "people_labelled": 1
+    },
+    {
+      "index": 19,
+      "source": "SARD gss750",
+      "start_s": 11.5,
+      "end_s": 12.0,
+      "subject_visible": true,
+      "subject_box_xywh_norm": [
+        0.4432,
+        0.7593,
+        0.0552,
+        0.1019
+      ],
+      "people_labelled": 1
+    },
+    {
+      "index": 20,
+      "source": "SARD gss749",
+      "start_s": 12.0,
+      "end_s": 12.5,
+      "subject_visible": true,
+      "subject_box_xywh_norm": [
+        0.5273,
+        0.7898,
+        0.0589,
+        0.113
+      ],
+      "people_labelled": 1
+    },
+    {
+      "index": 21,
+      "source": "SARD gss748",
+      "start_s": 12.5,
+      "end_s": 13.0,
+      "subject_visible": true,
+      "subject_box_xywh_norm": [
+        0.5911,
+        0.8593,
+        0.0583,
+        0.137
+      ],
+      "people_labelled": 1
+    },
+    {
+      "index": 22,
+      "source": "SARD gss747",
+      "start_s": 13.0,
+      "end_s": 14.5,
+      "subject_visible": true,
+      "subject_box_xywh_norm": [
+        0.6906,
+        0.9495,
+        0.0781,
+        0.0991
+      ],
+      "people_labelled": 1
+    }
+  ],
+  "credits": [
+    "SARD: Search and Rescue Image Dataset for Person Detection, S. Sambolek & M. Ivasic-Kos, University of Rijeka, IEEE DataPort, doi:10.21227/ahxm-k331 (CC BY 4.0)",
+    "SARD_YOLO (YOLO-format copy), Animesh Shastry, Roboflow Universe, https://universe.roboflow.com/animesh-shastry/sard_yolo (CC BY 4.0)",
+    "Clip edit: frames gss769 to gss747 played in reverse order, 0.25 s crossfades, scaled to 1280x720. Locations on the map are fictional placements; footage was not filmed in Edmonton."
+  ]
+}
