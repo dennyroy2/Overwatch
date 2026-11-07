@@ -53,7 +53,10 @@ def make_case(graph: StreetGraph, seed: int) -> BenchCase:
                              condition=condition, mobility=mobility,
                              clothing=["blue puffer jacket"], notes="benchmark case",
                              last_seen=_pt(graph, start), last_seen_time=T0)
-    favourites = rnd.sample(graph.places, k=rnd.randint(1, 3))
+    # familiar places near home are the likely ones (within ~2.5 km of last seen)
+    sx0, sy0 = graph.xy[start]
+    nearby = [p for p in graph.places if math.dist(graph.xy[p], (sx0, sy0)) < 2500] or graph.places
+    favourites = rnd.sample(nearby, k=min(len(nearby), rnd.randint(1, 3)))
     report_delay_s = rnd.uniform(60, 180) * 60          # reported 1-3 h after last seen
 
     true_params = WalkParams.for_profile(condition, mobility).perturbed(rnd)
@@ -64,9 +67,11 @@ def make_case(graph: StreetGraph, seed: int) -> BenchCase:
                          location=_pt(graph, start), source="family", reliability=0.95,
                          confirmed=True, summary="Last seen leaving home")]
     for k, fav in enumerate(favourites):
+        name, kind = graph.place_info.get(fav, ("familiar place", "place"))
         evidence.append(Evidence(id=f"{cid}-fav{k}", case_id=cid, kind="favourite_place",
                                  time=T0, location=_pt(graph, fav), source="family",
-                                 reliability=0.7, confirmed=True, summary="Familiar place"))
+                                 reliability=0.7, confirmed=True,
+                                 summary=f"Familiar {kind.replace('_', ' ')}: {name}"))
     if rnd.random() < 0.6:                              # a witness tip partway through
         ts = rnd.uniform(0.3, 0.8) * report_delay_s
         sx, sy = track.position(graph, ts)

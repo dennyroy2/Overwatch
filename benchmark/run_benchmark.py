@@ -173,7 +173,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--cases", type=int, default=200)
     ap.add_argument("--ghosts", type=int, default=1000)
-    ap.add_argument("--graph", default=None, help="GraphML from data/ (default: synthetic grid)")
+    ap.add_argument("--graph", default=None, help="GraphML path (default: data/graphs/edmonton_demo.graphml, else synthetic grid)")
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--engine", choices=["backend", "local"], default=None,
                     help="backend = Rishaan's engine (default if available); local = test stand-in")
@@ -185,7 +185,7 @@ def main():
         engine_adapter.set_engine(args.engine)
     graph = load_graph(args.graph)
     cells = all_cells(graph)
-    print(f"graph: {graph.n} nodes, {len(cells)} cells | real contracts: {USING_REAL_CONTRACTS} | "
+    print(f"map: {graph.source} | {graph.n} nodes, {len(graph.places)} familiar places, {len(cells)} cells | real contracts: {USING_REAL_CONTRACTS} | "
           f"engine: {engine_adapter.engine_name()}")
 
     rows, start = [], time.time()
@@ -218,7 +218,7 @@ def main():
 
     summary = summarize(rows, ["overwatch", "standard_search"])
     summary["settings"] = {"cases": args.cases, "ghosts": args.ghosts, "cell_m": CELL_M, "pod": POD,
-                           "team_km2_per_hour": TEAM_KM2_PER_HOUR, "graph": args.graph or "synthetic",
+                           "team_km2_per_hour": TEAM_KM2_PER_HOUR, "graph": graph.source, "familiar_places": len(graph.places),
                            "engine": engine_adapter.engine_name(),
                            "note": "Simulation only. Not data from real incidents."}
     with open(os.path.join(args.out, "summary.json"), "w") as f:

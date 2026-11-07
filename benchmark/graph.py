@@ -1,23 +1,37 @@
 """
-Street/trail graph for the benchmark.
+Street/trail graph + places of interest for the benchmark.
 
-- With Akshat's export:  load_graph("data/edmonton.graphml")
-  (OSMnx GraphML: nodes have x=lon, y=lat; edges have length in metres.)
-- Without it (tonight):  load_graph(None) builds a synthetic downtown-Edmonton-like
-  grid (100 m blocks) with a diagonal river-valley trail band, centred near
-  124 St & Jasper Ave.
+Map (first one found wins):
+  1. --graph <path>                          (any OSMnx GraphML)
+  2. data/graphs/edmonton_demo.graphml       (Akshat's committed Edmonton walk graph)
+  3. synthetic downtown-like grid            (fallback so the benchmark always runs)
 
-Either way you get a `StreetGraph` with fast plain-Python adjacency, which the
-walker needs (networkx lookups are too slow for thousands of ghosts).
+Places (used as each case's "familiar places"):
+  data/places/edmonton_places.geojson        (Akshat: Point features with name + kind;
+                                              GeoJSON coordinates are [lon, lat])
+  Only kinds that make sense as somewhere a person with dementia is drawn to are
+  used: cafe, place_of_worship, park. Each place is snapped to its nearest street node.
+  If the file is missing, random nodes are used instead.
+
+You get a `StreetGraph` with fast plain-Python adjacency, which the walker needs
+(networkx lookups are too slow for thousands of ghosts).
 """
 
 from __future__ import annotations
 
+import json
 import math
+import os
 import random
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import networkx as nx
+import numpy as np
+
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DEFAULT_GRAPH = os.path.join(REPO, "data", "graphs", "edmonton_demo.graphml")
+DEFAULT_PLACES = os.path.join(REPO, "data", "places", "edmonton_places.geojson")
+FAMILIAR_KINDS = {"cafe", "place_of_worship", "park"}
 
 ORIGIN_LAT, ORIGIN_LON = 53.5418, -113.5370   # ~124 St & Jasper Ave
 M_PER_DEG_LAT = 111_320.0
@@ -37,17 +51,25 @@ def to_latlon(x: float, y: float) -> tuple[float, float]:
 class StreetGraph:
     xy: list[tuple[float, float]]                 # node index -> (x, y) metres
     nbrs: list[list[tuple[int, float]]]           # node index -> [(neighbour, length_m)]
-    places: list[int]                             # places of interest (cafés, stops, parks)
+    places: list[int]                             # familiar-place candidates (node indices)
+    place_info: dict[int, tuple[str, str]] = field(default_factory=dict)  # node -> (name, kind)
+    source: str = "synthetic"
 
     @property
     def n(self) -> int:
         return len(self.xy)
 
     def nearest_node(self, x: float, y: float) -> int:
-        return min(range(self.n), key=lambda i: (self.xy[i][0] - x) ** 2 + (self.xy[i][1] - y) ** 2)
+        arr = self._arr()
+        return int(np.argmin((arr[:, 0] - x) ** 2 + (arr[:, 1] - y) ** 2))
+
+    def _arr(self) -> np.ndarray:
+        if not hasattr(self, "_xy_arr"):
+            self._xy_arr = np.asarray(self.xy)
+        return self._xy_arr
 
 
-def _from_networkx(g: nx.Graph, places: list[int] | None = None) -> StreetGraph:
+def _from_networkx(g: nx.Graph, source: str) -> StreetGraph:
     g = nx.Graph(g)  # undirected, simple (collapses OSMnx MultiDiGraph)
     g = g.subgraph(max(nx.connected_components(g), key=len)).copy()
     ids = list(g.nodes)
@@ -59,10 +81,7 @@ def _from_networkx(g: nx.Graph, places: list[int] | None = None) -> StreetGraph:
         length = float(data.get("length") or math.dist(xy[a], xy[b])) or 1.0
         nbrs[a].append((b, length))
         nbrs[b].append((a, length))
-    if places is None:
-        rnd = random.Random(7)
-        places = rnd.sample(range(len(ids)), k=min(25, len(ids)))
-    return StreetGraph(xy=xy, nbrs=nbrs, places=places)
+    return StreetGraph(xy=xy, nbrs=nbrs, places=[], source=source)
 
 
 def synthetic_graph(half_size_m: float = 3500, block_m: float = 100) -> StreetGraph:
@@ -80,14 +99,42 @@ def synthetic_graph(half_size_m: float = 3500, block_m: float = 100) -> StreetGr
                 a, b = (i, j), (i + di, j + dj)
                 if b in g and rnd.random() > 0.06:        # a few missing blocks
                     g.add_edge(a, b, length=block_m)
-            # river valley: diagonal band south of the origin with winding trails
             if -14 <= (i + j) <= -10 and (i + 1, j + 1) in g:
                 g.add_edge((i, j), (i + 1, j + 1), length=block_m * math.sqrt(2))
-    sg = _from_networkx(g)
+    return _from_networkx(g, "synthetic")
+
+
+def attach_places(sg: StreetGraph, path: str = DEFAULT_PLACES, max_snap_m: float = 150) -> int:
+    """Snap familiar-kind places from Akshat's GeoJSON onto street nodes. Returns count."""
+    if not os.path.exists(path):
+        return 0
+    with open(path, encoding="utf-8") as f:
+        features = json.load(f).get("features", [])
+    arr = sg._arr()
+    for feat in features:
+        props = feat.get("properties") or {}
+        geom = feat.get("geometry") or {}
+        kind = (props.get("kind") or "").strip()
+        if kind not in FAMILIAR_KINDS or geom.get("type") != "Point":
+            continue
+        lon, lat = geom["coordinates"][:2]            # GeoJSON is [lon, lat]
+        x, y = to_xy(lat, lon)
+        d2 = (arr[:, 0] - x) ** 2 + (arr[:, 1] - y) ** 2
+        node = int(np.argmin(d2))
+        if d2[node] > max_snap_m ** 2 or node in sg.place_info:
+            continue                                  # off the map, or duplicate
+        name = (props.get("name") or "").strip() or f"unnamed {kind.replace('_', ' ')}"
+        sg.place_info[node] = (name, kind)
+        sg.places.append(node)
+    return len(sg.places)
+
+
+def load_graph(path: str | None = None, places_path: str = DEFAULT_PLACES) -> StreetGraph:
+    if path is None and os.path.exists(DEFAULT_GRAPH):
+        path = DEFAULT_GRAPH
+    sg = _from_networkx(nx.read_graphml(path), os.path.relpath(path, REPO)) if path else synthetic_graph()
+    if attach_places(sg, places_path) < 5:            # no/too few places: random stand-ins
+        rnd = random.Random(7)
+        sg.places = rnd.sample(range(sg.n), k=min(25, sg.n))
+        sg.place_info = {p: ("simulated place", "cafe") for p in sg.places}
     return sg
-
-
-def load_graph(path: str | None = None) -> StreetGraph:
-    if path:
-        return _from_networkx(nx.read_graphml(path))
-    return synthetic_graph()
