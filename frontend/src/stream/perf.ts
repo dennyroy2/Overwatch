@@ -6,6 +6,8 @@ export const perf = {
   workMs: 0,
   /** Ghosts in the busiest density cell, the mean per occupied cell, and the halo opacity derived from it (step 15). */
   peakPerCell: 0,
+  /** Ghosts carrying a trail (step 16). */
+  trails: 0,
   typicalPerCell: 0,
   haloOpacity: 0,
 }

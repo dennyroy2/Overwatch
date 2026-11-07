@@ -15,7 +15,7 @@ export function DebugPanel() {
   const log = useStore((s) => s.log.length)
   const connection = useStore((s) => s.connection)
   const caseId = useStore((s) => s.caseProfile?.case_id)
-  const [g, setG] = useState({ points: 0, frames: 0, fps: 0, frameAge: 0, workMs: 0, respawn: '-', peak: 0, typical: 0, halo: 0 })
+  const [g, setG] = useState({ points: 0, frames: 0, fps: 0, frameAge: 0, workMs: 0, respawn: '-', peak: 0, typical: 0, halo: 0, trails: 0 })
   const [open, setOpen] = useState(false)
   useEffect(() => {
     const id = setInterval(() => {
@@ -29,6 +29,7 @@ export function DebugPanel() {
         peak: perf.peakPerCell,
         typical: +perf.typicalPerCell.toFixed(1),
         halo: +perf.haloOpacity.toFixed(3),
+        trails: perf.trails,
         // Slots that were replaced in the newest frame ('all' = fallback while the backend sends no list).
         respawn: ghosts.allRespawned ? 'all' : ghosts.respawned ? String(ghosts.respawned.length) : '-',
       })
@@ -69,6 +70,7 @@ export function DebugPanel() {
       {row('peak / cell', g.peak)}
       {row('typical / cell', g.typical)}
       {row('glow opacity', g.halo)}
+      {row('trails', g.trails)}
       {row('evidence', evidence)}
       {row('requests', requests)}
       {row('log', log)}

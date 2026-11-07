@@ -6,13 +6,15 @@
 // glide at the display's frame rate; respawned slots snap and fade in (see stream/smoother.ts).
 import { MapboxOverlay } from '@deck.gl/mapbox'
 import { ScatterplotLayer } from '@deck.gl/layers'
+import { TripsLayer } from '@deck.gl/geo-layers'
 import type { Map as MapLibreMap } from 'maplibre-gl'
 import { createGroundSampler, type GroundSampler } from './elevation'
-import { GlowEase, densityStats } from './glow'
+import { CORE_OPACITY, GlowEase, densityStats } from './glow'
 import { SoftDisc, WarmCore } from './softDisc'
 import { currentBuffer, ghosts, onGhostFrame } from '@/stream/ghostBuffer'
 import { perf } from '@/stream/perf'
 import { GhostSmoother, type SmootherOutput } from '@/stream/smoother'
+import { TRAIL_MS, TrailBuffer, type TrailOutput } from '@/stream/trails'
 
 export interface GhostLayerHandle {
   sampler: GroundSampler
@@ -42,12 +44,18 @@ const ADDITIVE = {
 export const HALO = { radiusMeters: 45, minPixels: 5, maxPixels: 36 } as const
 /** A small bright core per ghost, so individual ghosts still read inside the glow. */
 export const CORE = { radiusPixels: 2.2 } as const
+/**
+ * Fading comet tails on a subsample of ghosts (step 16): they show which way the swarm drifts. Warm
+ * amber-white, lighter than the ghosts (user choice), never cyan. The colour is LINEAR light, like every
+ * colour here (see GHOST_RGB_LINEAR): (1.0, 0.62, 0.22) displays as a light amber (255, 205, 128).
+ */
+export const TRAIL = { color: [255, 158, 56, 255] as [number, number, number, number], widthPixels: 1.6, opacity: 0.6 } as const
 
 /** One shared instance: a new extension object per frame would make deck.gl rebuild the shader. */
 const SOFT_EDGE = [new SoftDisc()]
 const WARM_CORE = [new WarmCore()]
 
-function makeLayers(out: SmootherOutput, glow: { halo: number; core: number }) {
+function makeLayers(out: SmootherOutput, trails: TrailOutput, glow: { halo: number; core: number }) {
   const data = () => ({
     length: out.count,
     attributes: {
@@ -68,6 +76,29 @@ function makeLayers(out: SmootherOutput, glow: { halo: number; core: number }) {
       radiusMaxPixels: HALO.maxPixels,
       opacity: glow.halo,
       extensions: SOFT_EDGE,
+    }),
+    new TripsLayer({
+      ...common,
+      id: 'ghost-trails',
+      // Binary attributes: no per-trail objects. Vertex timestamps are ms relative to the first frame.
+      data: {
+        length: trails.length,
+        startIndices: trails.startIndices,
+        attributes: {
+          getPath: { value: trails.path, size: 3 },
+          getTimestamps: { value: trails.timestamps, size: 1 },
+        },
+      },
+      getColor: TRAIL.color,
+      getWidth: TRAIL.widthPixels,
+      widthUnits: 'pixels',
+      capRounded: true,
+      jointRounded: true,
+      fadeTrail: true,
+      trailLength: TRAIL_MS,
+      currentTime: trails.currentTime,
+      // In a packed swarm the tails quiet down with the cores, so they never add to a white-out.
+      opacity: TRAIL.opacity * (glow.core / CORE_OPACITY.max),
     }),
     new ScatterplotLayer({
       ...common,
@@ -94,12 +125,15 @@ export function attachGhosts(map: MapLibreMap): GhostLayerHandle {
 
   const smoother = new GhostSmoother()
   const glow = new GlowEase()
+  const trails = new TrailBuffer()
 
   // Data side: a new frame arrived. Put ghosts on the ground, then tell the smoother.
   const onFrame = () => {
     const count = ghosts.count
     if (count > 0 && sampleGround) sampler.apply(currentBuffer(), count)
     smoother.onFrame(ghosts.receivedAt, currentBuffer(), count, ghosts.respawned, ghosts.allRespawned)
+    trails.onFrame(ghosts.receivedAt, count, smoother) // after the smoother: it reads what the smoother just decided
+    perf.trails = trails.trailCount
     if (count === 0) glow.reset()
     else {
       const d = densityStats(currentBuffer(), count)
@@ -121,7 +155,7 @@ export function attachGhosts(map: MapLibreMap): GhostLayerHandle {
     if (out.count > 0) {
       glow.step(now)
       perf.haloOpacity = glow.halo
-      overlay.setProps({ layers: makeLayers(out, glow) })
+      overlay.setProps({ layers: makeLayers(out, trails.tick(now, out.pos), glow) })
       drawnEmpty = false
     } else if (!drawnEmpty) {
       overlay.setProps({ layers: [] })
@@ -137,7 +171,11 @@ export function attachGhosts(map: MapLibreMap): GhostLayerHandle {
     raf = requestAnimationFrame(loop)
   }
   raf = requestAnimationFrame(loop)
-  if (import.meta.env.DEV) (window as unknown as Record<string, unknown>).__smoother = smoother
+  if (import.meta.env.DEV) {
+    const w = window as unknown as Record<string, unknown>
+    w.__smoother = smoother
+    w.__trails = trails
+  }
   // New terrain tiles arriving is the only thing that can fill grid holes; camera moves don't matter.
   const onSourceData = (e: { sourceId?: string }) => { if (e.sourceId === 'terrain-dem') sampler.markStale() }
   map.on('sourcedata', onSourceData)

@@ -77,6 +77,9 @@ export class GhostSmoother {
   private interval = DEFAULT_INTERVAL_MS
   private from = new Float32Array(0) // where each ghost was DRAWN when the newest frame arrived (stride 3)
   private fadeStart = new Float64Array(0)
+  /** 1 for slots respawned in the newest frame (read by the trail buffer). */
+  private respawnFlags = new Uint8Array(0)
+  private allFlag = false
   private bufs: [SmootherOutput, SmootherOutput] = [this.makeOut(0), this.makeOut(0)]
   private flip = 0
 
@@ -93,7 +96,22 @@ export class GhostSmoother {
     const oldFade = this.fadeStart
     this.fadeStart = new Float64Array(cap).fill(NEVER)
     this.fadeStart.set(oldFade)
+    this.respawnFlags = new Uint8Array(cap)
     this.bufs = [this.makeOut(cap), this.makeOut(cap)]
+  }
+
+  /**
+   * Where each ghost was DRAWN when the newest frame arrived ([lon, lat, elevation], stride 3). For a
+   * respawned slot this is its new position. The trail buffer samples this, so a trail follows exactly
+   * what the screen showed. Read-only; valid until the next frame.
+   */
+  get drawnAtArrival(): Float32Array {
+    return this.from
+  }
+
+  /** True if slot `i` was respawned in the newest frame (every slot counts on a case's first frame and on the fallback). */
+  wasRespawned(i: number): boolean {
+    return this.allFlag || this.respawnFlags[i] === 1
   }
 
   /** Smoothed time between data frames, ms. */
@@ -104,6 +122,7 @@ export class GhostSmoother {
   /** Forget everything (case closed or replaced). */
   reset(): void {
     this.cur = null
+    this.allFlag = false
     this.count = 0
     this.arrival = 0
     this.interval = DEFAULT_INTERVAL_MS
@@ -135,6 +154,8 @@ export class GhostSmoother {
     this.cur = cur
     this.count = count
     this.arrival = arrivalMs
+    this.respawnFlags.fill(0)
+    this.allFlag = first || allRespawned
 
     if (first || allRespawned) {
       // Brand-new swarm (or the whole swarm resampled): snap to the new positions and fade everything in.
@@ -156,6 +177,7 @@ export class GhostSmoother {
     this.from[o3 + 1] = cur[o4 + OFFSET.latitude]
     this.from[o3 + 2] = cur[o4 + OFFSET.elevation]
     this.fadeStart[i] = arrivalMs
+    this.respawnFlags[i] = 1
   }
 
   /** Blend `from` -> `cur` at time `nowMs` into `target` (stride 3). Never extrapolates past the newest frame. */
