@@ -1,13 +1,11 @@
 import { useEffect, useRef } from 'react'
-import { AttributionControl, Map as MapLibreMap, setWorkerUrl } from 'maplibre-gl'
+import { AttributionControl, Map as MapLibreMap } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
-// MapLibre 6 loads its worker from a URL; Vite must serve it as an asset or tiles never parse.
-import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url'
 import { overviewCamera, watchCase } from '@/map/camera'
 import { setMap } from '@/map/mapRef'
+import { attachGhosts } from '@/map/ghostLayer'
 import { loadStyle } from '@/map/style'
-
-setWorkerUrl(workerUrl)
+import { currentBuffer, ghosts } from '@/stream/ghostBuffer'
 
 /** Full-bleed 3D map (layer 0). Panels float over it; nothing resizes it. */
 export function MapView() {
@@ -17,6 +15,7 @@ export function MapView() {
     let cancelled = false
     let map: MapLibreMap | null = null
     let unwatch = () => {}
+    let detachGhosts = () => {}
 
     void loadStyle().then((style) => {
       if (cancelled || !container.current) return
@@ -38,11 +37,21 @@ export function MapView() {
       map.on('error', (e) => console.warn('map:', e.error?.message ?? e))
       setMap(map)
       unwatch = watchCase(map)
+      const ghostHandle = attachGhosts(map)
+      detachGhosts = ghostHandle.dispose
+      if (import.meta.env.DEV) {
+        // Dev-only handles for automated checks and the browser console.
+        const w = window as unknown as Record<string, unknown>
+        w.__ghostStats = ghostHandle.sampler.stats
+        w.__ghosts = ghosts
+        w.__currentBuffer = currentBuffer
+      }
     })
 
     return () => {
       cancelled = true
       unwatch()
+      detachGhosts()
       setMap(null)
       map?.remove()
     }

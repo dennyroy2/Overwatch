@@ -1,11 +1,17 @@
 // Ghost positions live HERE, in plain typed arrays, never in React state.
 // 5k to 10k points arriving ~5x/s through React is how you lose 60 fps (roadmap, step 8).
 //
-// Layout: [lon, lat, weight] per ghost slot, so slot i is always at offset 3*i.
+// Layout: [lon, lat, z, weight] per ghost slot (4 floats, 16 bytes), so slot i is always at offset 4*i.
+// The wire format is [lon, lat, weight]; `z` (metres above sea level, already terrain-exaggerated)
+// is filled in by the ground sampler (map/elevation.ts) and is 0 until then.
+// deck.gl reads position as size 3 at stride 16 (lon, lat, z) and weight as size 1 at offset 12.
 // Two buffers swap each frame so step 14 can interpolate previous -> current without copying.
 // Coordinates here are deck.gl order [lon, lat]. Conversions elsewhere go through lib/geo.ts.
 
-const FLOATS_PER_GHOST = 3
+export const FLOATS_PER_GHOST = 4
+export const GHOST_STRIDE_BYTES = FLOATS_PER_GHOST * 4
+/** Float offsets inside one slot. */
+export const OFFSET = { longitude: 0, latitude: 1, elevation: 2, weight: 3 } as const
 const INITIAL_CAPACITY = 12_000
 
 export interface GhostState {
@@ -50,6 +56,14 @@ export const ghosts: GhostState = {
 
 let evidenceSinceLastFrame = false
 
+type FrameListener = () => void
+const frameListeners = new Set<FrameListener>()
+/** Subscribe to "a new ghost frame is in the buffer". Outside React; returns an unsubscribe. */
+export function onGhostFrame(fn: FrameListener): () => void {
+  frameListeners.add(fn)
+  return () => frameListeners.delete(fn)
+}
+
 export const currentBuffer = (): Float32Array => ghosts.buffers[ghosts.cur]
 export const previousBuffer = (): Float32Array => ghosts.buffers[ghosts.cur === 0 ? 1 : 0]
 
@@ -86,9 +100,10 @@ export function pushFrame(positions: number[][], simTimeIso: string, respawned: 
   for (let i = 0; i < positions.length; i++) {
     const p = positions[i]
     const o = i * FLOATS_PER_GHOST
-    buf[o] = p[0]
-    buf[o + 1] = p[1]
-    buf[o + 2] = p[2] ?? 1
+    buf[o + OFFSET.longitude] = p[0]
+    buf[o + OFFSET.latitude] = p[1]
+    buf[o + OFFSET.elevation] = 0
+    buf[o + OFFSET.weight] = p[2] ?? 1
   }
   ghosts.count = positions.length
   ghosts.receivedAt = performance.now()
@@ -102,6 +117,7 @@ export function pushFrame(positions: number[][], simTimeIso: string, respawned: 
   }
   evidenceSinceLastFrame = false
   ghosts.frame += 1
+  for (const fn of frameListeners) fn()
 }
 
 /** Forget all ghost data (new case, or the server lost the case). */
@@ -115,4 +131,6 @@ export function resetGhosts(): void {
   ghosts.respawned = null
   ghosts.allRespawned = false
   evidenceSinceLastFrame = false
+  // Listeners clear their layers when the buffer empties (case closed).
+  for (const fn of frameListeners) fn()
 }

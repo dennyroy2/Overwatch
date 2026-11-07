@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { currentBuffer, ghosts, noteEvidence, previousBuffer, pushFrame, readRespawned, resetGhosts } from './ghostBuffer'
+import { currentBuffer, ghosts, noteEvidence, onGhostFrame, previousBuffer, pushFrame, readRespawned, resetGhosts } from './ghostBuffer'
 
 const T = '2026-01-01T00:00:00Z'
 
@@ -9,7 +9,7 @@ describe('ghost buffer', () => {
   it('writes [lon, lat, weight] per slot and swaps buffers each frame', () => {
     pushFrame([[-113.5, 53.5, 1], [-113.4, 53.6, 0.5]], T, undefined)
     const first = currentBuffer()
-    expect(Array.from(first.slice(0, 6))).toEqual([expect.closeTo(-113.5, 4), expect.closeTo(53.5, 4), 1, expect.closeTo(-113.4, 4), expect.closeTo(53.6, 4), 0.5])
+    expect(Array.from(first.slice(0, 8))).toEqual([expect.closeTo(-113.5, 4), expect.closeTo(53.5, 4), 0, 1, expect.closeTo(-113.4, 4), expect.closeTo(53.6, 4), 0, 0.5])
     pushFrame([[-113.0, 53.0, 1]], T, undefined)
     expect(currentBuffer()).not.toBe(first)
     expect(previousBuffer()).toBe(first)
@@ -39,12 +39,22 @@ describe('ghost buffer', () => {
     const n = 20_000
     pushFrame(Array.from({ length: n }, (_, i) => [i, i, 1]), T, undefined)
     expect(ghosts.count).toBe(n)
-    expect(currentBuffer()[3 * (n - 1)]).toBe(n - 1)
+    expect(currentBuffer()[4 * (n - 1)]).toBe(n - 1)
   })
 
   it('reads respawned defensively', () => {
     expect(readRespawned({})).toBeUndefined()
     expect(readRespawned({ respawned: [3, 4] })).toEqual([3, 4])
     expect(readRespawned({ respawned: 'x' })).toBeUndefined()
+  })
+
+  it('notifies frame listeners and stops after unsubscribe', () => {
+    let n = 0
+    const off = onGhostFrame(() => { n += 1 })
+    pushFrame([[0, 0, 1]], T, undefined)
+    pushFrame([[0, 0, 1]], T, undefined)
+    off()
+    pushFrame([[0, 0, 1]], T, undefined)
+    expect(n).toBe(2)
   })
 })
