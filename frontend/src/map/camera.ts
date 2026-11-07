@@ -50,6 +50,21 @@ export function flyToArea(map: MapLibreMap, centre: GeoPoint, zoom: number): voi
   else whenIdle(map, () => map.flyTo({ ...target, duration: Math.min(duration, 1400), freezeElevation: FREEZE }))
 }
 
+/** Gently centre on a point (same zoom, pitch and bearing). Used when a new located item arrives. */
+export function easeToPoint(map: MapLibreMap, p: GeoPoint): void {
+  const duration = Math.min(cameraMs(), 1400)
+  if (duration === 0) map.jumpTo({ center: toLngLat(p) })
+  else whenIdle(map, () => map.easeTo({ center: toLngLat(p), duration, freezeElevation: FREEZE }))
+}
+
+/** Fly to a point, zooming in at least to `minZoom` (used when the officer clicks a card). */
+export function flyToPoint(map: MapLibreMap, p: GeoPoint, minZoom = 15.2): void {
+  const target = { center: toLngLat(p), zoom: Math.max(map.getZoom(), minZoom) }
+  const duration = Math.min(cameraMs(), 1600)
+  if (duration === 0) map.jumpTo(target)
+  else whenIdle(map, () => map.flyTo({ ...target, duration, freezeElevation: FREEZE }))
+}
+
 export function flyToOverview(map: MapLibreMap): void {
   const target = overviewCamera()
   const duration = cameraMs()

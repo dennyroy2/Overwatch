@@ -12,12 +12,16 @@ function hms(totalSeconds: number): string {
 export function ConnectedStatusBar() {
   const name = useStore((s) => s.caseProfile?.name)
   const lastSeenTime = useStore((s) => s.caseProfile?.last_seen_time)
-  const t = useStore((s) => s.ghostMeta.t)
-  const alive = useStore((s) => s.ghostMeta.aliveFraction)
+  const liveT = useStore((s) => s.ghostMeta.t)
+  const liveAlive = useStore((s) => s.ghostMeta.aliveFraction)
+  // Paused or replaying: show the recorded moment, not the newest data.
+  const replay = useStore((s) => (s.ui.replay.mode !== 'live' ? s.replayView : null))
+  const mode = useStore((s) => s.ui.replay.mode)
   const connection = useStore((s) => s.connection.state)
   const setPanel = useStore((s) => s.setPanel)
 
-  const simMs = t ? Date.parse(t) : undefined
+  const simMs = replay ? (replay.simTime ?? undefined) : liveT ? Date.parse(liveT) : undefined
+  const alive = replay ? replay.alive : liveAlive
   const lastMs = lastSeenTime ? Date.parse(lastSeenTime) : undefined
   return (
     <StatusBar
@@ -26,7 +30,8 @@ export function ConnectedStatusBar() {
       sinceLastSeen={simMs !== undefined && lastMs !== undefined ? hms((simMs - lastMs) / 1000) : undefined}
       aliveFraction={alive ?? undefined}
       connection={connection}
-      onNewCase={() => setPanel('newCase', true)}
+      viewNote={mode === 'paused' ? 'Paused view' : mode === 'playing' ? 'Replaying' : undefined}
+      onNewCase={() => { setPanel('sheetCollapsed', false); setPanel('newCase', true) }}
     />
   )
 }

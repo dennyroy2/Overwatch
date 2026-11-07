@@ -44,13 +44,11 @@ describe('ground sampler', () => {
     expect(s.stats().holes).toBeGreaterThan(0)
     loaded = true
     s.markStale()
-    // refills are throttled; wait out the throttle window
-    return new Promise<void>((resolve) => setTimeout(() => {
-      s.apply(buf, 2)
-      expect(s.stats().holes).toBe(0)
-      expect(zOf(buf, 0)).toBeCloseTo(plane(-113.53, 53.54) + LIFT_M, 0)
-      resolve()
-    }, 600))
+    s.step(1e9) // refills run in slices on the animation-frame loop
+    expect(s.takeSwapped()).toBe(true) // new heights landed: the caller re-runs apply
+    s.apply(buf, 2)
+    expect(s.stats().holes).toBe(0)
+    expect(zOf(buf, 0)).toBeCloseTo(plane(-113.53, 53.54) + LIFT_M, 0)
   })
 
   it('refills only the holes, without a full rebuild', () => {
@@ -72,7 +70,71 @@ describe('ground sampler', () => {
     expect(s.stats().rebuilds).toBe(1)
     const far = slots([[-113.53, 53.54], [-113.30, 53.65]])
     s.apply(far, 2)
+    s.step(1e9)
     expect(s.stats().rebuilds).toBe(2)
+  })
+
+  it('builds a grown grid in bounded slices, not in one stall (the step 18 hitch fix)', () => {
+    let calls = 0
+    const counting = { queryTerrainElevation: (p: { lng: number; lat: number }) => { calls += 1; return plane(p.lng, p.lat) } } as unknown as MapLibreMap
+    const s = createGroundSampler(counting)
+    s.apply(slots([[-113.53, 53.54], [-113.52, 53.55]]), 2) // first grid: built at once
+    const firstCalls = calls
+    expect(s.stats().rebuilds).toBe(1)
+    // the swarm outgrows it
+    s.apply(slots([[-113.53, 53.54], [-113.30, 53.65]]), 2)
+    expect(calls).toBe(firstCalls) // apply itself does NO terrain queries for a growth
+    expect(s.stats().rebuilds).toBe(1) // not built yet
+    expect(s.stats().pendingNodes).toBeGreaterThan(100)
+    // every slice does a bounded amount of work, yet always makes progress
+    let slices = 0
+    let maxPerSlice = 0
+    while (s.stats().pendingNodes > 0) {
+      const before = calls
+      s.step(0)
+      maxPerSlice = Math.max(maxPerSlice, calls - before)
+      expect(calls).toBeGreaterThan(before)
+      slices += 1
+      expect(slices).toBeLessThan(10_000)
+    }
+    expect(maxPerSlice).toBeLessThanOrEqual(32)
+    expect(slices).toBeGreaterThan(10) // spread over many frames, not one
+    expect(s.stats().rebuilds).toBe(2)
+  })
+
+  it('keeps serving ghosts from the old grid while a bigger one is built, then swaps once', () => {
+    const s = createGroundSampler(fakeMap(plane))
+    const inside = slots([[-113.53, 53.54]])
+    s.apply(inside, 1)
+    expect(s.takeSwapped()).toBe(true) // the first grid; the render loop reads this flag every frame
+    const before = zOf(inside, 0)
+    s.apply(slots([[-113.53, 53.54], [-113.30, 53.65]]), 2) // growth starts; nothing is swapped yet
+    const during = slots([[-113.53, 53.54]])
+    s.apply(during, 1)
+    expect(zOf(during, 0)).toBeCloseTo(before, 3) // an inside ghost is undisturbed
+    expect(s.takeSwapped()).toBe(false)
+    s.step(1e9)
+    expect(s.takeSwapped()).toBe(true)
+    expect(s.takeSwapped()).toBe(false) // reads once
+    const after = slots([[-113.53, 53.54]])
+    s.apply(after, 1)
+    expect(zOf(after, 0)).toBeCloseTo(plane(-113.53, 53.54) + LIFT_M, 0) // exact again on the new grid
+  })
+
+  it('does not restart a build that already covers the swarm', () => {
+    let calls = 0
+    const counting = { queryTerrainElevation: (p: { lng: number; lat: number }) => { calls += 1; return plane(p.lng, p.lat) } } as unknown as MapLibreMap
+    const s = createGroundSampler(counting)
+    s.apply(slots([[-113.53, 53.54], [-113.52, 53.55]]), 2)
+    const wide = slots([[-113.53, 53.54], [-113.30, 53.65]])
+    s.apply(wide, 2)
+    const pendingAfterFirst = s.stats().pendingNodes
+    s.step(0)
+    const mid = s.stats().pendingNodes
+    s.apply(wide, 2) // same swarm again while the build is half way
+    s.apply(wide, 2)
+    expect(s.stats().pendingNodes).toBe(mid) // progress kept; nothing restarted
+    expect(mid).toBeLessThan(pendingAfterFirst)
   })
 
   it('caps the grid so a build stays cheap', () => {

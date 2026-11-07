@@ -6,6 +6,8 @@
 // it is UPSERTED BY ID. Add/replace only; never "just append".
 import { create } from 'zustand'
 import { hasId } from '@/types'
+import { resolveSelection } from '@/lib/clusters'
+import type { PlaybackMode } from '@/stream/playback'
 import type {
   Cluster, Evidence, FoundEvent, GeoPoint, LogEntry, Report, StreamMessage, SubjectProfile, TaskingRequest, WithId,
 } from '@/types'
@@ -43,13 +45,30 @@ export const logKey = (e: LogEntry): string => `${e.time}|${e.actor}|${e.action}
 
 export interface UiState {
   selectedClusterId: string | null
-  /** null = live. A number is an index into recorded history (step 38). */
-  replayIndex: number | null
-  panels: { left: boolean; right: boolean; report: boolean; pip: boolean; newCase: boolean }
+  /**
+   * Where the selected cluster is. The backend names clusters by rank, so the id can change under us; the
+   * selection follows this PLACE and re-resolves the id each frame (lib/clusters.ts).
+   */
+  selectedPlace: GeoPoint | null
+  /** The evidence card / map mark the officer clicked, and the one they are hovering (either side highlights the other). */
+  selectedEvidenceId: string | null
+  hoveredEvidenceId: string | null
+  /** live, paused (a frozen picture) or playing back a recording (step 38). Position lives in stream/playback.ts. */
+  replay: { mode: PlaybackMode }
+  panels: { left: boolean; right: boolean; report: boolean; pip: boolean; newCase: boolean; sheetCollapsed: boolean }
   /** Last-seen point picked on the map while the New case sheet is open. Draft input, not backend data. */
   draftLastSeen: GeoPoint | null
   /** "why" mode etc. (step 37). */
   modes: { why: boolean }
+}
+
+export interface ReplayView {
+  /** History time of the replayed moment, ms since the case's first frame. */
+  t: number
+  clusters: readonly Cluster[]
+  /** Simulation time at the replayed moment, ms since the Unix epoch. */
+  simTime: number | null
+  alive: number | null
 }
 
 export interface ConnectionInfo {
@@ -62,11 +81,15 @@ export interface StoreState {
   caseProfile: SubjectProfile | null
   connection: ConnectionInfo
   evidence: ById<WithId<Evidence>>
+  /** When this screen first saw each evidence id (the card's "entered" time) and whether it arrived live or from the hydrate snapshot. Not backend data. */
+  evidenceMeta: Record<string, { seenAt: number; live: boolean }>
   requests: ById<WithId<TaskingRequest>>
   log: LogEntry[]
   logKeys: Record<string, true>
   clusters: Cluster[]
   ghostMeta: { t: string | null; aliveFraction: number | null }
+  /** What the recording shows while paused or replaying (null when live). Never backend data: derived from it. */
+  replayView: ReplayView | null
   found: FoundEvent | null
   ui: UiState
 
@@ -81,24 +104,35 @@ export interface StoreState {
   resetCaseData: () => void
   setUi: (patch: Partial<Omit<UiState, 'panels' | 'modes'>>) => void
   setDraftLastSeen: (p: GeoPoint | null) => void
+  setReplayMode: (mode: PlaybackMode) => void
+  selectEvidence: (id: string | null) => void
+  hoverEvidence: (id: string | null) => void
+  setReplayView: (v: ReplayView | null) => void
+  /** Select a cluster (remembering its place) or clear the selection with null. */
+  selectCluster: (c: Cluster | null) => void
   setPanel: (panel: keyof UiState['panels'], open: boolean) => void
 }
 
 const initialUi = (): UiState => ({
   selectedClusterId: null,
-  replayIndex: null,
-  panels: { left: true, right: true, report: false, pip: false, newCase: true },
+  selectedPlace: null,
+  selectedEvidenceId: null,
+  hoveredEvidenceId: null,
+  replay: { mode: 'live' },
+  panels: { left: true, right: true, report: false, pip: false, newCase: true, sheetCollapsed: false },
   draftLastSeen: null,
   modes: { why: false },
 })
 
 const caseData = () => ({
   evidence: emptyById<WithId<Evidence>>(),
+  evidenceMeta: {} as Record<string, { seenAt: number; live: boolean }>,
   requests: emptyById<WithId<TaskingRequest>>(),
   log: [] as LogEntry[],
   logKeys: {} as Record<string, true>,
   clusters: [] as Cluster[],
   ghostMeta: { t: null as string | null, aliveFraction: null as number | null },
+  replayView: null as ReplayView | null,
   found: null as FoundEvent | null,
 })
 
@@ -127,9 +161,14 @@ export const useStore = create<StoreState>()((set) => ({
   applyMessage: (msg) =>
     set((s) => {
       switch (msg.type) {
-        case 'evidence':
+        case 'evidence': {
           if (!hasId(msg.data)) return {}
-          return { evidence: upsertById(s.evidence, msg.data) }
+          const id = msg.data.id
+          return {
+            evidence: upsertById(s.evidence, msg.data),
+            evidenceMeta: id in s.evidenceMeta ? s.evidenceMeta : { ...s.evidenceMeta, [id]: { seenAt: Date.now(), live: true } },
+          }
+        }
         case 'tasking':
           if (!hasId(msg.data)) return {}
           return { requests: upsertById(s.requests, msg.data) }
@@ -144,11 +183,27 @@ export const useStore = create<StoreState>()((set) => ({
       }
     }),
 
-  applyGhostMeta: (t, aliveFraction, clusters) => set({ ghostMeta: { t, aliveFraction }, clusters }),
+  applyGhostMeta: (t, aliveFraction, clusters) =>
+    set((s) => {
+      // Re-resolve the selection against this frame: follow the place, not the id.
+      const sel = resolveSelection(clusters, s.ui.selectedPlace)
+      const keep = s.ui.selectedPlace === null
+      return {
+        ghostMeta: { t, aliveFraction },
+        clusters,
+        ui: keep
+          ? s.ui
+          : { ...s.ui, selectedClusterId: sel ? sel.id : null, selectedPlace: sel ? sel.center : null },
+      }
+    }),
 
   hydrate: (r) =>
     set((s) => ({
       caseProfile: r.case,
+      evidenceMeta: r.evidence.filter(hasId).reduce(
+        (m, e) => (e.id in m ? m : { ...m, [e.id]: { seenAt: Date.now(), live: false } }),
+        s.evidenceMeta,
+      ),
       evidence: upsertMany(s.evidence, r.evidence.filter(hasId)),
       requests: upsertMany(s.requests, r.requests.filter(hasId)),
       ...addLog(s, r.log),
@@ -158,6 +213,12 @@ export const useStore = create<StoreState>()((set) => ({
   resetCaseData: () => set((s) => ({ ...caseData(), ui: { ...initialUi(), panels: s.ui.panels } })),
 
   setUi: (patch) => set((s) => ({ ui: { ...s.ui, ...patch } })),
+  selectEvidence: (id) => set((s) => ({ ui: { ...s.ui, selectedEvidenceId: id } })),
+  hoverEvidence: (id) => set((s) => (s.ui.hoveredEvidenceId === id ? s : { ui: { ...s.ui, hoveredEvidenceId: id } })),
+  setReplayMode: (mode) => set((s) => ({ ui: { ...s.ui, replay: { mode } } })),
+  setReplayView: (replayView) => set({ replayView }),
+  selectCluster: (c) =>
+    set((s) => ({ ui: { ...s.ui, selectedClusterId: c ? c.id : null, selectedPlace: c ? c.center : null } })),
   setDraftLastSeen: (draftLastSeen) => set((s) => ({ ui: { ...s.ui, draftLastSeen } })),
   setPanel: (panel, open) => set((s) => ({ ui: { ...s.ui, panels: { ...s.ui.panels, [panel]: open } } })),
 }))
@@ -165,3 +226,7 @@ export const useStore = create<StoreState>()((set) => ({
 /** Number of requests waiting on the officer. */
 export const selectPendingCount = (s: StoreState): number =>
   s.requests.order.reduce((n, id) => n + ((s.requests.byId[id].status ?? 'pending') === 'pending' ? 1 : 0), 0)
+
+/** The clusters to draw: the recorded moment while paused or replaying, the live ones otherwise. */
+export const selectDisplayedClusters = (s: StoreState): readonly Cluster[] =>
+  s.ui.replay.mode !== 'live' && s.replayView ? s.replayView.clusters : s.clusters

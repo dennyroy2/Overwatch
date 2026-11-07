@@ -33,7 +33,7 @@ export function watchDraftLastSeen(map: MapLibreMap): () => void {
     const { draftLastSeen, panels } = useStore.getState().ui
     map.getCanvas().style.cursor = panels.newCase ? 'crosshair' : ''
     if (draftLastSeen && panels.newCase) {
-      if (!marker) marker = new Marker({ element: markerElement() }).setLngLat(toLngLat(draftLastSeen)).addTo(map)
+      if (!marker) marker = new Marker({ element: markerElement(), opacityWhenCovered: 1 }).setLngLat(toLngLat(draftLastSeen)).addTo(map)
       else marker.setLngLat(toLngLat(draftLastSeen))
     } else if (marker) {
       marker.remove()

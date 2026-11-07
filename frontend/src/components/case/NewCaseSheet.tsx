@@ -1,5 +1,5 @@
 import { useEffect, useId, useState } from 'react'
-import { LocateFixed, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ClipboardPlus, LocateFixed, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -55,6 +55,7 @@ export function NewCaseSheet() {
   const uid = useId()
   const draftPoint = useStore((s) => s.ui.draftLastSeen)
   const caseOpen = useStore((s) => s.caseProfile !== null)
+  const collapsed = useStore((s) => s.ui.panels.sheetCollapsed)
   const setPanel = useStore((s) => s.setPanel)
   const setDraft = useStore((s) => s.setDraftLastSeen)
 
@@ -113,13 +114,32 @@ export function NewCaseSheet() {
   return (
     <aside
       aria-label="New case"
-      className="pointer-events-auto absolute bottom-[4.75rem] left-3 top-[4.25rem] z-20 flex flex-col overflow-hidden rounded-lg border border-line bg-panel shadow-panel"
-      style={{ width: 'var(--ow-rail-width)' }}
+      className="pointer-events-auto absolute bottom-[var(--ow-dock)] left-3 top-[4.25rem] z-20 overflow-hidden rounded-lg border border-line bg-panel shadow-panel transition-[width] duration-[var(--ow-dur-base)] ease-[var(--ow-ease-out)]"
+      style={{ width: collapsed ? '3rem' : 'var(--ow-rail-width)' }}
     >
+      {/* Collapsed: a thin strip, like the rails. The map stays clickable, so the last-seen point can still be picked. */}
+      {collapsed && (
+        <button
+          type="button"
+          onClick={() => setPanel('sheetCollapsed', false)}
+          aria-expanded={false}
+          aria-label="Open the new case form"
+          className="flex h-full w-full flex-col items-center gap-3 pt-3 text-ink-2 hover:bg-raised hover:text-ink"
+        >
+          <ChevronRight className="size-4" aria-hidden />
+          <ClipboardPlus className="size-5" aria-hidden />
+          {draftPoint && <span className="size-2 rounded-full bg-amber" title="Last-seen point picked" aria-hidden />}
+        </button>
+      )}
+      {!collapsed && (
+      <div className="flex h-full flex-col" style={{ width: 'var(--ow-rail-width)' }}>
       <div className="flex h-11 shrink-0 items-center gap-2 border-b border-line px-3">
         <h2 className="text-md font-medium text-ink">New case</h2>
+        <Button variant="ghost" size="icon" className="ml-auto" onClick={() => setPanel('sheetCollapsed', true)} aria-label="Collapse the new case form" aria-expanded>
+          <ChevronLeft />
+        </Button>
         {caseOpen && (
-          <Button variant="ghost" size="icon" className="ml-auto" onClick={close} aria-label="Close new case">
+          <Button variant="ghost" size="icon" onClick={close} aria-label="Close new case">
             <X />
           </Button>
         )}
@@ -237,6 +257,8 @@ export function NewCaseSheet() {
           <Button type="submit" className="ml-auto" aria-disabled={submitted && !valid}>Open case</Button>
         </div>
       </form>
+      </div>
+      )}
     </aside>
   )
 }

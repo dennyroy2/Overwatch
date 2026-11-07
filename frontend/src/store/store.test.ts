@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useStore, upsertById, selectPendingCount } from './index'
+import { offsetPoint } from '@/lib/geo'
 import type { Evidence, TaskingRequest } from '@/types'
 
 const ev = (id: string, over: Partial<Evidence> = {}): Evidence => ({
@@ -57,5 +58,82 @@ describe('upsert by id', () => {
     const a = { byId: {}, order: [] as string[] }
     upsertById(a, { id: 'z' })
     expect(a.order).toEqual([])
+  })
+})
+
+describe('cluster selection in the store', () => {
+  const ORIGIN = { lat: 53.5422, lon: -113.5337 }
+  const mk = (id: string, east: number, p: number) => ({ id, center: offsetPoint(ORIGIN, east, 0), probability: p, evidence_ids: [] })
+
+  beforeEach(() => useStore.getState().resetCaseData())
+
+  it('select remembers the place, and the selection follows that place when ranks swap', () => {
+    const s = useStore.getState()
+    s.applyGhostMeta('t', 1, [mk('cl_0', 0, 0.4), mk('cl_1', 3000, 0.3)])
+    s.selectCluster(useStore.getState().clusters[0])
+    expect(useStore.getState().ui.selectedClusterId).toBe('cl_0')
+    // the clusters swap ranks: the selected place is now called cl_1
+    useStore.getState().applyGhostMeta('t', 1, [mk('cl_0', 3000, 0.45), mk('cl_1', 8, 0.35)])
+    expect(useStore.getState().ui.selectedClusterId).toBe('cl_1')
+  })
+
+  it('the selection clears when its place no longer has a cluster, and with selectCluster(null)', () => {
+    const s = useStore.getState()
+    s.applyGhostMeta('t', 1, [mk('cl_0', 0, 0.4)])
+    s.selectCluster(useStore.getState().clusters[0])
+    useStore.getState().applyGhostMeta('t', 1, [mk('cl_0', 9000, 0.4)])
+    expect(useStore.getState().ui.selectedClusterId).toBeNull()
+    expect(useStore.getState().ui.selectedPlace).toBeNull()
+    s.applyGhostMeta('t', 1, [mk('cl_0', 0, 0.4)])
+    s.selectCluster(useStore.getState().clusters[0])
+    useStore.getState().selectCluster(null)
+    expect(useStore.getState().ui.selectedClusterId).toBeNull()
+  })
+
+  it('no selection means ghost frames leave ui untouched', () => {
+    const before = useStore.getState().ui
+    useStore.getState().applyGhostMeta('t', 1, [mk('cl_0', 0, 0.4)])
+    expect(useStore.getState().ui).toBe(before)
+  })
+})
+
+describe('evidence entered-time and selection', () => {
+  beforeEach(() => useStore.getState().resetCaseData())
+
+  it('records when each card was first seen, live or from the hydrate snapshot, and never moves it on an upsert', () => {
+    const s = useStore.getState()
+    s.hydrate({ case: profile(), evidence: [ev('old')], requests: [], log: [] })
+    expect(useStore.getState().evidenceMeta.old.live).toBe(false) // arrived in the snapshot: no camera ease for it
+    s.applyMessage({ type: 'evidence', data: ev('fresh') })
+    const first = useStore.getState().evidenceMeta.fresh
+    expect(first.live).toBe(true)
+    s.applyMessage({ type: 'evidence', data: ev('fresh', { kind: 'sighting', summary: 'structured' }) }) // the same note, structured
+    expect(useStore.getState().evidenceMeta.fresh).toEqual(first)
+    s.hydrate({ case: profile(), evidence: [ev('fresh')], requests: [], log: [] }) // a re-hydrate must not downgrade it
+    expect(useStore.getState().evidenceMeta.fresh.live).toBe(true)
+  })
+
+  it('selects and hovers cards, ignoring a repeated hover', () => {
+    const s = useStore.getState()
+    s.selectEvidence('a')
+    s.hoverEvidence('b')
+    expect(useStore.getState().ui.selectedEvidenceId).toBe('a')
+    expect(useStore.getState().ui.hoveredEvidenceId).toBe('b')
+    const ui = useStore.getState().ui
+    s.hoverEvidence('b')
+    expect(useStore.getState().ui).toBe(ui) // no new state, no re-render
+    s.selectEvidence(null)
+    s.hoverEvidence(null)
+    expect(useStore.getState().ui.selectedEvidenceId).toBeNull()
+    expect(useStore.getState().ui.hoveredEvidenceId).toBeNull()
+  })
+
+  it('closing the case forgets entered times and selection', () => {
+    const s = useStore.getState()
+    s.applyMessage({ type: 'evidence', data: ev('x') })
+    s.selectEvidence('x')
+    s.resetCaseData()
+    expect(useStore.getState().evidenceMeta).toEqual({})
+    expect(useStore.getState().ui.selectedEvidenceId).toBeNull()
   })
 })

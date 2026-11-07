@@ -36,6 +36,9 @@
   --ow-text-2: #a8b2bf;
   --ow-text-3: #8592a2;
 
+  /* Warm off-white for map furniture (cluster rings and their labels): reads against the glow and is not an accent */
+  --ow-warm-white: #f3ead9;
+
   /* Accent: emergency amber. Human decisions, selection, probability. */
   --ow-amber: #ffb224;
   --ow-amber-dim: #7a5410;
@@ -72,6 +75,8 @@
   --ow-gap-group: 0.75rem;   /* 12 */
   --ow-gap-section: 1.5rem;  /* 24 */
   --ow-rail-width: 22rem;
+  /* Height reserved at the bottom for the time bar (2.5rem) and command bar (3.5rem) plus gaps; panels stop above it */
+  --ow-dock: 7.5rem;
 
   /* Radius: institutional, small. One step per role. */
   --ow-radius-sm: 2px;  /* chips, bars */
