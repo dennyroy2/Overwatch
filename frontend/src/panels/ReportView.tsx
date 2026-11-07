@@ -66,8 +66,11 @@ export type Report = {
 export type ReportViewProps = { caseId: string; onClose: () => void };
 
 // ---------------------------------------------------------------- helpers
-const API_BASE: string =
-  (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_API_URL ?? "http://localhost:8000";
+// Same env var + default as Denny's frontend/src/lib/config.ts (API_URL). Switch to
+// `import { API_URL } from "@/lib/config"` once his branch is on main.
+const API_BASE: string = (
+  (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_API_URL ?? "http://localhost:8000"
+).replace(/\/+$/, "");
 
 const fmtTime = (iso?: string | null) =>
   iso ? new Date(iso).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
