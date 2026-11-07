@@ -1,0 +1,932 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Overwatch API",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Health Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/case": {
+      "post": {
+        "summary": "Create Case",
+        "operationId": "create_case_case_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubjectProfile"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubjectProfile"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/evidence": {
+      "post": {
+        "summary": "Add Evidence",
+        "operationId": "add_evidence_evidence_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Evidence"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Evidence"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/decision": {
+      "post": {
+        "summary": "Decide",
+        "operationId": "decide_decision_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Decision"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Decide Decision Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/report/{case_id}": {
+      "get": {
+        "summary": "Report",
+        "operationId": "report_report__case_id__get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Report"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/schema/stream": {
+      "get": {
+        "summary": "Stream Schema",
+        "description": "Never called. Exists so the WebSocket message types appear in OpenAPI\nand get generated into frontend TypeScript types.",
+        "operationId": "stream_schema_schema_stream_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/GhostsMsg"
+                    },
+                    {
+                      "$ref": "#/components/schemas/EvidenceMsg"
+                    },
+                    {
+                      "$ref": "#/components/schemas/TaskingMsg"
+                    },
+                    {
+                      "$ref": "#/components/schemas/LogMsg"
+                    },
+                    {
+                      "$ref": "#/components/schemas/FoundMsg"
+                    }
+                  ],
+                  "title": "Response Stream Schema Schema Stream Get",
+                  "discriminator": {
+                    "propertyName": "type",
+                    "mapping": {
+                      "ghosts": "#/components/schemas/GhostsMsg",
+                      "evidence": "#/components/schemas/EvidenceMsg",
+                      "tasking": "#/components/schemas/TaskingMsg",
+                      "log": "#/components/schemas/LogMsg",
+                      "found": "#/components/schemas/FoundMsg"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Cluster": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "center": {
+            "$ref": "#/components/schemas/GeoPoint"
+          },
+          "probability": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Probability"
+          },
+          "story": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Story",
+            "description": "AI narration of the likely path"
+          },
+          "evidence_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Evidence Ids",
+            "description": "Why is this hot?"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "center",
+          "probability"
+        ],
+        "title": "Cluster"
+      },
+      "Decision": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "title": "Request Id"
+          },
+          "approved": {
+            "type": "boolean",
+            "title": "Approved"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "officer": {
+            "type": "string",
+            "title": "Officer",
+            "default": "Officer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "request_id",
+          "approved"
+        ],
+        "title": "Decision"
+      },
+      "Evidence": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "case_id": {
+            "type": "string",
+            "title": "Case Id"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "last_seen",
+              "sighting",
+              "clue",
+              "searched_area",
+              "favourite_place",
+              "constraint",
+              "note"
+            ],
+            "title": "Kind"
+          },
+          "time": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Time",
+            "description": "When it happened (not when it was entered)"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GeoPoint"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "area": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GeoPoint"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Area",
+            "description": "Polygon for searched_area / constraint"
+          },
+          "radius_m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Radius M"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "officer",
+              "family",
+              "witness",
+              "drone_ai",
+              "ground_team",
+              "transit",
+              "camera",
+              "registry"
+            ],
+            "title": "Source"
+          },
+          "reliability": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Reliability",
+            "description": "AI-suggested, officer-confirmed",
+            "default": 0.7
+          },
+          "confirmed": {
+            "type": "boolean",
+            "title": "Confirmed",
+            "default": false
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary",
+            "description": "One line, human readable"
+          },
+          "raw_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw Text"
+          },
+          "media_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Media Url",
+            "description": "Crop/frame for drone_ai clues"
+          },
+          "detection_prob": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detection Prob",
+            "description": "For searched_area: chance the search would have spotted the person"
+          }
+        },
+        "type": "object",
+        "required": [
+          "case_id",
+          "kind",
+          "time",
+          "source",
+          "summary"
+        ],
+        "title": "Evidence"
+      },
+      "EvidenceMsg": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "evidence",
+            "title": "Type",
+            "default": "evidence"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Evidence"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "EvidenceMsg"
+      },
+      "FoundEvent": {
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "title": "Case Id"
+          },
+          "location": {
+            "$ref": "#/components/schemas/GeoPoint"
+          },
+          "evidence_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Id"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note",
+            "default": "Possible match located. Awaiting officer confirmation."
+          }
+        },
+        "type": "object",
+        "required": [
+          "case_id",
+          "location"
+        ],
+        "title": "FoundEvent"
+      },
+      "FoundMsg": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "found",
+            "title": "Type",
+            "default": "found"
+          },
+          "data": {
+            "$ref": "#/components/schemas/FoundEvent"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "FoundMsg"
+      },
+      "GeoPoint": {
+        "properties": {
+          "lat": {
+            "type": "number",
+            "title": "Lat"
+          },
+          "lon": {
+            "type": "number",
+            "title": "Lon"
+          }
+        },
+        "type": "object",
+        "required": [
+          "lat",
+          "lon"
+        ],
+        "title": "GeoPoint"
+      },
+      "GhostFrame": {
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "title": "Case Id"
+          },
+          "t": {
+            "type": "string",
+            "format": "date-time",
+            "title": "T",
+            "description": "Simulation time"
+          },
+          "positions": {
+            "items": {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            "type": "array",
+            "title": "Positions"
+          },
+          "alive_fraction": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Alive Fraction"
+          },
+          "clusters": {
+            "items": {
+              "$ref": "#/components/schemas/Cluster"
+            },
+            "type": "array",
+            "title": "Clusters"
+          }
+        },
+        "type": "object",
+        "required": [
+          "case_id",
+          "t",
+          "positions",
+          "alive_fraction"
+        ],
+        "title": "GhostFrame",
+        "description": "Pushed several times per second on /stream. positions = [[lon, lat, weight], ...]."
+      },
+      "GhostsMsg": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "ghosts",
+            "title": "Type",
+            "default": "ghosts"
+          },
+          "data": {
+            "$ref": "#/components/schemas/GhostFrame"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "GhostsMsg"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "LogEntry": {
+        "properties": {
+          "time": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Time"
+          },
+          "actor": {
+            "type": "string",
+            "title": "Actor"
+          },
+          "action": {
+            "type": "string",
+            "title": "Action"
+          },
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "actor",
+          "action",
+          "detail"
+        ],
+        "title": "LogEntry"
+      },
+      "LogMsg": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "log",
+            "title": "Type",
+            "default": "log"
+          },
+          "data": {
+            "$ref": "#/components/schemas/LogEntry"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "LogMsg"
+      },
+      "Report": {
+        "properties": {
+          "case": {
+            "$ref": "#/components/schemas/SubjectProfile"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/Evidence"
+            },
+            "type": "array",
+            "title": "Evidence"
+          },
+          "requests": {
+            "items": {
+              "$ref": "#/components/schemas/TaskingRequest"
+            },
+            "type": "array",
+            "title": "Requests"
+          },
+          "log": {
+            "items": {
+              "$ref": "#/components/schemas/LogEntry"
+            },
+            "type": "array",
+            "title": "Log"
+          }
+        },
+        "type": "object",
+        "required": [
+          "case",
+          "evidence",
+          "requests",
+          "log"
+        ],
+        "title": "Report"
+      },
+      "SubjectProfile": {
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "title": "Case Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "age": {
+            "type": "integer",
+            "title": "Age"
+          },
+          "condition": {
+            "type": "string",
+            "enum": [
+              "dementia",
+              "child",
+              "hiker",
+              "mental_health",
+              "other"
+            ],
+            "title": "Condition",
+            "default": "dementia"
+          },
+          "mobility": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "title": "Mobility",
+            "default": "medium"
+          },
+          "clothing": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Clothing",
+            "description": "Drives the clue detector prompts"
+          },
+          "notes": {
+            "type": "string",
+            "title": "Notes",
+            "default": ""
+          },
+          "last_seen": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GeoPoint"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last_seen_time": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Seen Time"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "age"
+        ],
+        "title": "SubjectProfile"
+      },
+      "TaskingMsg": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "tasking",
+            "title": "Type",
+            "default": "tasking"
+          },
+          "data": {
+            "$ref": "#/components/schemas/TaskingRequest"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "TaskingMsg"
+      },
+      "TaskingRequest": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "case_id": {
+            "type": "string",
+            "title": "Case Id"
+          },
+          "asset": {
+            "type": "string",
+            "title": "Asset",
+            "description": "e.g. \"Drone 2\", \"Ground Team 3\""
+          },
+          "target_area": {
+            "items": {
+              "$ref": "#/components/schemas/GeoPoint"
+            },
+            "type": "array",
+            "title": "Target Area"
+          },
+          "route": {
+            "items": {
+              "$ref": "#/components/schemas/GeoPoint"
+            },
+            "type": "array",
+            "title": "Route"
+          },
+          "expected_gain": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Expected Gain",
+            "description": "Share of remaining probability covered"
+          },
+          "duration_min": {
+            "type": "number",
+            "title": "Duration Min"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Reasons"
+          },
+          "evidence_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Evidence Ids"
+          },
+          "alternatives": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Alternatives"
+          },
+          "constraints_ok": {
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "type": "object",
+            "title": "Constraints Ok",
+            "description": "battery, line_of_sight, airspace, wind"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "approved",
+              "rejected"
+            ],
+            "title": "Status",
+            "default": "pending"
+          }
+        },
+        "type": "object",
+        "required": [
+          "case_id",
+          "asset",
+          "target_area",
+          "route",
+          "expected_gain",
+          "duration_min",
+          "reasons"
+        ],
+        "title": "TaskingRequest"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}
