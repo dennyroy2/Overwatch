@@ -27,3 +27,10 @@ export type StreamMessage = GhostsMsg | EvidenceMsg | TaskingMsg | LogMsg | Foun
 export type EvidenceKind = Evidence['kind']
 export type EvidenceSource = Evidence['source']
 export type RequestStatus = NonNullable<TaskingRequest['status']>
+
+/**
+ * The generated types mark `id` optional (the server fills it via default_factory), but every
+ * message the server sends has one. The store narrows with a runtime check, never a bare cast.
+ */
+export type WithId<T extends { id?: string }> = T & { id: string }
+export const hasId = <T extends { id?: string }>(x: T): x is WithId<T> => typeof x.id === 'string' && x.id.length > 0
