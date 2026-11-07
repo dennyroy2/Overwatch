@@ -55,6 +55,14 @@ export const TRAIL = { color: [255, 158, 56, 255] as [number, number, number, nu
 const SOFT_EDGE = [new SoftDisc()]
 const WARM_CORE = [new WarmCore()]
 
+/** Time the render loop may spend per frame on ground-height grid work (60 fps leaves 16.7 ms). */
+const GROUND_BUDGET_MS = 3
+
+const NO_TRAILS: TrailOutput = { length: 0, path: new Float32Array(0), timestamps: new Float32Array(0), startIndices: new Uint32Array(1), currentTime: 0 }
+
+/** Dev switch for the step 18 frame-rate measurements: ?trails=0 draws the swarm without trails. */
+const TRAILS_ON = !(import.meta.env.DEV && new URLSearchParams(window.location.search).get('trails') === '0')
+
 function makeLayers(out: SmootherOutput, trails: TrailOutput, glow: { halo: number; core: number }) {
   const data = () => ({
     length: out.count,
@@ -65,7 +73,7 @@ function makeLayers(out: SmootherOutput, trails: TrailOutput, glow: { halo: numb
   })
   // Both draw after buildings and before road/place labels (ids from map/style.ts).
   const common = { beforeId: 'highway-name-path', stroked: false, pickable: false, parameters: ADDITIVE }
-  return [
+  const haloLayer = [
     new ScatterplotLayer({
       ...common,
       id: 'ghost-halo',
@@ -77,6 +85,8 @@ function makeLayers(out: SmootherOutput, trails: TrailOutput, glow: { halo: numb
       opacity: glow.halo,
       extensions: SOFT_EDGE,
     }),
+  ]
+  const trailLayer = [
     new TripsLayer({
       ...common,
       id: 'ghost-trails',
@@ -99,7 +109,9 @@ function makeLayers(out: SmootherOutput, trails: TrailOutput, glow: { halo: numb
       currentTime: trails.currentTime,
       // In a packed swarm the tails quiet down with the cores, so they never add to a white-out.
       opacity: TRAIL.opacity * (glow.core / CORE_OPACITY.max),
-    }),
+    })
+  ]
+  const coreLayer = [
     new ScatterplotLayer({
       ...common,
       id: 'ghost-core',
@@ -108,8 +120,10 @@ function makeLayers(out: SmootherOutput, trails: TrailOutput, glow: { halo: numb
       radiusUnits: 'pixels',
       opacity: glow.core,
       extensions: WARM_CORE,
-    }),
+    })
   ]
+  // Order: halo, then trails, then cores on top.
+  return TRAILS_ON ? [...haloLayer, ...trailLayer, ...coreLayer] : [...haloLayer, ...coreLayer]
 }
 
 export function attachGhosts(map: MapLibreMap): GhostLayerHandle {
@@ -151,11 +165,17 @@ export function attachGhosts(map: MapLibreMap): GhostLayerHandle {
   let fpsSince = performance.now()
   const loop = (now: number) => {
     const t0 = performance.now()
+    // Slice of ground-height work (a few ms at most); when a new grid swaps in, re-seat the ghosts on it.
+    if (sampleGround) {
+      sampler.step(GROUND_BUDGET_MS)
+      if (sampler.takeSwapped() && ghosts.count > 0) sampler.apply(currentBuffer(), ghosts.count)
+    }
     const out = smoother.tick(now)
     if (out.count > 0) {
       glow.step(now)
       perf.haloOpacity = glow.halo
-      overlay.setProps({ layers: makeLayers(out, trails.tick(now, out.pos), glow) })
+      // With trails off (dev switch), skip building them too, so the measurement shows the real saving.
+      overlay.setProps({ layers: makeLayers(out, TRAILS_ON ? trails.tick(now, out.pos) : NO_TRAILS, glow) })
       drawnEmpty = false
     } else if (!drawnEmpty) {
       overlay.setProps({ layers: [] })
@@ -175,6 +195,7 @@ export function attachGhosts(map: MapLibreMap): GhostLayerHandle {
     const w = window as unknown as Record<string, unknown>
     w.__smoother = smoother
     w.__trails = trails
+    w.__perf = perf
   }
   // New terrain tiles arriving is the only thing that can fill grid holes; camera moves don't matter.
   const onSourceData = (e: { sourceId?: string }) => { if (e.sourceId === 'terrain-dem') sampler.markStale() }
