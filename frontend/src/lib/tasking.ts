@@ -1,7 +1,7 @@
 // What a tasking card is made of (step 21), as pure functions: the gauge number, the sentence under it, the
 // constraint row, the closed outline of the target area, which cards are waiting and which are decided, and
 // who decided (read back from the log, since the log entry is the record of the decision).
-import { toLonLatPath } from '@/lib/geo'
+import { centroid, toLonLatPath } from '@/lib/geo'
 import type { GeoPoint, LogEntry, TaskingRequest, WithId } from '@/types'
 
 export type Request = WithId<TaskingRequest>
@@ -41,14 +41,7 @@ export function targetRing(r: Pick<TaskingRequest, 'target_area'>): [number, num
 }
 
 /** The first point of the target area, for flying the camera there. */
-export const areaCentre = (r: Pick<TaskingRequest, 'target_area'>): GeoPoint | null => {
-  const pts = r.target_area ?? []
-  if (pts.length === 0) return null
-  return {
-    lat: pts.reduce((s, p) => s + p.lat, 0) / pts.length,
-    lon: pts.reduce((s, p) => s + p.lon, 0) / pts.length,
-  }
-}
+export const areaCentre = (r: Pick<TaskingRequest, 'target_area'>): GeoPoint | null => centroid(r.target_area ?? [])
 
 /** Pending first (newest on top), decided after (newest on top). `visible` lets replay hide what had not arrived. */
 export function splitRequests(
