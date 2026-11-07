@@ -6,6 +6,8 @@ import { constraintRows, gainPercent, type ConstraintState, type Request } from 
 import { cn } from '@/lib/utils'
 import type { Evidence, WithId } from '@/types'
 import { KIND_ICON } from '@/components/timeline/icons'
+import type { Choice } from '@/lib/decision'
+import { DecisionActions } from './DecisionActions'
 import { GainArc } from './GainArc'
 
 export interface TaskingCardProps {
@@ -13,6 +15,11 @@ export interface TaskingCardProps {
   /** Evidence the request cites that this screen has (a cited id it has not seen is left out, never invented). */
   evidence: WithId<Evidence>[]
   hovered: boolean
+  /** A decision on this request is on its way and not yet confirmed by the stream. */
+  sending: boolean
+  choice: Choice | null
+  /** Replay is playing back history, so deciding is switched off. */
+  locked: boolean
   onHover: (id: string | null) => void
   onShowEvidence: (id: string) => void
   onShowArea: (r: Request) => void
@@ -30,9 +37,9 @@ const STATE_STYLE: Record<ConstraintState, { icon: typeof Check; cls: string; wo
  * One tasking request. Every field the backend sends is shown: asset and duration, the expected-gain gauge,
  * the reasons (AI-written, so cyan), the four constraint checks, the other options (collapsed) and chips for the
  * evidence behind it. Hovering or focusing the card outlines its target area on the map. Approve, Edit and
- * Reject arrive in step 22.
+ * Reject sit at the bottom (DecisionActions).
  */
-export function TaskingCard({ request: r, evidence, hovered, onHover, onShowEvidence, onShowArea }: TaskingCardProps) {
+export function TaskingCard({ request: r, evidence, hovered, sending, choice, locked, onHover, onShowEvidence, onShowArea }: TaskingCardProps) {
   const reduced = useReducedMotion()
   const [more, setMore] = useState(false)
   const alternatives = r.alternatives ?? []
@@ -57,7 +64,7 @@ export function TaskingCard({ request: r, evidence, hovered, onHover, onShowEvid
       >
         <header className="flex items-center gap-2">
           <h3 className="text-md font-medium text-ink">{r.asset}</h3>
-          <span className="rounded-sm bg-amber-wash px-1.5 py-0.5 text-xs text-amber">Pending</span>
+          <span className="rounded-sm bg-amber-wash px-1.5 py-0.5 text-xs text-amber">{sending ? 'Sending' : 'Pending'}</span>
           <button
             type="button"
             onClick={() => onShowArea(r)}
@@ -143,6 +150,7 @@ export function TaskingCard({ request: r, evidence, hovered, onHover, onShowEvid
             )}
           </div>
         )}
+        <DecisionActions request={r} sending={sending} choice={choice} locked={locked} />
       </article>
     </motion.li>
   )

@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import { Check, X } from 'lucide-react'
+import { requestState } from '@/lib/decision'
 import { visibleAt } from '@/lib/evidence'
 import { areaCentre, decisionFor, splitRequests, type Request } from '@/lib/tasking'
 import { clockTime } from '@/lib/ui'
@@ -21,6 +22,7 @@ export function TaskingList() {
   const byId = useStore((s) => s.requests.byId)
   const evidence = useStore((s) => s.evidence.byId)
   const log = useStore((s) => s.log)
+  const inflight = useStore((s) => s.decisions)
   const hoveredId = useStore((s) => s.ui.hoveredRequestId)
   const hoverRequest = useStore((s) => s.hoverRequest)
   const mode = useStore((s) => s.ui.replay.mode)
@@ -30,8 +32,8 @@ export function TaskingList() {
 
   const { pending, decided } = useMemo(() => {
     const replay = { mode, t: replayT }
-    return splitRequests(order, byId, (id) => visibleAt(replay, history.firstSeen.get(id)))
-  }, [order, byId, mode, replayT])
+    return splitRequests(order, byId, (id) => visibleAt(replay, history.firstSeen.get(id)), (r) => requestState(r, log, inflight[r.id]))
+  }, [order, byId, mode, replayT, log, inflight])
 
   const showEvidence = (id: string) => {
     setPanel('left', true)
@@ -56,6 +58,9 @@ export function TaskingList() {
               request={byId[id]}
               evidence={(byId[id].evidence_ids ?? []).flatMap((eid) => (evidence[eid] ? [evidence[eid]] : []))}
               hovered={hoveredId === id}
+              sending={requestState(byId[id], log, inflight[id]) === 'sending'}
+              choice={inflight[id]?.choice ?? null}
+              locked={mode === 'playing'}
               onHover={hoverRequest}
               onShowEvidence={showEvidence}
               onShowArea={showArea}
@@ -72,8 +77,9 @@ export function TaskingList() {
           <ul className="flex flex-col gap-1">
             {decided.map((id) => {
               const r = byId[id]
-              const d = decisionFor(log, r)
-              const ok = r.status === 'approved'
+              const state = requestState(r, log, inflight[id])
+              const d = decisionFor(log, { asset: r.asset, status: state === 'rejected' ? 'rejected' : 'approved' })
+              const ok = state === 'approved'
               return (
                 <li
                   key={id}
@@ -84,7 +90,9 @@ export function TaskingList() {
                 >
                   {ok ? <Check className="size-3.5 shrink-0 text-success" aria-hidden /> : <X className="size-3.5 shrink-0 text-danger" aria-hidden />}
                   <span className="min-w-0 flex-1 truncate text-ink">{r.asset}</span>
-                  <span className={cn('text-xs', ok ? 'text-success' : 'text-danger')}>{ok ? 'Approved' : 'Rejected'}</span>
+                  <span className={cn('text-xs', ok ? 'text-success' : 'text-danger')}>
+                    {ok ? (d?.reason?.startsWith('Edited:') ? 'Approved, edited' : 'Approved') : 'Rejected'}
+                  </span>
                   {d && (
                     <span className="font-mono text-xs text-ink-3" title={`${d.who}${d.reason ? `: ${d.reason}` : ''}`}>
                       {clockTime(d.time).slice(0, 5)}

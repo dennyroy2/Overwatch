@@ -53,6 +53,14 @@ describe('splitRequests', () => {
   })
 })
 
+describe('splitRequests with the stream-derived state', () => {
+  it('counts a decision that is still being confirmed as waiting, and a confirmed one as decided', () => {
+    const byId = { a: req({ id: 'a' }), b: req({ id: 'b' }), c: req({ id: 'c' }) }
+    const st: Record<string, 'sending' | 'approved' | 'pending'> = { a: 'sending', b: 'approved', c: 'pending' }
+    expect(splitRequests(['a', 'b', 'c'], byId, () => true, (r) => st[r.id])).toEqual({ pending: ['c', 'a'], decided: ['b'] })
+  })
+})
+
 describe('decisionFor', () => {
   const log = [
     { time: '2026-01-01T10:00:00Z', actor: 'system', action: 'note', detail: 'x' },

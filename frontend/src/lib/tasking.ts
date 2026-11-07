@@ -48,13 +48,16 @@ export function splitRequests(
   order: string[],
   byId: Record<string, Request>,
   visible: (id: string) => boolean = () => true,
+  /** What each request currently is (the stream's answer, see lib/decision.ts). Defaults to its own `status`. */
+  stateOf: (r: Request) => 'pending' | 'sending' | 'approved' | 'rejected' = (r) => r.status ?? 'pending',
 ): { pending: string[]; decided: string[] } {
   const pending: string[] = []
   const decided: string[] = []
   for (const id of [...order].reverse()) {
     const r = byId[id]
     if (!r || !visible(id)) continue
-    ;(r.status === 'pending' || r.status === undefined ? pending : decided).push(id)
+    const st = stateOf(r)
+    ;(st === 'pending' || st === 'sending' ? pending : decided).push(id)
   }
   return { pending, decided }
 }

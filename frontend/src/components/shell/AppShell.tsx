@@ -9,6 +9,7 @@ import { Rail } from './Rail'
 import { CommandBar } from './CommandBar'
 import { Scrubber } from './Scrubber'
 import { PipSlot, ReportSlot } from './Slots'
+import { Toaster } from './Toaster'
 
 /**
  * Full-viewport operations screen. The map fills everything (layer 0); every panel floats over
@@ -53,6 +54,7 @@ export function AppShell({ map }: { map: React.ReactNode }) {
         <PipSlot open={panels.pip} />
         <Scrubber />
         <CommandBar />
+        <Toaster />
         <ReportSlot open={panels.report} onClose={() => setPanel('report', false)} />
         {import.meta.env.DEV && <DebugPanel />}
       </div>
