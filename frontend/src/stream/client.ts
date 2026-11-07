@@ -10,6 +10,7 @@
 // Every (re)connect re-hydrates from /report first, because the stream has no history.
 import { API_URL, WS_URL } from '@/lib/config'
 import { resetGhosts, noteEvidence, pushFrame, readRespawned } from './ghostBuffer'
+import { history } from './history'
 import { useStore } from '@/store'
 import type { Report, StreamMessage, SubjectProfile } from '@/types'
 
@@ -173,11 +174,18 @@ function route(msg: StreamMessage): void {
     }
     case 'evidence':
       noteEvidence()
+      history.noteEvent(performance.now(), 'evidence', msg.data.id) // a tick on the time bar
       store().applyMessage(msg)
       return
     case 'tasking':
-    case 'log':
+      history.noteEvent(performance.now(), 'tasking', msg.data.id)
+      store().applyMessage(msg)
+      return
     case 'found':
+      history.noteEvent(performance.now(), 'found')
+      store().applyMessage(msg)
+      return
+    case 'log':
       store().applyMessage(msg)
       return
     default: {

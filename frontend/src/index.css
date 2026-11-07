@@ -24,6 +24,7 @@
   --color-amber-dim: var(--ow-amber-dim);
   --color-amber-wash: var(--ow-amber-wash);
   --color-on-amber: var(--ow-on-amber);
+  --color-warm: var(--ow-warm-white);
   --color-ai: var(--ow-cyan);
   --color-ai-dim: var(--ow-cyan-dim);
   --color-ai-wash: var(--ow-cyan-wash);
@@ -126,7 +127,7 @@
 /* MapLibre attribution: required by OpenFreeMap/OSM, themed to the palette, sits between the rails above the command bar */
 .maplibregl-map .maplibregl-ctrl-bottom-left {
   left: 50%;
-  bottom: 4.5rem;
+  bottom: var(--ow-dock);
   transform: translateX(-50%);
 }
 .maplibregl-ctrl-attrib {
@@ -139,3 +140,122 @@
 }
 .maplibregl-ctrl-attrib a { color: var(--ow-text-2) !important; }
 .maplibregl-ctrl-attrib-button { filter: invert(1) opacity(0.7); }
+
+
+/* Cluster rings (step 17): neutral warm-white; amber means selected (a human choice); never cyan (cyan = AI words). */
+.ow-cluster {
+  position: relative;
+  display: block;
+  padding: 0;
+  border: 0;
+  border-radius: 9999px;
+  background: transparent;
+  cursor: pointer;
+  transition: width var(--ow-dur-slow) var(--ow-ease-out), height var(--ow-dur-slow) var(--ow-ease-out);
+}
+.ow-cluster__ring,
+.ow-cluster__pulse {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  pointer-events: none;
+}
+.ow-cluster__ring {
+  border: 2px solid var(--ow-warm-white);
+  /* a dark keyline on both sides so the ring stays visible over the bright glow */
+  box-shadow: 0 0 0 1.5px rgb(0 0 0 / 0.75), inset 0 0 0 1.5px rgb(0 0 0 / 0.75);
+  opacity: 0.88;
+  transition: border-width var(--ow-dur-fast) var(--ow-ease-out), opacity var(--ow-dur-fast) var(--ow-ease-out);
+}
+.ow-cluster__pulse {
+  border: 1px solid var(--ow-warm-white);
+  opacity: 0;
+  animation: ow-ring-pulse 2.8s var(--ow-ease-out) infinite;
+}
+@keyframes ow-ring-pulse {
+  0% { transform: scale(1); opacity: 0.55; }
+  100% { transform: scale(1.55); opacity: 0; }
+}
+.ow-cluster:hover .ow-cluster__ring,
+.ow-cluster:focus-visible .ow-cluster__ring { border-width: 3px; opacity: 1; }
+.ow-cluster:focus-visible { outline: 2px solid var(--ow-amber); outline-offset: 3px; }
+.ow-cluster[aria-pressed="true"] .ow-cluster__ring { border-color: var(--ow-amber); border-width: 3px; opacity: 1; }
+.ow-cluster[aria-pressed="true"] .ow-cluster__pulse { border-color: var(--ow-amber); }
+.ow-cluster__label {
+  position: absolute;
+  left: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 1px 6px;
+  border: 1px solid var(--ow-border-strong);
+  border-radius: var(--ow-radius-sm);
+  background: rgb(12 16 21 / 0.9);
+  color: var(--ow-warm-white);
+  font-family: var(--ow-font-mono);
+  font-size: var(--ow-text-sm);
+  font-variant-numeric: tabular-nums slashed-zero;
+  line-height: 1.35;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.ow-cluster:hover .ow-cluster__label { border-color: var(--ow-warm-white); }
+.ow-cluster[aria-pressed="true"] .ow-cluster__label { border-color: var(--ow-amber); color: var(--ow-amber); }
+@media (prefers-reduced-motion: reduce) {
+  .ow-cluster__pulse { animation: none; }
+}
+
+
+/* "Parsing": a quiet cyan sweep while the AI turns a typed note into a structured card (step 19) */
+.ow-shimmer { animation: ow-shimmer 1.6s var(--ow-ease-out) infinite; }
+@keyframes ow-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ow-shimmer { animation: none; width: 100%; opacity: 0.5; }
+}
+
+
+/* Evidence pins (step 19): warm-white, amber when selected, never cyan. The body scales, not the marker element
+   (MapLibre positions the element itself with a transform). */
+.ow-pin {
+  position: relative;
+  display: block;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.ow-pin__body {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 9999px;
+  border: 2px solid var(--ow-warm-white);
+  background: rgb(12 16 21 / 0.92);
+  color: var(--ow-warm-white);
+  box-shadow: 0 0 0 1.5px rgb(0 0 0 / 0.7), 0 2px 8px rgb(0 0 0 / 0.6);
+  transition: transform var(--ow-dur-fast) var(--ow-ease-out), border-color var(--ow-dur-fast) var(--ow-ease-out);
+}
+.ow-pin[data-kind="favourite_place"] .ow-pin__body { width: 20px; height: 20px; }
+.ow-pin[data-hover="true"] .ow-pin__body,
+.ow-pin:focus-visible .ow-pin__body { transform: scale(1.18); }
+.ow-pin[data-selected="true"] .ow-pin__body { border-color: var(--ow-amber); color: var(--ow-amber); transform: scale(1.18); }
+.ow-pin:focus-visible { outline: 2px solid var(--ow-amber); outline-offset: 3px; border-radius: 9999px; }
+.ow-pin--new::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 2px solid var(--ow-warm-white);
+  pointer-events: none;
+  animation: ow-pin-pulse 1.4s var(--ow-ease-out) 1 forwards;
+}
+@keyframes ow-pin-pulse {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(3); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ow-pin--new::after { animation: none; opacity: 0; }
+}

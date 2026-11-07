@@ -1,10 +1,12 @@
 import { ClipboardList, ListChecks } from 'lucide-react'
 import { selectPendingCount, useStore } from '@/store'
 import { NewCaseSheet } from '@/components/case/NewCaseSheet'
+import { EvidenceTimeline } from '@/components/timeline/EvidenceTimeline'
 import { DebugPanel } from '@/components/dev/DebugPanel'
 import { ConnectedStatusBar } from './ConnectedStatusBar'
 import { Rail } from './Rail'
 import { CommandBar } from './CommandBar'
+import { Scrubber } from './Scrubber'
 import { PipSlot, ReportSlot } from './Slots'
 
 /**
@@ -15,6 +17,7 @@ export function AppShell({ map }: { map: React.ReactNode }) {
   const panels = useStore((s) => s.ui.panels)
   const setPanel = useStore((s) => s.setPanel)
   const pending = useStore(selectPendingCount)
+  const hasEvidence = useStore((s) => s.evidence.order.length > 0)
   return (
     <div className="relative h-full w-full overflow-hidden bg-ground">
       <div className="absolute inset-0 z-0">{map}</div>
@@ -30,7 +33,9 @@ export function AppShell({ map }: { map: React.ReactNode }) {
             open={panels.left}
             onToggle={() => setPanel('left', !panels.left)}
             empty="No evidence yet. Tips, sightings and search results appear here as they arrive."
-          />
+          >
+            {hasEvidence ? <EvidenceTimeline /> : undefined}
+          </Rail>
         )}
         <Rail
           side="right"
@@ -42,6 +47,7 @@ export function AppShell({ map }: { map: React.ReactNode }) {
           empty="No requests yet. Recommended searches appear here for you to approve, edit or reject."
         />
         <PipSlot open={panels.pip} />
+        <Scrubber />
         <CommandBar />
         <ReportSlot open={panels.report} onClose={() => setPanel('report', false)} />
         {import.meta.env.DEV && <DebugPanel />}

@@ -72,3 +72,9 @@ export const DEMO_LAST_SEEN: GeoPoint = { lat: 53.5422, lon: -113.5337 }
 
 /** "53.5422, -113.5337": for display only (readouts, form status). */
 export const formatPoint = (p: GeoPoint): string => `${p.lat.toFixed(4)}, ${p.lon.toFixed(4)}`
+
+/** The point `t` (0..1) of the way from `a` to `b` (straight line in lat/lon, fine at city scale). */
+export const lerpPoint = (a: GeoPoint, b: GeoPoint, t: number): GeoPoint => ({
+  lat: a.lat + (b.lat - a.lat) * t,
+  lon: a.lon + (b.lon - a.lon) * t,
+})

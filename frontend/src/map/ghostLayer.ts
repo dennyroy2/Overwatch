@@ -1,40 +1,133 @@
 // deck.gl ghost layer, drawn INSIDE MapLibre's WebGL context (interleaved: true) so ghosts sit
-// correctly among terrain and 3D buildings. One ScatterplotLayer fed from the typed array with
-// BINARY ATTRIBUTES: no per-point JS objects, no garbage-collection pauses mid-demo.
+// correctly among terrain and 3D buildings. Two ScatterplotLayers (soft halo + bright core) fed from the
+// typed arrays with BINARY ATTRIBUTES: no per-point JS objects, no garbage-collection pauses mid-demo.
 //
-// Step 11: positions are drawn exactly as they arrive (no smoothing). Step 14 adds interpolation.
+// Step 14: a requestAnimationFrame loop (outside React) blends between the last two data frames so ghosts
+// glide at the display's frame rate; respawned slots snap and fade in (see stream/smoother.ts).
 import { MapboxOverlay } from '@deck.gl/mapbox'
 import { ScatterplotLayer } from '@deck.gl/layers'
+import { TripsLayer } from '@deck.gl/geo-layers'
 import type { Map as MapLibreMap } from 'maplibre-gl'
 import { createGroundSampler, type GroundSampler } from './elevation'
-import { currentBuffer, GHOST_STRIDE_BYTES, ghosts, onGhostFrame, OFFSET } from '@/stream/ghostBuffer'
-
-/** Restrained warm tone, never cyan (cyan is reserved for the AI). Glow and density come in step 15. */
-const GHOST_COLOR: [number, number, number, number] = [255, 196, 110, 170]
+import { CELL_METRES, CORE_OPACITY, GlowEase, densityStats } from './glow'
+import { SoftDisc, WarmCore } from './softDisc'
+import { currentBuffer, ghosts, onGhostFrame } from '@/stream/ghostBuffer'
+import { perf } from '@/stream/perf'
+import { GhostSmoother, type SmootherOutput } from '@/stream/smoother'
+import { history } from '@/stream/history'
+import { playback } from '@/stream/playback'
+import { ReplayRenderer, type ReplayFrame } from '@/stream/replay'
+import { useStore } from '@/store'
+import { TRAIL_MS, TrailBuffer, type TrailOutput } from '@/stream/trails'
 
 export interface GhostLayerHandle {
   sampler: GroundSampler
   dispose: () => void
 }
 
-function makeLayer(buf: Float32Array, count: number) {
-  return new ScatterplotLayer({
-    id: 'ghosts',
-    // Draw after buildings, before road/place labels (ids from map/style.ts).
-    beforeId: 'highway-name-path',
-    data: {
-      length: count,
-      attributes: {
-        getPosition: { value: buf, size: 3, stride: GHOST_STRIDE_BYTES, offset: OFFSET.longitude * 4 },
-      },
+/**
+ * Glow = additive blending: overlapping light adds up, so dense areas get hotter and brighter by themselves
+ * (colour saturates red, then green, then blue: dark -> amber -> near-white) and no legend is needed.
+ * `depthWriteEnabled: false` keeps glows from hiding each other or the map; they still depth-test against terrain.
+ */
+const ADDITIVE = {
+  blend: true,
+  blendColorOperation: 'add',
+  blendColorSrcFactor: 'src-alpha',
+  blendColorDstFactor: 'one',
+  blendAlphaOperation: 'add',
+  blendAlphaSrcFactor: 'one',
+  blendAlphaDstFactor: 'one',
+  depthWriteEnabled: false,
+} as const
+
+/**
+ * A wide, soft halo per ghost: the density layer. Strong by choice (user, step 15); its opacity is set
+ * every frame by glow.ts so a typical cell glows amber and denser-than-typical cells climb to white, whatever the swarm's overall density.
+ */
+export const HALO = { radiusMeters: 45, minPixels: 5, maxPixels: 36 } as const
+/** A small bright core per ghost, so individual ghosts still read inside the glow. */
+export const CORE = { radiusPixels: 2.2 } as const
+/**
+ * Fading comet tails on a subsample of ghosts (step 16): they show which way the swarm drifts. Warm
+ * amber-white, lighter than the ghosts (user choice), never cyan. The colour is LINEAR light, like every
+ * colour here (see GHOST_RGB_LINEAR): (1.0, 0.62, 0.22) displays as a light amber (255, 205, 128).
+ */
+export const TRAIL = { color: [255, 158, 56, 255] as [number, number, number, number], widthPixels: 1.2, opacity: 0.28 } as const
+
+/** One shared instance: a new extension object per frame would make deck.gl rebuild the shader. */
+const SOFT_EDGE = [new SoftDisc()]
+const WARM_CORE = [new WarmCore()]
+
+/** Time the render loop may spend per frame on ground-height grid work (60 fps leaves 16.7 ms). */
+const GROUND_BUDGET_MS = 3
+
+const NO_TRAILS: TrailOutput = { length: 0, path: new Float32Array(0), timestamps: new Float32Array(0), startIndices: new Uint32Array(1), currentTime: 0 }
+
+/** Dev switch for the step 18 frame-rate measurements: ?trails=0 draws the swarm without trails. */
+const TRAILS_ON = !(import.meta.env.DEV && new URLSearchParams(window.location.search).get('trails') === '0')
+
+function makeLayers(out: SmootherOutput, trails: TrailOutput, glow: { halo: number; core: number }) {
+  const data = () => ({
+    length: out.count,
+    attributes: {
+      getPosition: { value: out.pos, size: 3 },
+      getFillColor: { value: out.col, size: 4 },
     },
-    getFillColor: GHOST_COLOR,
-    getRadius: 2.5,
-    radiusUnits: 'pixels',
-    radiusMinPixels: 1.5,
-    stroked: false,
-    pickable: false,
   })
+  // Both draw after buildings and before road/place labels (ids from map/style.ts).
+  const common = { beforeId: 'highway-name-path', stroked: false, pickable: false, parameters: ADDITIVE }
+  const haloLayer = [
+    new ScatterplotLayer({
+      ...common,
+      id: 'ghost-halo',
+      data: data(),
+      getRadius: HALO.radiusMeters,
+      radiusUnits: 'meters',
+      radiusMinPixels: HALO.minPixels,
+      radiusMaxPixels: HALO.maxPixels,
+      opacity: glow.halo,
+      extensions: SOFT_EDGE,
+    }),
+  ]
+  const trailLayer = [
+    new TripsLayer({
+      ...common,
+      id: 'ghost-trails',
+      // Binary attributes: no per-trail objects. Vertex timestamps are ms relative to the first frame.
+      data: {
+        length: trails.length,
+        startIndices: trails.startIndices,
+        attributes: {
+          getPath: { value: trails.path, size: 3 },
+          getTimestamps: { value: trails.timestamps, size: 1 },
+        },
+      },
+      getColor: TRAIL.color,
+      getWidth: TRAIL.widthPixels,
+      widthUnits: 'pixels',
+      capRounded: true,
+      jointRounded: true,
+      fadeTrail: true,
+      trailLength: TRAIL_MS,
+      currentTime: trails.currentTime,
+      // In a packed swarm the tails quiet down with the cores, so they never add to a white-out.
+      opacity: TRAIL.opacity * (glow.core / CORE_OPACITY.max),
+    })
+  ]
+  const coreLayer = [
+    new ScatterplotLayer({
+      ...common,
+      id: 'ghost-core',
+      data: data(),
+      getRadius: CORE.radiusPixels,
+      radiusUnits: 'pixels',
+      opacity: glow.core,
+      extensions: WARM_CORE,
+    })
+  ]
+  // Order: halo, then trails, then cores on top.
+  return TRAILS_ON ? [...haloLayer, ...trailLayer, ...coreLayer] : [...haloLayer, ...coreLayer]
 }
 
 export function attachGhosts(map: MapLibreMap): GhostLayerHandle {
@@ -48,22 +141,159 @@ export function attachGhosts(map: MapLibreMap): GhostLayerHandle {
   // Dev switch for the step-11 terrain check: ?ghostz=0 leaves ghosts at z = 0 (sea level).
   const sampleGround = !(import.meta.env.DEV && new URLSearchParams(window.location.search).get('ghostz') === '0')
 
-  const render = () => {
+  const smoother = new GhostSmoother()
+  const glow = new GlowEase()
+  const trails = new TrailBuffer()
+  const renderer = new ReplayRenderer()
+  let lastLive: SmootherOutput | null = null
+
+  // Data side: a new frame arrived. Put ghosts on the ground, record it, and tell the smoother.
+  // This always runs, even while the screen is paused: the stream keeps being recorded.
+  const onFrame = () => {
     const count = ghosts.count
-    const buf = currentBuffer()
-    if (count > 0 && sampleGround) sampler.apply(buf, count)
-    overlay.setProps({ layers: count > 0 ? [makeLayer(buf, count)] : [] })
+    if (count > 0 && sampleGround) sampler.apply(currentBuffer(), count)
+    smoother.onFrame(ghosts.receivedAt, currentBuffer(), count, ghosts.respawned, ghosts.allRespawned)
+    trails.onFrame(ghosts.receivedAt, count, smoother) // after the smoother: it reads what the smoother just decided
+    perf.trails = trails.trailCount
+    const store = useStore.getState()
+    history.onFrame({
+      arrivalMs: ghosts.receivedAt,
+      cur: currentBuffer(),
+      count,
+      allRespawned: smoother.respawnedAll,
+      wasRespawned: (i) => smoother.wasRespawned(i),
+      simTime: ghosts.simTime,
+      clusters: store.clusters,
+      alive: store.ghostMeta.aliveFraction,
+    })
+    if (count === 0) {
+      glow.reset()
+      playback.reset() // the case closed or was replaced: back to live
+      store.setReplayView(null)
+    } else if (playback.isLive) {
+      // Only the live picture drives the glow here; a paused or replayed picture sets it from its own frame.
+      const d = densityStats(currentBuffer(), count)
+      glow.setDensity(d.meanOccupied)
+      perf.peakPerCell = d.peak
+      perf.typicalPerCell = d.meanOccupied
+    }
   }
-  const off = onGhostFrame(render)
+  const off = onGhostFrame(onFrame)
+
+  // What the screen shows right now, so "pause" can freeze that exact frame.
+  playback.setCapture(() => {
+    const store = useStore.getState()
+    if (!lastLive || lastLive.count === 0) return null
+    return {
+      drawn: lastLive.pos,
+      count: lastLive.count,
+      weights: currentBuffer(),
+      simTime: ghosts.simTime,
+      clusters: store.clusters,
+      alive: store.ghostMeta.aliveFraction,
+    }
+  })
+  const offMode = playback.onChange(() => useStore.getState().setReplayMode(playback.mode))
+
+  // Render side: every animation frame, blend and hand the result to deck.gl. No React involved.
+  let raf = 0
+  let drawnEmpty = false
+  let fpsFrames = 0
+  let fpsSince = performance.now()
+  // Replay bookkeeping: redraw a paused picture only while something is still changing (a seek, the glow easing).
+  let replayFrame: ReplayFrame | null = null
+  let renderedVersion = -1
+  let settleUntil = 0
+  let lastViewPush = 0
+  let lastKeyframe = -1
+
+  const drawReplay = (now: number) => {
+    if (playback.version !== renderedVersion || playback.mode === 'playing') {
+      renderedVersion = playback.version
+      replayFrame = renderer.render(history, playback.T)
+      if (replayFrame && replayFrame.out.count > 0) {
+        const d = densityStats(replayFrame.out.pos, replayFrame.out.count, CELL_METRES, 3)
+        glow.setDensity(d.meanOccupied)
+        perf.peakPerCell = d.peak
+        perf.typicalPerCell = d.meanOccupied
+        // Rings and the sim clock follow the recorded moment (throttled; they change slowly).
+        if (replayFrame.keyframe !== lastKeyframe || now - lastViewPush >= 100) {
+          lastKeyframe = replayFrame.keyframe
+          lastViewPush = now
+          useStore.getState().setReplayView({ t: playback.T, clusters: replayFrame.clusters, simTime: replayFrame.simTime, alive: replayFrame.alive })
+        }
+      }
+      settleUntil = now + 700 // let the glow ease to its new level
+    }
+    glow.step(now)
+    perf.haloOpacity = glow.halo
+    if (replayFrame && replayFrame.out.count > 0 && now < settleUntil) {
+      overlay.setProps({ layers: makeLayers(replayFrame.out, TRAILS_ON ? replayFrame.trails : NO_TRAILS, glow) })
+      drawnEmpty = false
+    }
+  }
+
+  const loop = (now: number) => {
+    const t0 = performance.now()
+    // Slice of ground-height work (a few ms at most); when a new grid swaps in, re-seat the ghosts on it.
+    if (sampleGround) {
+      sampler.step(GROUND_BUDGET_MS)
+      if (sampler.takeSwapped() && ghosts.count > 0) sampler.apply(currentBuffer(), ghosts.count)
+    }
+    playback.advance(now)
+    const out = smoother.tick(now) // always tick: the live picture keeps going behind a paused one
+    lastLive = out
+    if (!playback.isLive) {
+      drawReplay(now)
+    } else {
+      if (replayFrame) {
+        // Just went live again: drop the recorded picture and let the live one take over.
+        replayFrame = null
+        renderedVersion = -1
+        lastKeyframe = -1
+        useStore.getState().setReplayView(null)
+      }
+      if (out.count > 0) {
+        glow.step(now)
+        perf.haloOpacity = glow.halo
+        // With trails off (dev switch), skip building them too, so the measurement shows the real saving.
+        overlay.setProps({ layers: makeLayers(out, TRAILS_ON ? trails.tick(now, out.pos) : NO_TRAILS, glow) })
+        drawnEmpty = false
+      } else if (!drawnEmpty) {
+        overlay.setProps({ layers: [] })
+        drawnEmpty = true
+      }
+    }
+    perf.workMs = performance.now() - t0
+    fpsFrames += 1
+    if (now - fpsSince >= 500) {
+      perf.fps = (fpsFrames * 1000) / (now - fpsSince)
+      fpsFrames = 0
+      fpsSince = now
+    }
+    raf = requestAnimationFrame(loop)
+  }
+  raf = requestAnimationFrame(loop)
+  if (import.meta.env.DEV) {
+    const w = window as unknown as Record<string, unknown>
+    w.__smoother = smoother
+    w.__trails = trails
+    w.__perf = perf
+    w.__history = history
+    w.__playback = playback
+  }
   // New terrain tiles arriving is the only thing that can fill grid holes; camera moves don't matter.
   const onSourceData = (e: { sourceId?: string }) => { if (e.sourceId === 'terrain-dem') sampler.markStale() }
   map.on('sourcedata', onSourceData)
-  render()
+  onFrame()
 
   return {
     sampler,
     dispose: () => {
       off()
+      offMode()
+      playback.setCapture(null)
+      cancelAnimationFrame(raf)
       map.off('sourcedata', onSourceData)
       map.removeControl(overlay)
       overlay.finalize()

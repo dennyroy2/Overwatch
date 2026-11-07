@@ -4,6 +4,7 @@ export const tokens = {
   bg0: '#06080b', bg1: '#0c1015', bg2: '#121820', bg3: '#1a222d',
   border: '#232c39', borderStrong: '#3a4757',
   text1: '#e9edf2', text2: '#a8b2bf', text3: '#8592a2',
+  warmWhite: '#f3ead9',
   amber: '#ffb224', cyan: '#5cd3e8', danger: '#ff6459', success: '#41d392',
 } as const
 
