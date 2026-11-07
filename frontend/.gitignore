@@ -1,0 +1,11 @@
+node_modules
+dist
+dist-ssr
+*.local
+*.log
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.tsbuildinfo
+# Footage comes from Drive, never from git (sidecar JSON and crops are committed)
+public/footage/*.mp4
