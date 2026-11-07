@@ -236,10 +236,14 @@ def extract_llm(text: str) -> Extraction | None:
     try:
         import httpx
 
-        r = httpx.post(LLM_URL, timeout=8.0, headers={
-            "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
-            json={"model": LLM_MODEL, "max_tokens": 400, "system": LLM_SYSTEM,
-                  "messages": [{"role": "user", "content": text}]})
+        headers = {"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"}
+        body = {"model": LLM_MODEL, "max_tokens": 400, "system": LLM_SYSTEM,
+                "messages": [{"role": "user", "content": text}]}
+        # Haiku 5.5 thinks by default; a one-sentence extraction doesn't need it, and it adds delay.
+        fast = {**body, "thinking": {"type": "disabled"}, "output_config": {"effort": "low"}}
+        r = httpx.post(LLM_URL, timeout=8.0, headers=headers, json=fast)
+        if r.status_code == 400:            # settings not accepted: retry with the plain request
+            r = httpx.post(LLM_URL, timeout=8.0, headers=headers, json=body)
         r.raise_for_status()
         raw = "".join(b.get("text", "") for b in r.json().get("content", []) if b.get("type") == "text")
         return extraction_from_llm_json(raw)

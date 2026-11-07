@@ -76,3 +76,48 @@ def test_llm_json_is_resolved_by_gazetteer():
     ex = extraction_from_llm_json('{"kind":"sighting","source":"witness","place_text":"Victoria Park",'
                                   '"time_24h":"15:20","reliability":0.6,"summary":"Witness: woman near Victoria Park"}')
     assert ex.kind == "sighting" and ex.clock == (15, 20) and ex.place_text == "Victoria Park"
+
+
+class _FakeResp:
+    def __init__(self, status, payload):
+        self.status_code, self._p = status, payload
+
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise RuntimeError(self.status_code)
+
+    def json(self):
+        return self._p
+
+
+def test_llm_path_with_fake_api(monkeypatch):
+    """Haiku is called with the key, its JSON is used, and places still come from our map."""
+    import httpx
+    calls = []
+    reply = {"content": [{"type": "text", "text": '{"kind":"sighting","source":"transit",'
+             '"place_text":"Emily Murphy Park stop","kind_hint":"bus_stop","time_24h":"14:35",'
+             '"reliability":0.75,"summary":"Bus driver: woman in grey hoodie at Emily Murphy Park stop"}'}]}
+
+    def fake_post(url, **kw):
+        calls.append(kw["json"])
+        return _FakeResp(400, {}) if len(calls) == 1 else _FakeResp(200, reply)   # first: reject fast settings
+
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+    monkeypatch.setattr(httpx, "post", fake_post)
+    r = parse_tip_verbose("bus driver saw her at the emily murphy park stop 2:35", CASE, now=NOW)
+    assert r.method == "llm" and calls[0]["model"] == "claude-haiku-5-5"
+    assert "thinking" in calls[0] and "thinking" not in calls[1]          # retried in plain mode
+    assert r.evidence.time.strftime("%H:%M") == "14:35"
+    assert near(r.evidence, 53.5328, -113.5395, 250)
+
+
+def test_llm_failure_falls_back_to_rules(monkeypatch):
+    import httpx
+
+    def boom(url, **kw):
+        raise httpx.ConnectError("wifi down")
+
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+    monkeypatch.setattr(httpx, "post", boom)
+    r = parse_tip_verbose("Team 2 searched 3 blocks around 116 Street and 102 Avenue, no sign of her", CASE, now=NOW)
+    assert r.method == "rules" and r.evidence.kind == "searched_area"
