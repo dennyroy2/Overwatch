@@ -1,0 +1,3 @@
+# Benchmark outputs change every run. Only the FINAL real-engine results get committed,
+# on purpose, with: git add -f benchmark/results/chart.png benchmark/results/summary.json
+results/
