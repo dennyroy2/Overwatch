@@ -16,9 +16,40 @@ import { FLOATS_PER_GHOST, OFFSET } from './ghostBuffer'
 
 /** A respawned ghost fades in over this long (user choice, step 14). Step 35 owns the longer dissolve. */
 export const FADE_MS = 300
-/** Restrained warm tone, never cyan (cyan is reserved for the AI). Glow and density arrive in step 15. */
-export const GHOST_RGB: readonly [number, number, number] = [255, 196, 110]
-export const GHOST_ALPHA = 170
+/**
+ * Warm amber as it should APPEAR (sRGB), never cyan (cyan is reserved for the AI). Drawn additively, so
+ * overlapping ghosts add up towards yellow and white: that is what makes dense areas glow "hotter" with no
+ * legend (step 15).
+ */
+export const GHOST_RGB: readonly [number, number, number] = [255, 176, 64]
+
+/** sRGB 0-255 -> linear light 0-255. */
+export function srgbToLinear(c: number): number {
+  const v = c / 255
+  return Math.round(255 * (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4))
+}
+
+/**
+ * What we actually write into the colour buffer. MEASURED (step 15): the map framebuffer treats shader
+ * colours as LINEAR light and gamma-encodes on display, so brightness rises roughly as opacity^0.4, not
+ * linearly, and an "sRGB amber" of (255,176,64) displays as a pale (255,217,138). Writing the linear
+ * equivalent, (255,111,13), makes a lone ghost look like the amber we mean, and makes additive sums behave.
+ */
+export const GHOST_RGB_LINEAR: readonly [number, number, number] = [
+  srgbToLinear(GHOST_RGB[0]),
+  srgbToLinear(GHOST_RGB[1]),
+  srgbToLinear(GHOST_RGB[2]),
+]
+/** Per-ghost alpha at full brightness and full fade-in; the glow layers scale it with their own opacity. */
+export const GHOST_ALPHA = 255
+/** An unlikely ghost (weight near 0) is dimmed to this fraction of full brightness, never fully hidden. */
+export const MIN_BRIGHTNESS = 0.25
+
+/** Ghost brightness from its probability weight (0..1): dimmer when less likely. */
+export function weightBrightness(weight: number): number {
+  const w = Number.isFinite(weight) ? clamp01(weight) : 1
+  return MIN_BRIGHTNESS + (1 - MIN_BRIGHTNESS) * w
+}
 
 const DEFAULT_INTERVAL_MS = 200
 const MIN_INTERVAL_MS = 50
@@ -30,12 +61,14 @@ const NEVER = -1e12
 export interface SmootherOutput {
   /** [lon, lat, elevation] per slot (stride 12 bytes). */
   pos: Float32Array
-  /** [r, g, b, a] per slot. Alpha carries the respawn fade. */
+  /** [r, g, b, a] per slot. Alpha carries the respawn fade times the probability brightness. */
   col: Uint8ClampedArray
   count: number
 }
 
-const clamp01 = (x: number) => (x < 0 ? 0 : x > 1 ? 1 : x)
+function clamp01(x: number): number {
+  return x < 0 ? 0 : x > 1 ? 1 : x
+}
 
 export class GhostSmoother {
   private cur: Float32Array | null = null // newest frame, ghostBuffer layout (stride 4)
@@ -147,15 +180,17 @@ export class GhostSmoother {
     out.count = this.cur ? this.count : 0
     if (!this.cur) return out
     this.evaluate(nowMs, out.pos)
-    const [r, g, b] = GHOST_RGB
+    const [r, g, b] = GHOST_RGB_LINEAR
+    const cur = this.cur
     for (let i = 0; i < this.count; i++) {
       const a = clamp01((nowMs - this.fadeStart[i]) / FADE_MS)
       const eased = 1 - (1 - a) * (1 - a) // ease-out: appears quickly, settles gently
+      const bright = weightBrightness(cur[i * FLOATS_PER_GHOST + OFFSET.weight])
       const o = i * 4
       out.col[o] = r
       out.col[o + 1] = g
       out.col[o + 2] = b
-      out.col[o + 3] = Math.round(GHOST_ALPHA * eased)
+      out.col[o + 3] = Math.round(GHOST_ALPHA * eased * bright)
     }
     return out
   }

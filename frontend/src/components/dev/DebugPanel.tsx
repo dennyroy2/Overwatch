@@ -15,7 +15,7 @@ export function DebugPanel() {
   const log = useStore((s) => s.log.length)
   const connection = useStore((s) => s.connection)
   const caseId = useStore((s) => s.caseProfile?.case_id)
-  const [g, setG] = useState({ points: 0, frames: 0, fps: 0, frameAge: 0, workMs: 0, respawn: '-' })
+  const [g, setG] = useState({ points: 0, frames: 0, fps: 0, frameAge: 0, workMs: 0, respawn: '-', peak: 0, typical: 0, halo: 0 })
   const [open, setOpen] = useState(false)
   useEffect(() => {
     const id = setInterval(() => {
@@ -26,6 +26,9 @@ export function DebugPanel() {
         // How old the newest data frame is. ~0-200 ms with a 5 fps feed; much larger means the stream stalled.
         frameAge: ghosts.receivedAt ? Math.round(performance.now() - ghosts.receivedAt) : 0,
         workMs: +perf.workMs.toFixed(2),
+        peak: perf.peakPerCell,
+        typical: +perf.typicalPerCell.toFixed(1),
+        halo: +perf.haloOpacity.toFixed(3),
         // Slots that were replaced in the newest frame ('all' = fallback while the backend sends no list).
         respawn: ghosts.allRespawned ? 'all' : ghosts.respawned ? String(ghosts.respawned.length) : '-',
       })
@@ -63,6 +66,9 @@ export function DebugPanel() {
       {row('frame age ms', g.frameAge)}
       {row('render ms', g.workMs)}
       {row('respawned', g.respawn)}
+      {row('peak / cell', g.peak)}
+      {row('typical / cell', g.typical)}
+      {row('glow opacity', g.halo)}
       {row('evidence', evidence)}
       {row('requests', requests)}
       {row('log', log)}

@@ -4,4 +4,8 @@ export const perf = {
   fps: 0,
   /** Time the render loop spent blending and handing data to deck.gl last frame, ms. */
   workMs: 0,
+  /** Ghosts in the busiest density cell, the mean per occupied cell, and the halo opacity derived from it (step 15). */
+  peakPerCell: 0,
+  typicalPerCell: 0,
+  haloOpacity: 0,
 }

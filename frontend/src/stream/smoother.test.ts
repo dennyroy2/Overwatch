@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { FADE_MS, GHOST_ALPHA, GhostSmoother } from './smoother'
+import { FADE_MS, GHOST_ALPHA, GHOST_RGB, GHOST_RGB_LINEAR, GhostSmoother, MIN_BRIGHTNESS, srgbToLinear, weightBrightness } from './smoother'
 import { FLOATS_PER_GHOST, OFFSET } from './ghostBuffer'
 
-/** A frame in ghostBuffer layout: slot i at longitude xs[i], latitude 0, elevation 0. */
-function frame(xs: number[]): Float32Array {
+/** A frame in ghostBuffer layout: slot i at longitude xs[i], latitude 0, elevation 0, weight 1 unless given. */
+function frame(xs: number[], weights?: number[]): Float32Array {
   const buf = new Float32Array(xs.length * FLOATS_PER_GHOST)
-  xs.forEach((x, i) => { buf[i * FLOATS_PER_GHOST + OFFSET.longitude] = x })
+  xs.forEach((x, i) => {
+    buf[i * FLOATS_PER_GHOST + OFFSET.longitude] = x
+    buf[i * FLOATS_PER_GHOST + OFFSET.weight] = weights ? weights[i] : 1
+  })
   return buf
 }
 const lon = (out: { pos: Float32Array }, i: number) => out.pos[i * 3]
@@ -113,5 +116,56 @@ describe('GhostSmoother', () => {
     s.onFrame(0, frame(xs), n, null, false)
     s.onFrame(200, frame(xs.map((x) => x + 10)), n, null, false)
     expect(lon(s.tick(300), n - 1)).toBeCloseTo(n - 1 + 5, 1)
+  })
+
+  it('dims unlikely ghosts: brightness follows the probability weight, never below the floor', () => {
+    const s = new GhostSmoother()
+    s.onFrame(-2000, frame([0, 1, 2], [1, 0.5, 0]), 3, null, false)
+    const out = s.tick(0)
+    expect(alpha(out, 0)).toBe(GHOST_ALPHA)
+    expect(alpha(out, 1)).toBe(Math.round(GHOST_ALPHA * weightBrightness(0.5)))
+    expect(alpha(out, 2)).toBe(Math.round(GHOST_ALPHA * MIN_BRIGHTNESS)) // still visible
+    expect(alpha(out, 2)).toBeGreaterThan(0)
+    expect(alpha(out, 0)).toBeGreaterThan(alpha(out, 1))
+    expect(alpha(out, 1)).toBeGreaterThan(alpha(out, 2))
+  })
+
+  it('weight dimming and the respawn fade multiply', () => {
+    const s = new GhostSmoother()
+    s.onFrame(0, frame([0], [0.5]), 1, null, false)
+    const half = alpha(s.tick(FADE_MS / 2), 0)
+    const full = alpha(s.tick(FADE_MS * 2), 0)
+    expect(half).toBeLessThan(full)
+    expect(full).toBe(Math.round(GHOST_ALPHA * weightBrightness(0.5)))
+  })
+
+  it('colours ghosts warm amber and never cyan', () => {
+    const s = new GhostSmoother()
+    s.onFrame(-2000, frame([0]), 1, null, false)
+    const out = s.tick(0)
+    const [r, g, b] = [out.col[0], out.col[1], out.col[2]]
+    expect([r, g, b]).toEqual([...GHOST_RGB_LINEAR])
+    expect(r).toBeGreaterThan(g) // red-dominant: warm
+    expect(g).toBeGreaterThan(b)
+    expect(b).toBeLessThan(r) // cyan would have blue >= red
+    // the displayed (sRGB) colour is also warm, whichever space we look in
+    expect(GHOST_RGB[0]).toBeGreaterThan(GHOST_RGB[2])
+  })
+
+  it('converts sRGB to linear light the standard way', () => {
+    expect(srgbToLinear(0)).toBe(0)
+    expect(srgbToLinear(255)).toBe(255)
+    expect(srgbToLinear(128)).toBe(55) // mid-grey is ~21.6% linear
+    expect(GHOST_RGB_LINEAR).toEqual([255, 111, 13])
+  })
+})
+
+describe('weightBrightness', () => {
+  it('maps 0..1 onto MIN_BRIGHTNESS..1 and survives bad input', () => {
+    expect(weightBrightness(1)).toBe(1)
+    expect(weightBrightness(0)).toBe(MIN_BRIGHTNESS)
+    expect(weightBrightness(2)).toBe(1)
+    expect(weightBrightness(-1)).toBe(MIN_BRIGHTNESS)
+    expect(weightBrightness(Number.NaN)).toBe(1)
   })
 })

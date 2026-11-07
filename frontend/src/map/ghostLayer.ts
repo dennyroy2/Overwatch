@@ -1,6 +1,6 @@
 // deck.gl ghost layer, drawn INSIDE MapLibre's WebGL context (interleaved: true) so ghosts sit
-// correctly among terrain and 3D buildings. One ScatterplotLayer fed from the typed array with
-// BINARY ATTRIBUTES: no per-point JS objects, no garbage-collection pauses mid-demo.
+// correctly among terrain and 3D buildings. Two ScatterplotLayers (soft halo + bright core) fed from the
+// typed arrays with BINARY ATTRIBUTES: no per-point JS objects, no garbage-collection pauses mid-demo.
 //
 // Step 14: a requestAnimationFrame loop (outside React) blends between the last two data frames so ghosts
 // glide at the display's frame rate; respawned slots snap and fade in (see stream/smoother.ts).
@@ -8,6 +8,8 @@ import { MapboxOverlay } from '@deck.gl/mapbox'
 import { ScatterplotLayer } from '@deck.gl/layers'
 import type { Map as MapLibreMap } from 'maplibre-gl'
 import { createGroundSampler, type GroundSampler } from './elevation'
+import { GlowEase, densityStats } from './glow'
+import { SoftDisc, WarmCore } from './softDisc'
 import { currentBuffer, ghosts, onGhostFrame } from '@/stream/ghostBuffer'
 import { perf } from '@/stream/perf'
 import { GhostSmoother, type SmootherOutput } from '@/stream/smoother'
@@ -17,24 +19,66 @@ export interface GhostLayerHandle {
   dispose: () => void
 }
 
-function makeLayer(out: SmootherOutput) {
-  return new ScatterplotLayer({
-    id: 'ghosts',
-    // Draw after buildings, before road/place labels (ids from map/style.ts).
-    beforeId: 'highway-name-path',
-    data: {
-      length: out.count,
-      attributes: {
-        getPosition: { value: out.pos, size: 3 },
-        getFillColor: { value: out.col, size: 4 },
-      },
+/**
+ * Glow = additive blending: overlapping light adds up, so dense areas get hotter and brighter by themselves
+ * (colour saturates red, then green, then blue: dark -> amber -> near-white) and no legend is needed.
+ * `depthWriteEnabled: false` keeps glows from hiding each other or the map; they still depth-test against terrain.
+ */
+const ADDITIVE = {
+  blend: true,
+  blendColorOperation: 'add',
+  blendColorSrcFactor: 'src-alpha',
+  blendColorDstFactor: 'one',
+  blendAlphaOperation: 'add',
+  blendAlphaSrcFactor: 'one',
+  blendAlphaDstFactor: 'one',
+  depthWriteEnabled: false,
+} as const
+
+/**
+ * A wide, soft halo per ghost: the density layer. Strong by choice (user, step 15); its opacity is set
+ * every frame by glow.ts so a typical cell glows amber and denser-than-typical cells climb to white, whatever the swarm's overall density.
+ */
+export const HALO = { radiusMeters: 45, minPixels: 5, maxPixels: 36 } as const
+/** A small bright core per ghost, so individual ghosts still read inside the glow. */
+export const CORE = { radiusPixels: 2.2 } as const
+
+/** One shared instance: a new extension object per frame would make deck.gl rebuild the shader. */
+const SOFT_EDGE = [new SoftDisc()]
+const WARM_CORE = [new WarmCore()]
+
+function makeLayers(out: SmootherOutput, glow: { halo: number; core: number }) {
+  const data = () => ({
+    length: out.count,
+    attributes: {
+      getPosition: { value: out.pos, size: 3 },
+      getFillColor: { value: out.col, size: 4 },
     },
-    getRadius: 2.5,
-    radiusUnits: 'pixels',
-    radiusMinPixels: 1.5,
-    stroked: false,
-    pickable: false,
   })
+  // Both draw after buildings and before road/place labels (ids from map/style.ts).
+  const common = { beforeId: 'highway-name-path', stroked: false, pickable: false, parameters: ADDITIVE }
+  return [
+    new ScatterplotLayer({
+      ...common,
+      id: 'ghost-halo',
+      data: data(),
+      getRadius: HALO.radiusMeters,
+      radiusUnits: 'meters',
+      radiusMinPixels: HALO.minPixels,
+      radiusMaxPixels: HALO.maxPixels,
+      opacity: glow.halo,
+      extensions: SOFT_EDGE,
+    }),
+    new ScatterplotLayer({
+      ...common,
+      id: 'ghost-core',
+      data: data(),
+      getRadius: CORE.radiusPixels,
+      radiusUnits: 'pixels',
+      opacity: glow.core,
+      extensions: WARM_CORE,
+    }),
+  ]
 }
 
 export function attachGhosts(map: MapLibreMap): GhostLayerHandle {
@@ -49,12 +93,20 @@ export function attachGhosts(map: MapLibreMap): GhostLayerHandle {
   const sampleGround = !(import.meta.env.DEV && new URLSearchParams(window.location.search).get('ghostz') === '0')
 
   const smoother = new GhostSmoother()
+  const glow = new GlowEase()
 
   // Data side: a new frame arrived. Put ghosts on the ground, then tell the smoother.
   const onFrame = () => {
     const count = ghosts.count
     if (count > 0 && sampleGround) sampler.apply(currentBuffer(), count)
     smoother.onFrame(ghosts.receivedAt, currentBuffer(), count, ghosts.respawned, ghosts.allRespawned)
+    if (count === 0) glow.reset()
+    else {
+      const d = densityStats(currentBuffer(), count)
+      glow.setDensity(d.meanOccupied)
+      perf.peakPerCell = d.peak
+      perf.typicalPerCell = d.meanOccupied
+    }
   }
   const off = onGhostFrame(onFrame)
 
@@ -67,7 +119,9 @@ export function attachGhosts(map: MapLibreMap): GhostLayerHandle {
     const t0 = performance.now()
     const out = smoother.tick(now)
     if (out.count > 0) {
-      overlay.setProps({ layers: [makeLayer(out)] })
+      glow.step(now)
+      perf.haloOpacity = glow.halo
+      overlay.setProps({ layers: makeLayers(out, glow) })
       drawnEmpty = false
     } else if (!drawnEmpty) {
       overlay.setProps({ layers: [] })
