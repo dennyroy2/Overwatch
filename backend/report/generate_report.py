@@ -221,8 +221,9 @@ def build_pdf(report: Report, out_path: str | None = None, chart_path: str | Non
 
     s.append(Spacer(1, 14))
     s.append(Paragraph(
-        "AI outputs in this record are recommendations. Every detection was confirmed and every deployment "
-        "authorized by a human officer, as logged above. Overwatch does not use face recognition.", SMALL))
+        "AI outputs in this record are recommendations. No deployment happens without an officer's approval, "
+        "and every approval or rejection is logged above with the officer's name. Overwatch does not use "
+        "face recognition.", SMALL))
 
     def footer(canvas, d):
         canvas.saveState()

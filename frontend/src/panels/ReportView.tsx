@@ -317,8 +317,8 @@ export function ReportView({ caseId, onClose }: ReportViewProps) {
             </Section>
 
             <p className="mt-6 text-xs text-ink-3">
-              AI outputs are recommendations. Every detection was confirmed and every deployment authorized by a
-              human officer.
+              AI outputs are recommendations. No deployment happens without an officer's approval, and every
+              decision is logged with the officer's name.
             </p>
           </>
         )}
