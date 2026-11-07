@@ -92,3 +92,19 @@ def test_posted_sighting_proposes_tasking_without_fake_beats(monkeypatch):
             if msg["type"] == "tasking":
                 break
     assert "tasking" in kinds
+
+
+def test_close_search_and_pdf():
+    cid = _case()
+    r = client.post(f"/case/{cid}/close", json={"found": True, "officer": "Sgt. Lee"})
+    assert r.status_code == 200
+    actions = [e["action"] for e in client.get(f"/report/{cid}").json()["log"]]
+    assert actions[-2:] == ["found_confirmed", "search_closed"]
+    pdf = client.get(f"/report/{cid}/pdf")
+    assert pdf.status_code == 200
+    assert pdf.headers["content-type"] == "application/pdf"
+    assert pdf.content[:4] == b"%PDF"
+
+
+def test_close_unknown_case_404():
+    assert client.post("/case/nope/close", json={}).status_code == 404

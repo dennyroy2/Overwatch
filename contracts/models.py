@@ -110,6 +110,13 @@ class Decision(BaseModel):
     officer: str = "Officer"
 
 
+class CloseSearch(BaseModel):
+    """Officer ends the search. found=True logs found_confirmed before search_closed."""
+    found: bool = False
+    officer: str = "Officer"
+    note: str = ""
+
+
 class LogEntry(BaseModel):
     time: datetime = Field(default_factory=utcnow)
     actor: str

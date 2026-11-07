@@ -7,10 +7,11 @@ from __future__ import annotations
 
 import asyncio
 
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Response, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
 from contracts.models import (
+    CloseSearch,
     Decision, Evidence, EvidenceMsg, LogMsg, Report, StreamMessage, SubjectProfile,
 )
 from backend.api.fake_stream import run_fake_case
@@ -69,6 +70,30 @@ def report(case_id: str) -> Report:
         raise HTTPException(404, f"Unknown case {case_id}")
     return Report(case=hub.profile, evidence=hub.evidence,
                   requests=list(hub.requests.values()), log=hub.log)
+
+
+@app.get("/report/{case_id}/pdf", response_class=Response,
+         responses={200: {"content": {"application/pdf": {}}}})
+def report_pdf(case_id: str) -> Response:
+    # Imported here so the server still starts if reportlab isn't installed yet
+    from backend.report.generate_report import build_pdf
+    pdf = build_pdf(report(case_id))
+    return Response(content=pdf, media_type="application/pdf",
+                    headers={"Content-Disposition": f'inline; filename="overwatch-{case_id}.pdf"'})
+
+
+@app.post("/case/{case_id}/close")
+async def close_search(case_id: str, body: CloseSearch) -> dict:
+    """Ends the search. Log actions match the report: found_confirmed, search_closed."""
+    hub = registry.get(case_id)
+    if hub is None:
+        raise HTTPException(404, f"Unknown case {case_id}")
+    if body.found:
+        detail = body.note or f"{hub.profile.name} located and confirmed by {body.officer}"
+        await hub.broadcast(LogMsg(data=hub.add_log(body.officer, "found_confirmed", detail)))
+    detail = body.note or ("Subject located" if body.found else "Search closed without locating subject")
+    await hub.broadcast(LogMsg(data=hub.add_log(body.officer, "search_closed", detail)))
+    return {"ok": True, "found": body.found}
 
 
 @app.get("/schema/stream", response_model=StreamMessage, include_in_schema=True)
