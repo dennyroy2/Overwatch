@@ -1,19 +1,19 @@
 {
   "overwatch": {
-    "found_rate": 0.7,
-    "found_within_1km2": 0.4,
-    "found_within_3km2": 0.6,
-    "median_area_km2": 1.45,
-    "median_team_hours": 2.9
+    "found_rate": 0.5,
+    "found_within_1km2": 0.0,
+    "found_within_3km2": 0.05,
+    "median_area_km2": 19.82,
+    "median_team_hours": 39.6
   },
   "standard_search": {
-    "found_rate": 0.65,
+    "found_rate": 0.7,
     "found_within_1km2": 0.35,
-    "found_within_3km2": 0.45,
-    "median_area_km2": 5.38,
-    "median_team_hours": 10.8
+    "found_within_3km2": 0.5,
+    "median_area_km2": 2.66,
+    "median_team_hours": 5.3
   },
-  "area_reduction": "73% less area searched (median)",
+  "area_reduction": "-645% less area searched (median)",
   "settings": {
     "cases": 20,
     "ghosts": 1000,
@@ -21,7 +21,7 @@
     "pod": 0.8,
     "team_km2_per_hour": 0.5,
     "graph": "synthetic",
-    "real_engine": false,
+    "engine": "backend (StubEngine)",
     "note": "Simulation only. Not data from real incidents."
   }
 }

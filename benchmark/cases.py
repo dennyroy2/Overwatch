@@ -46,13 +46,13 @@ def make_case(graph: StreetGraph, seed: int) -> BenchCase:
     cid = f"BENCH-{seed:05d}"
     condition = rnd.choices(["dementia", "other"], weights=[0.8, 0.2])[0]
     mobility = rnd.choices(["low", "medium", "high"], weights=[0.35, 0.5, 0.15])[0]
-    profile = SubjectProfile(case_id=cid, name="Simulated subject", age=rnd.randint(68, 90),
-                             condition=condition, mobility=mobility,
-                             clothing=["blue puffer jacket"], notes="benchmark case")
-
     # start somewhere central-ish so paths stay on the map
     central = [i for i, (x, y) in enumerate(graph.xy) if math.hypot(x, y) < 1200]
     start = rnd.choice(central)
+    profile = SubjectProfile(case_id=cid, name="Simulated subject", age=rnd.randint(68, 90),
+                             condition=condition, mobility=mobility,
+                             clothing=["blue puffer jacket"], notes="benchmark case",
+                             last_seen=_pt(graph, start), last_seen_time=T0)
     favourites = rnd.sample(graph.places, k=rnd.randint(1, 3))
     report_delay_s = rnd.uniform(60, 180) * 60          # reported 1-3 h after last seen
 

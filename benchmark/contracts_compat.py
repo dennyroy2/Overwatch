@@ -51,8 +51,10 @@ except ImportError:  # contracts/ not available yet -> local copy of Section 6
         age: int
         condition: Literal["dementia", "child", "hiker", "mental_health", "other"]
         mobility: Literal["low", "medium", "high"]
-        clothing: list[str]
-        notes: str
+        clothing: list[str] = []
+        notes: str = ""
+        last_seen: GeoPoint | None = None
+        last_seen_time: datetime | None = None
 
     class Cluster(BaseModel):
         id: str

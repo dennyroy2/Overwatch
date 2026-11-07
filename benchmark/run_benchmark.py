@@ -62,17 +62,28 @@ def ring_order(cells, cx: float, cy: float):
 
 
 def overwatch_order(cells, ghosts):
+    """Most likely cells first. Ghost mass is smoothed over neighbouring cells
+    (1000 ghosts are sparse), and ties are broken by distance from the ghost
+    centroid so sparse areas are searched outward, not in random order."""
     mass: dict[tuple[int, int], float] = {}
-    sx = sy = 0.0
+    sx = sy = tw = 0.0
     for lon, lat, w in ghosts:
         x, y = to_xy(lat, lon)
         c = cell_of(x, y)
         mass[c] = mass.get(c, 0.0) + w
-        sx, sy = sx + w * x, sy + w * y
-    hot = sorted(mass, key=mass.get, reverse=True)
+        sx, sy, tw = sx + w * x, sy + w * y, tw + w
+    cx, cy = (sx / tw, sy / tw) if tw else (0.0, 0.0)
+    score: dict[tuple[int, int], float] = {}
+    for (i, j), m in mass.items():
+        for di in (-1, 0, 1):
+            for dj in (-1, 0, 1):
+                k = (i + di, j + dj)
+                score[k] = score.get(k, 0.0) + m * (1.0 if di == dj == 0 else 0.35)
+    dist = lambda c: math.hypot((c[0] + 0.5) * CELL_M - cx, (c[1] + 0.5) * CELL_M - cy)
+    valid = set(cells)
+    hot = sorted((c for c in score if c in valid), key=lambda c: (-round(score[c], 9), dist(c)))
     hot_set = set(hot)
-    rest = [c for c in ring_order(cells, sx, sy) if c not in hot_set]  # then spread out from centroid
-    return hot + rest
+    return hot + [c for c in ring_order(cells, cx, cy) if c not in hot_set]
 
 
 def area_to_find(order, target_cell, detect_rolls) -> float | None:
@@ -164,14 +175,18 @@ def main():
     ap.add_argument("--ghosts", type=int, default=1000)
     ap.add_argument("--graph", default=None, help="GraphML from data/ (default: synthetic grid)")
     ap.add_argument("--seed", type=int, default=1)
+    ap.add_argument("--engine", choices=["backend", "local"], default=None,
+                    help="backend = Rishaan's engine (default if available); local = test stand-in")
     ap.add_argument("--out", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "results"))
     args = ap.parse_args()
     os.makedirs(args.out, exist_ok=True)
 
+    if args.engine:
+        engine_adapter.set_engine(args.engine)
     graph = load_graph(args.graph)
     cells = all_cells(graph)
     print(f"graph: {graph.n} nodes, {len(cells)} cells | real contracts: {USING_REAL_CONTRACTS} | "
-          f"real engine: {engine_adapter.USING_REAL_ENGINE}")
+          f"engine: {engine_adapter.engine_name()}")
 
     rows, start = [], time.time()
     for i in range(args.cases):
@@ -204,7 +219,7 @@ def main():
     summary = summarize(rows, ["overwatch", "standard_search"])
     summary["settings"] = {"cases": args.cases, "ghosts": args.ghosts, "cell_m": CELL_M, "pod": POD,
                            "team_km2_per_hour": TEAM_KM2_PER_HOUR, "graph": args.graph or "synthetic",
-                           "real_engine": engine_adapter.USING_REAL_ENGINE,
+                           "engine": engine_adapter.engine_name(),
                            "note": "Simulation only. Not data from real incidents."}
     with open(os.path.join(args.out, "summary.json"), "w") as f:
         json.dump(summary, f, indent=2)
