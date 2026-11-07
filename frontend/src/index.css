@@ -259,3 +259,16 @@
 @media (prefers-reduced-motion: reduce) {
   .ow-pin--new::after { animation: none; opacity: 0; }
 }
+
+/* "<asset> searching": the small label on an approved request's target area (map/routeLayer.ts). */
+.ow-searching {
+  pointer-events: none;
+  padding: 2px 8px;
+  border: 1px solid var(--ow-amber);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--ow-bg-1, #0c1015) 88%, transparent);
+  color: var(--ow-amber);
+  font: 500 11px/1.4 var(--ow-font-sans, 'IBM Plex Sans', sans-serif);
+  white-space: nowrap;
+}
+.ow-searching[hidden] { display: none; }

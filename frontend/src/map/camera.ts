@@ -1,5 +1,5 @@
 // Camera moves. All coordinate conversion goes through lib/geo.ts (hard rule 7).
-import type { Map as MapLibreMap } from 'maplibre-gl'
+import { LngLatBounds, type Map as MapLibreMap } from 'maplibre-gl'
 import { ALBERTA_CENTRE, toLngLat } from '@/lib/geo'
 import { useStore, type StoreState } from '@/store'
 import type { GeoPoint } from '@/types'
@@ -48,6 +48,24 @@ export function flyToArea(map: MapLibreMap, centre: GeoPoint, zoom: number): voi
   const duration = cameraMs()
   if (duration === 0) map.jumpTo(target)
   else whenIdle(map, () => map.flyTo({ ...target, duration: Math.min(duration, 1400), freezeElevation: FREEZE }))
+}
+
+/**
+ * Ease the camera so a whole set of points (a route and its target) fits between the two rails, above the time
+ * bar. Keeps the current pitch and bearing. Used when an approved request's route starts to draw.
+ */
+export function frameRoute(map: MapLibreMap, pts: readonly GeoPoint[]): void {
+  if (pts.length === 0) return
+  const [first, ...rest] = pts.map(toLngLat)
+  const bounds = rest.reduce((b, p) => b.extend(p), new LngLatBounds(first, first))
+  const duration = Math.min(cameraMs(), 1800)
+  const padding = { top: 110, bottom: 220, left: 400, right: 400 }
+  if (duration === 0) {
+    const cam = map.cameraForBounds(bounds, { padding, maxZoom: 16.2 })
+    if (cam) map.jumpTo(cam)
+  } else {
+    whenIdle(map, () => map.fitBounds(bounds, { padding, maxZoom: 16.2, duration, freezeElevation: FREEZE }))
+  }
 }
 
 /** Gently centre on a point (same zoom, pitch and bearing). Used when a new located item arrives. */

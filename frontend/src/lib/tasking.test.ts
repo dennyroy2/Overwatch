@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { areaCentre, constraintRows, decisionFor, gainPercent, gainSentence, splitRequests, targetRing, type Request } from './tasking'
+import { effectiveAsset, areaCentre, constraintRows, decisionFor, gainPercent, gainSentence, splitRequests, targetRing, type Request } from './tasking'
 
 const req = (over: Partial<Request> = {}): Request => ({
   id: 'r1', case_id: 'c', asset: 'Drone 2', target_area: [], route: [], expected_gain: 0.23, duration_min: 12,
@@ -71,5 +71,13 @@ describe('decisionFor', () => {
     expect(decisionFor(log, { asset: 'Drone 2', status: 'approved' })).toEqual({ who: 'Officer Lee', time: '2026-01-01T10:05:00Z', reason: null })
     expect(decisionFor(log, { asset: 'Ground Team 1', status: 'rejected' })?.reason).toBe('already searched')
     expect(decisionFor(log, { asset: 'Drone 9', status: 'approved' })).toBeNull()
+  })
+})
+
+describe('effectiveAsset', () => {
+  it('uses the replacement named by an edited approval, otherwise the request asset', () => {
+    expect(effectiveAsset('Drone 2', 'Edited: Ground Team 3 instead of Drone 2. wind is high')).toBe('Ground Team 3')
+    expect(effectiveAsset('Drone 2', null)).toBe('Drone 2')
+    expect(effectiveAsset('Drone 2', 'Already searched')).toBe('Drone 2')
   })
 })

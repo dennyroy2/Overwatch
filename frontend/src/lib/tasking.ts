@@ -72,3 +72,9 @@ export function decisionFor(log: readonly LogEntry[], r: Pick<TaskingRequest, 'a
   }
   return null
 }
+
+/** The asset that will actually go: an edited approval names the replacement ("Edited: X instead of Y"), else the request's own. */
+export function effectiveAsset(asset: string, reason: string | null | undefined): string {
+  const m = reason?.match(/^Edited: (.+?) instead of /)
+  return m ? m[1] : asset
+}
