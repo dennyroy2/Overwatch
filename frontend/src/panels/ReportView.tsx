@@ -16,62 +16,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 
 // ---------------------------------------------------------------- types
-// Mirrors contracts/models.py (Report and friends). Swap for the generated types
-// in frontend/src/types/api.ts once `make types` has been run on main.
-type GeoPoint = { lat: number; lon: number };
-
-type Evidence = {
-  id: string;
-  case_id: string;
-  kind: "last_seen" | "sighting" | "clue" | "searched_area" | "favourite_place" | "constraint" | "note";
-  time: string;
-  location?: GeoPoint | null;
-  radius_m?: number | null;
-  source: string;
-  reliability: number;
-  confirmed: boolean;
-  summary: string;
-};
-
-type TaskingRequest = {
-  id: string;
-  asset: string;
-  expected_gain: number;
-  duration_min: number;
-  reasons: string[];
-  status: "pending" | "approved" | "rejected";
-};
-
-type LogEntry = { time: string; actor: string; action: string; detail: string };
-
-type SubjectProfile = {
-  case_id: string;
-  name: string;
-  age: number;
-  condition: string;
-  mobility: string;
-  clothing: string[];
-  notes: string;
-  last_seen?: GeoPoint | null;
-  last_seen_time?: string | null;
-};
-
-export type Report = {
-  case: SubjectProfile;
-  evidence: Evidence[];
-  requests: TaskingRequest[];
-  log: LogEntry[];
-};
+// Generated contract types (frontend/src/types, from contracts/models.py). Never hand-write these.
+import type { LogEntry, Report, TaskingRequest } from "@/types";
+import { API_URL as API_BASE } from "@/lib/config";
 
 export type ReportViewProps = { caseId: string; onClose: () => void };
 
 // ---------------------------------------------------------------- helpers
-// Same env var + default as Denny's frontend/src/lib/config.ts (API_URL). Switch to
-// `import { API_URL } from "@/lib/config"` once his branch is on main.
-const API_BASE: string = (
-  (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_API_URL ?? "http://localhost:8000"
-).replace(/\/+$/, "");
-
 const fmtTime = (iso?: string | null) =>
   iso ? new Date(iso).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
 const pct = (x: number) => `${Math.round(x * 100)}%`;
@@ -147,7 +98,9 @@ export function ReportView({ caseId, onClose }: ReportViewProps) {
 
   // Esc closes the panel
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
@@ -167,7 +120,7 @@ export function ReportView({ caseId, onClose }: ReportViewProps) {
   const derived = useMemo(() => {
     if (!report) return null;
     const evidence = [...report.evidence].sort((a, b) => a.time.localeCompare(b.time));
-    const log = [...report.log].sort((a, b) => a.time.localeCompare(b.time));
+    const log = [...report.log].sort((a, b) => (a.time ?? "").localeCompare(b.time ?? ""));
     return {
       evidence,
       log,
@@ -227,8 +180,8 @@ export function ReportView({ caseId, onClose }: ReportViewProps) {
                 {report.case.name}, <span className="font-mono">{report.case.age}</span> ·{" "}
                 {nice(report.case.condition)} · {report.case.mobility} mobility
               </p>
-              {report.case.clothing.length > 0 && (
-                <p className="text-sm text-ink-2">Wearing: {report.case.clothing.join(", ")}</p>
+              {(report.case.clothing?.length ?? 0) > 0 && (
+                <p className="text-sm text-ink-2">Wearing: {report.case.clothing?.join(", ")}</p>
               )}
               <p className="text-xs text-ink-3">
                 Last seen <span className="font-mono">{fmtTime(report.case.last_seen_time)}</span>
@@ -247,8 +200,8 @@ export function ReportView({ caseId, onClose }: ReportViewProps) {
               <p className="mb-2 text-xs text-ink-3">Times are when each event happened, as reported.</p>
               {derived.evidence.length === 0 && <p className="text-sm italic text-ink-3">No evidence yet.</p>}
               <ul className="divide-y divide-line rounded-md border border-line empty:hidden">
-                {derived.evidence.map((e) => (
-                  <li key={e.id} className="flex gap-3 px-3 py-2 text-sm">
+                {derived.evidence.map((e, i) => (
+                  <li key={e.id ?? i} className="flex gap-3 px-3 py-2 text-sm">
                     <span className="w-24 shrink-0 font-mono text-xs text-ink-3">{fmtTime(e.time)}</span>
                     <div className="min-w-0 flex-1">
                       <p className="text-ink">{e.summary}</p>
@@ -272,10 +225,10 @@ export function ReportView({ caseId, onClose }: ReportViewProps) {
                 <p className="text-sm italic text-ink-3">No deployments requested.</p>
               )}
               <ul className="space-y-2">
-                {report.requests.map((r) => {
+                {report.requests.map((r, i) => {
                   const d = findDecision(report.log, r);
                   return (
-                    <li key={r.id} className="rounded-md border border-line bg-raised p-3 text-sm">
+                    <li key={r.id ?? i} className="rounded-md border border-line bg-raised p-3 text-sm">
                       <div className="flex items-baseline justify-between">
                         <span className="font-semibold text-ink">{r.asset}</span>
                         <StatusBadge status={r.status} />
