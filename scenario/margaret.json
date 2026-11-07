@@ -4,7 +4,7 @@
     "age": 79,
     "condition": "dementia",
     "mobility": "low",
-    "clothing": ["blue puffer jacket", "grey slacks", "white sneakers"],
+    "clothing": ["grey hooded jacket", "dark track pants with white side stripes", "dark sneakers"],
     "notes": "Fictional demo case. Early-stage dementia. Lives near 124 St. Walks most afternoons.",
     "last_seen": {"lat": 53.5422, "lon": -113.5337},
     "last_seen_time": "2026-11-08T14:00:00-07:00"
@@ -15,7 +15,7 @@
       "kind": "last_seen", "source": "family", "reliability": 0.95,
       "location": {"lat": 53.5422, "lon": -113.5337}, "radius_m": 50,
       "summary": "Daughter: last saw Margaret at 124 St & Jasper Ave around 2 PM",
-      "raw_text": "My mom left her apartment on 124 Street around two. She was wearing her blue puffer jacket."
+      "raw_text": "My mom left her apartment on 124 Street around two. She was wearing her grey hooded jacket."
     },
     {
       "at_s": 8, "minutes_after": 0,
@@ -35,14 +35,14 @@
       "at_s": 28, "minutes_after": 35,
       "kind": "sighting", "source": "transit", "reliability": 0.75,
       "location": {"lat": 53.5328, "lon": -113.5395}, "radius_m": 100,
-      "summary": "Bus driver: woman in a blue puffer jacket got off at Groat Rd & Emily Murphy Park Rd",
-      "raw_text": "I'm a bus driver. An older lady in a blue jacket got off at the Emily Murphy Park stop on Groat Road, maybe 2:35."
+      "summary": "Bus driver: woman in a grey hooded jacket got off at Groat Rd & Emily Murphy Park Rd",
+      "raw_text": "I'm a bus driver. An older lady in a grey hoodie got off at the Emily Murphy Park stop on Groat Road, maybe 2:35."
     },
     {
       "at_s": 45, "minutes_after": 95,
       "kind": "clue", "source": "drone_ai", "reliability": 0.82,
       "location": {"lat": 53.5340, "lon": -113.5370}, "radius_m": 50,
-      "summary": "Drone 2: possible blue puffer jacket on wooded slope, Emily Murphy Park (82%)",
+      "summary": "Drone 2: possible person in grey hooded jacket lying on the grassy bank by the water, Emily Murphy Park (82%)",
       "raw_text": null
     }
   ]
