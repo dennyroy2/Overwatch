@@ -1,0 +1,28 @@
+{
+  "overwatch": {
+    "found_rate": 0.65,
+    "found_within_1km2": 0.05,
+    "found_within_3km2": 0.05,
+    "median_area_km2": 12.98,
+    "median_team_hours": 26.0
+  },
+  "standard_search": {
+    "found_rate": 0.7,
+    "found_within_1km2": 0.55,
+    "found_within_3km2": 0.65,
+    "median_area_km2": 0.86,
+    "median_team_hours": 1.7
+  },
+  "area_reduction": "-1409% less area searched (median)",
+  "settings": {
+    "cases": 20,
+    "ghosts": 1000,
+    "cell_m": 100.0,
+    "pod": 0.8,
+    "team_km2_per_hour": 0.5,
+    "graph": "data\\graphs\\edmonton_demo.graphml",
+    "familiar_places": 329,
+    "engine": "backend (StubEngine)",
+    "note": "Simulation only. Not data from real incidents."
+  }
+}
