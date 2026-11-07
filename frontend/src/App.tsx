@@ -17,8 +17,8 @@ if (import.meta.env.DEV && window.location.pathname !== '/styleguide') {
   if (review.includes('pip')) setPanel('pip', true)
   if (review.includes('report')) setPanel('report', true)
   const auto = q.get('autostart')
-  if (auto === 'demo') openCase(demoCase())
-  if (auto === 'unknown') attachCase('case_doesnotexist')
+  if (auto === 'demo') { openCase(demoCase()); setPanel('newCase', false) }
+  if (auto === 'unknown') { attachCase('case_doesnotexist'); setPanel('newCase', false) }
 }
 
 export default function App() {

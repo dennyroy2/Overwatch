@@ -4,6 +4,24 @@ import { ALBERTA_CENTRE, toLngLat } from '@/lib/geo'
 import { useStore, type StoreState } from '@/store'
 import type { GeoPoint } from '@/types'
 
+/**
+ * MapLibre 5.24 terrain workaround. `flyTo` freezes elevation at the start of a flight but only
+ * releases it when `freezeElevation: true` is passed; by default the freeze sticks and the camera
+ * keeps a stale (often 0) ground height, so the view ends up inside the buildings.
+ *
+ * With the flag set, the flight holds the start elevation and re-solves the zoom against the ground
+ * at the end. That is accurate only if MapLibre already KNOWS the ground height when the flight
+ * starts (starting at 0 ends the flight at zoom ~18). So flights wait for the map to be idle first
+ * (`whenIdle`). Verified: from an idle map the fly-in ends at zoom 14.64 with elevation 1,331 m.
+ */
+const FREEZE = true
+
+/** Run `fn` now if the map has finished loading tiles and elevation, otherwise on its next `idle`. */
+export function whenIdle(map: Pick<MapLibreMap, 'loaded' | 'once'>, fn: () => void): void {
+  if (map.loaded()) fn()
+  else map.once('idle', fn)
+}
+
 export const OVERVIEW = { zoom: 4.6, pitch: 0, bearing: 0 } as const
 export const CASE_VIEW = { zoom: 14.6, pitch: 55, bearing: -17 } as const
 
@@ -22,14 +40,21 @@ export function flyToCase(map: MapLibreMap, lastSeen: GeoPoint): void {
   const target = { center: toLngLat(lastSeen), ...CASE_VIEW }
   const duration = cameraMs()
   if (duration === 0) map.jumpTo(target)
-  else map.flyTo({ ...target, duration, curve: 1.5 })
+  else whenIdle(map, () => map.flyTo({ ...target, duration, curve: 1.5, freezeElevation: FREEZE }))
+}
+
+export function flyToArea(map: MapLibreMap, centre: GeoPoint, zoom: number): void {
+  const target = { center: toLngLat(centre), zoom, pitch: 0, bearing: 0 }
+  const duration = cameraMs()
+  if (duration === 0) map.jumpTo(target)
+  else whenIdle(map, () => map.flyTo({ ...target, duration: Math.min(duration, 1400), freezeElevation: FREEZE }))
 }
 
 export function flyToOverview(map: MapLibreMap): void {
   const target = overviewCamera()
   const duration = cameraMs()
   if (duration === 0) map.jumpTo(target)
-  else map.flyTo({ ...target, duration })
+  else whenIdle(map, () => map.flyTo({ ...target, duration, freezeElevation: FREEZE }))
 }
 
 /**

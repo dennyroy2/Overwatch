@@ -38,6 +38,10 @@ function makeLayer(buf: Float32Array, count: number) {
 }
 
 export function attachGhosts(map: MapLibreMap): GhostLayerHandle {
+  // Dev switch for isolating map issues: ?ghostlayer=0 skips deck.gl entirely.
+  if (import.meta.env.DEV && new URLSearchParams(window.location.search).get('ghostlayer') === '0') {
+    return { sampler: createGroundSampler(map), dispose: () => {} }
+  }
   const overlay = new MapboxOverlay({ interleaved: true, layers: [] })
   map.addControl(overlay)
   const sampler = createGroundSampler(map)

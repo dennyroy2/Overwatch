@@ -7,7 +7,7 @@
 import { create } from 'zustand'
 import { hasId } from '@/types'
 import type {
-  Cluster, Evidence, FoundEvent, LogEntry, Report, StreamMessage, SubjectProfile, TaskingRequest, WithId,
+  Cluster, Evidence, FoundEvent, GeoPoint, LogEntry, Report, StreamMessage, SubjectProfile, TaskingRequest, WithId,
 } from '@/types'
 import type { ConnectionState } from '@/components/shell/types'
 
@@ -45,7 +45,9 @@ export interface UiState {
   selectedClusterId: string | null
   /** null = live. A number is an index into recorded history (step 38). */
   replayIndex: number | null
-  panels: { left: boolean; right: boolean; report: boolean; pip: boolean }
+  panels: { left: boolean; right: boolean; report: boolean; pip: boolean; newCase: boolean }
+  /** Last-seen point picked on the map while the New case sheet is open. Draft input, not backend data. */
+  draftLastSeen: GeoPoint | null
   /** "why" mode etc. (step 37). */
   modes: { why: boolean }
 }
@@ -78,13 +80,15 @@ export interface StoreState {
   /** Clear everything derived from the backend (new case, or the server lost the case). */
   resetCaseData: () => void
   setUi: (patch: Partial<Omit<UiState, 'panels' | 'modes'>>) => void
+  setDraftLastSeen: (p: GeoPoint | null) => void
   setPanel: (panel: keyof UiState['panels'], open: boolean) => void
 }
 
 const initialUi = (): UiState => ({
   selectedClusterId: null,
   replayIndex: null,
-  panels: { left: true, right: true, report: false, pip: false },
+  panels: { left: true, right: true, report: false, pip: false, newCase: true },
+  draftLastSeen: null,
   modes: { why: false },
 })
 
@@ -150,9 +154,11 @@ export const useStore = create<StoreState>()((set) => ({
       ...addLog(s, r.log),
     })),
 
-  resetCaseData: () => set({ ...caseData(), ui: initialUi() }),
+  // Panels are deliberately kept: a server restart mid-search must not pop the New case sheet open.
+  resetCaseData: () => set((s) => ({ ...caseData(), ui: { ...initialUi(), panels: s.ui.panels } })),
 
   setUi: (patch) => set((s) => ({ ui: { ...s.ui, ...patch } })),
+  setDraftLastSeen: (draftLastSeen) => set((s) => ({ ui: { ...s.ui, draftLastSeen } })),
   setPanel: (panel, open) => set((s) => ({ ui: { ...s.ui, panels: { ...s.ui.panels, [panel]: open } } })),
 }))
 

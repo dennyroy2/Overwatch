@@ -3,6 +3,7 @@ import { AttributionControl, Map as MapLibreMap } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { overviewCamera, watchCase } from '@/map/camera'
 import { setMap } from '@/map/mapRef'
+import { watchDraftLastSeen } from '@/map/draftMarker'
 import { attachGhosts } from '@/map/ghostLayer'
 import { loadStyle } from '@/map/style'
 import { currentBuffer, ghosts } from '@/stream/ghostBuffer'
@@ -16,6 +17,7 @@ export function MapView() {
     let map: MapLibreMap | null = null
     let unwatch = () => {}
     let detachGhosts = () => {}
+    let unwatchDraft = () => {}
 
     void loadStyle().then((style) => {
       if (cancelled || !container.current) return
@@ -37,6 +39,7 @@ export function MapView() {
       map.on('error', (e) => console.warn('map:', e.error?.message ?? e))
       setMap(map)
       unwatch = watchCase(map)
+      unwatchDraft = watchDraftLastSeen(map)
       const ghostHandle = attachGhosts(map)
       detachGhosts = ghostHandle.dispose
       if (import.meta.env.DEV) {
@@ -52,6 +55,7 @@ export function MapView() {
       cancelled = true
       unwatch()
       detachGhosts()
+      unwatchDraft()
       setMap(null)
       map?.remove()
     }

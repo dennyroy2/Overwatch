@@ -1,3 +1,5 @@
+import { Plus } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { connectionLabel, type ConnectionState } from './types'
 
@@ -8,6 +10,7 @@ export interface StatusBarProps {
   simClock?: string
   aliveFraction?: number
   connection?: ConnectionState
+  onNewCase?: () => void
 }
 
 const dot: Record<ConnectionState, string> = {
@@ -33,6 +36,7 @@ export function StatusBar({
   simClock,
   aliveFraction,
   connection = 'idle',
+  onNewCase,
 }: StatusBarProps) {
   return (
     <header className="pointer-events-auto absolute inset-x-3 top-3 z-20 flex h-11 items-center gap-6 rounded-lg border border-line bg-panel px-4 shadow-panel">
@@ -48,6 +52,12 @@ export function StatusBar({
           <span className={cn('size-2 rounded-full', dot[connection])} aria-hidden />
           <span className="text-sm text-ink-2">{connectionLabel[connection]}</span>
         </div>
+        {onNewCase && (
+          <Button variant="secondary" size="sm" onClick={onNewCase}>
+            <Plus data-icon="inline-start" />
+            New case
+          </Button>
+        )}
       </div>
     </header>
   )

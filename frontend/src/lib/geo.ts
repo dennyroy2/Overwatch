@@ -63,3 +63,12 @@ export const isInEdmonton = (p: GeoPoint): boolean =>
 
 /** Default "high over Alberta" camera target (step 10). */
 export const ALBERTA_CENTRE: GeoPoint = { lat: 54.5, lon: -114.5 }
+
+/** Downtown Edmonton, for "centre the map here" shortcuts. */
+export const EDMONTON_CENTRE: GeoPoint = { lat: 53.5461, lon: -113.4938 }
+
+/** The fictional demo case's last-seen point: 124 St & Jasper Ave (same as the backend's EDMONTON_DEFAULT). */
+export const DEMO_LAST_SEEN: GeoPoint = { lat: 53.5422, lon: -113.5337 }
+
+/** "53.5422, -113.5337": for display only (readouts, form status). */
+export const formatPoint = (p: GeoPoint): string => `${p.lat.toFixed(4)}, ${p.lon.toFixed(4)}`

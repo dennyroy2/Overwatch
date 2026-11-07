@@ -1,5 +1,6 @@
 import { ClipboardList, ListChecks } from 'lucide-react'
 import { selectPendingCount, useStore } from '@/store'
+import { NewCaseSheet } from '@/components/case/NewCaseSheet'
 import { DebugPanel } from '@/components/dev/DebugPanel'
 import { ConnectedStatusBar } from './ConnectedStatusBar'
 import { Rail } from './Rail'
@@ -19,14 +20,18 @@ export function AppShell({ map }: { map: React.ReactNode }) {
       <div className="absolute inset-0 z-0">{map}</div>
       <div className="pointer-events-none absolute inset-0">
         <ConnectedStatusBar />
-        <Rail
-          side="left"
-          title="Case timeline"
-          icon={ClipboardList}
-          open={panels.left}
-          onToggle={() => setPanel('left', !panels.left)}
-          empty="No evidence yet. Tips, sightings and search results appear here as they arrive."
-        />
+        {panels.newCase ? (
+          <NewCaseSheet />
+        ) : (
+          <Rail
+            side="left"
+            title="Case timeline"
+            icon={ClipboardList}
+            open={panels.left}
+            onToggle={() => setPanel('left', !panels.left)}
+            empty="No evidence yet. Tips, sightings and search results appear here as they arrive."
+          />
+        )}
         <Rail
           side="right"
           title="Tasking requests"

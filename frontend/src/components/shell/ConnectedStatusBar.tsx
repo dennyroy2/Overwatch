@@ -15,6 +15,7 @@ export function ConnectedStatusBar() {
   const t = useStore((s) => s.ghostMeta.t)
   const alive = useStore((s) => s.ghostMeta.aliveFraction)
   const connection = useStore((s) => s.connection.state)
+  const setPanel = useStore((s) => s.setPanel)
 
   const simMs = t ? Date.parse(t) : undefined
   const lastMs = lastSeenTime ? Date.parse(lastSeenTime) : undefined
@@ -25,6 +26,7 @@ export function ConnectedStatusBar() {
       sinceLastSeen={simMs !== undefined && lastMs !== undefined ? hms((simMs - lastMs) / 1000) : undefined}
       aliveFraction={alive ?? undefined}
       connection={connection}
+      onNewCase={() => setPanel('newCase', true)}
     />
   )
 }

@@ -83,6 +83,7 @@ export function closeCase(): void {
   store().resetCaseData()
   store().setCaseProfile(null)
   store().setConnection('idle')
+  store().setPanel('newCase', true)
 }
 
 function begin(init: { caseId: string | null; profile: SubjectProfile | null }): void {

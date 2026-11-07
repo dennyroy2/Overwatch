@@ -1,6 +1,7 @@
+import { DEMO_LAST_SEEN } from '@/lib/geo'
 import type { SubjectProfile } from '@/types'
 
-/** The fictional demo case. No real person's data (product guardrail). last_seen is left to the server default (124 St & Jasper Ave). */
+/** The fictional demo case. No real person's data (product guardrail). Sets its own last-seen point, since the New case sheet requires one. */
 export function demoCase(): SubjectProfile {
   return {
     name: 'Margaret (fictional)',
@@ -9,6 +10,7 @@ export function demoCase(): SubjectProfile {
     mobility: 'low',
     clothing: ['blue puffer jacket', 'grey pants'],
     notes: 'Fictional demo case. Last seen near 124 St and Jasper Ave.',
+    last_seen: DEMO_LAST_SEEN,
     last_seen_time: new Date().toISOString(),
   }
 }
