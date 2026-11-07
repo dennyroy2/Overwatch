@@ -1,0 +1,141 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "./styles/tokens.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Tailwind theme: utilities like bg-panel, text-ai, font-mono map to tokens */
+@theme inline {
+  --font-sans: var(--ow-font-sans);
+  --font-mono: var(--ow-font-mono);
+  --font-heading: var(--ow-font-sans);
+
+  --color-ground: var(--ow-bg-0);
+  --color-panel: var(--ow-bg-1);
+  --color-raised: var(--ow-bg-2);
+  --color-control: var(--ow-bg-3);
+  --color-line: var(--ow-border);
+  --color-line-strong: var(--ow-border-strong);
+  --color-ink: var(--ow-text-1);
+  --color-ink-2: var(--ow-text-2);
+  --color-ink-3: var(--ow-text-3);
+  --color-amber: var(--ow-amber);
+  --color-amber-dim: var(--ow-amber-dim);
+  --color-amber-wash: var(--ow-amber-wash);
+  --color-on-amber: var(--ow-on-amber);
+  --color-ai: var(--ow-cyan);
+  --color-ai-dim: var(--ow-cyan-dim);
+  --color-ai-wash: var(--ow-cyan-wash);
+  --color-danger: var(--ow-danger);
+  --color-danger-wash: var(--ow-danger-wash);
+  --color-success: var(--ow-success);
+  --color-success-wash: var(--ow-success-wash);
+
+  --text-xs: var(--ow-text-xs);
+  --text-sm: var(--ow-text-sm);
+  --text-base: var(--ow-text-base);
+  --text-md: var(--ow-text-md);
+  --text-lg: var(--ow-text-lg);
+  --text-xl: var(--ow-text-xl);
+  --text-2xl: var(--ow-text-2xl);
+
+  --radius-sm: var(--ow-radius-sm);
+  --radius-md: var(--ow-radius-md);
+  --radius-lg: var(--ow-radius-lg);
+  --shadow-panel: var(--ow-shadow-panel);
+  --ease-out: var(--ow-ease-out);
+
+  /* shadcn variable bridge */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
+/* shadcn components read these; they resolve to Overwatch tokens */
+:root {
+  --background: var(--ow-bg-0);
+  --foreground: var(--ow-text-1);
+  --card: var(--ow-bg-1);
+  --card-foreground: var(--ow-text-1);
+  --popover: var(--ow-bg-2);
+  --popover-foreground: var(--ow-text-1);
+  --primary: var(--ow-amber);
+  --primary-foreground: var(--ow-on-amber);
+  --secondary: var(--ow-bg-3);
+  --secondary-foreground: var(--ow-text-1);
+  --muted: var(--ow-bg-2);
+  --muted-foreground: var(--ow-text-2);
+  --accent: var(--ow-bg-3);
+  --accent-foreground: var(--ow-text-1);
+  --destructive: var(--ow-danger);
+  --border: var(--ow-border);
+  --input: var(--ow-border-strong);
+  --ring: var(--ow-amber);
+  --radius: var(--ow-radius-md);
+}
+
+@layer base {
+  * { @apply border-border outline-ring/50; }
+  html, body, #root { height: 100%; margin: 0; }
+  body {
+    background: var(--ow-bg-0);
+    color: var(--ow-text-1);
+    font-family: var(--ow-font-sans);
+    font-size: var(--ow-text-base);
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+  }
+  /* Numerals line up everywhere data is shown */
+  .num, .font-mono { font-variant-numeric: tabular-nums slashed-zero; }
+  ::selection { background: var(--ow-amber); color: var(--ow-on-amber); }
+  :focus-visible { outline: 2px solid var(--ow-amber); outline-offset: 2px; }
+  /* Scrollbars follow the palette */
+  * { scrollbar-width: thin; scrollbar-color: var(--ow-border-strong) transparent; }
+  *::-webkit-scrollbar { width: 8px; height: 8px; }
+  *::-webkit-scrollbar-thumb { background: var(--ow-border-strong); border-radius: 4px; }
+  *::-webkit-scrollbar-track { background: transparent; }
+}
+
+@layer utilities {
+  /* Subtle operations-centre grid, for empty regions and the styleguide ground */
+  .bg-grid {
+    background-image:
+      linear-gradient(rgb(255 255 255 / 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(255 255 255 / 0.035) 1px, transparent 1px);
+    background-size: 32px 32px;
+    background-position: -1px -1px;
+  }
+}
+
+/* MapLibre attribution: required by OpenFreeMap/OSM, themed to the palette, sits between the rails above the command bar */
+.maplibregl-map .maplibregl-ctrl-bottom-left {
+  left: 50%;
+  bottom: 4.5rem;
+  transform: translateX(-50%);
+}
+.maplibregl-ctrl-attrib {
+  background: var(--ow-bg-1) !important;
+  color: var(--ow-text-3) !important;
+  border: 1px solid var(--ow-border);
+  border-radius: var(--ow-radius-md) !important;
+  font-family: var(--ow-font-sans);
+  font-size: var(--ow-text-xs);
+}
+.maplibregl-ctrl-attrib a { color: var(--ow-text-2) !important; }
+.maplibregl-ctrl-attrib-button { filter: invert(1) opacity(0.7); }

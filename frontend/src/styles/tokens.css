@@ -1,0 +1,94 @@
+/* ============================================================================
+   Overwatch design tokens: the single source of truth.
+   Everything else (Tailwind theme, shadcn variables, deck.gl colours in
+   src/lib/tokens.ts) derives from here. Do not hard-code colours elsewhere.
+
+   Direction (pinned by the brief): police operations software. Dark, map-first,
+   emergency amber as the ONLY accent, calm cyan reserved for anything the AI
+   says. Ghost colour stays warm/neutral, never cyan. Warmth = probability.
+
+   Contrast (WCAG, measured on the darkest surface --ow-bg-0 / on panels --ow-bg-1):
+     text-1 17.1/16.2   text-2 9.3/8.9   text-3 6.3/6.0
+     amber 11.1/10.6    cyan 11.4/10.8   danger 6.9/6.6   success 10.5/10.0
+   ========================================================================== */
+
+@import "@fontsource/ibm-plex-sans/400.css";
+@import "@fontsource/ibm-plex-sans/500.css";
+@import "@fontsource/ibm-plex-sans/600.css";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+
+:root {
+  color-scheme: dark;
+
+  /* Surfaces, darkest (map land) to lightest (raised control) */
+  --ow-bg-0: #06080b;
+  --ow-bg-1: #0c1015;
+  --ow-bg-2: #121820;
+  --ow-bg-3: #1a222d;
+
+  /* Borders (decorative dividers) and a stronger one for control outlines */
+  --ow-border: #232c39;
+  --ow-border-strong: #3a4757;
+
+  /* Text tiers */
+  --ow-text-1: #e9edf2;
+  --ow-text-2: #a8b2bf;
+  --ow-text-3: #8592a2;
+
+  /* Accent: emergency amber. Human decisions, selection, probability. */
+  --ow-amber: #ffb224;
+  --ow-amber-dim: #7a5410;
+  --ow-amber-wash: rgb(255 178 36 / 0.12);
+  --ow-on-amber: #1a1100;
+
+  /* AI: calm cyan. Only for text, marks and links the AI produced. */
+  --ow-cyan: #5cd3e8;
+  --ow-cyan-dim: #1d5a66;
+  --ow-cyan-wash: rgb(92 211 232 / 0.1);
+
+  /* Status */
+  --ow-danger: #ff6459;
+  --ow-danger-wash: rgb(255 100 89 / 0.12);
+  --ow-success: #41d392;
+  --ow-success-wash: rgb(65 211 146 / 0.12);
+
+  /* Type */
+  --ow-font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --ow-font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* Type scale (px) */
+  --ow-text-xs: 0.6875rem;   /* 11 */
+  --ow-text-sm: 0.75rem;     /* 12 */
+  --ow-text-base: 0.8125rem; /* 13: default UI size, dense ops screen */
+  --ow-text-md: 0.875rem;    /* 14 */
+  --ow-text-lg: 1rem;        /* 16 */
+  --ow-text-xl: 1.25rem;     /* 20 */
+  --ow-text-2xl: 1.75rem;    /* 28 */
+
+  /* Spacing is Tailwind's 4px scale; these name the recurring gaps */
+  --ow-gap-tight: 0.25rem;   /* 4  */
+  --ow-gap-item: 0.5rem;     /* 8  */
+  --ow-gap-group: 0.75rem;   /* 12 */
+  --ow-gap-section: 1.5rem;  /* 24 */
+  --ow-rail-width: 22rem;
+
+  /* Radius: institutional, small. One step per role. */
+  --ow-radius-sm: 2px;  /* chips, bars */
+  --ow-radius-md: 4px;  /* controls, cards */
+  --ow-radius-lg: 6px;  /* panels, sheets */
+
+  /* Depth: offset + blur, never a coloured halo */
+  --ow-shadow-panel: 0 8px 24px rgb(0 0 0 / 0.45), 0 1px 2px rgb(0 0 0 / 0.5);
+
+  /* Motion */
+  --ow-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ow-dur-fast: 120ms;
+  --ow-dur-base: 220ms;
+  --ow-dur-slow: 420ms;
+  --ow-dur-camera: 2400ms;   /* map fly-ins */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --ow-dur-fast: 0ms; --ow-dur-base: 0ms; --ow-dur-slow: 0ms; --ow-dur-camera: 0ms; }
+}
