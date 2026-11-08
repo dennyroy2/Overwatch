@@ -13,6 +13,9 @@ Use from the terminal (run from the repo root):
     python -m backend.report.generate_report --sample -o report.pdf
     python -m backend.report.generate_report --json some_report.json -o report.pdf
     python -m backend.report.generate_report --case-id case_ab12 -o report.pdf   # live server on :8000
+
+Drone crops: evidence with media_url "/crops/<file>.jpg" is shown from frontend/public/crops/
+(also accepts http(s) URLs and data: URLs). Missing images are skipped, never an error.
     ... add --chart benchmark/results/chart.png to include the benchmark chart
 
 Needs: pip install reportlab
@@ -39,6 +42,8 @@ from reportlab.platypus import (Image, KeepTogether, Paragraph, SimpleDocTemplat
 from contracts.models import Evidence, LogEntry, Report, TaskingRequest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+REPO = os.path.dirname(os.path.dirname(HERE))
+PUBLIC = os.path.join(REPO, "frontend", "public")   # where the app serves /crops/... from
 SAMPLE = os.path.join(HERE, "sample_report.json")
 
 AMBER = colors.HexColor("#f29900")
@@ -106,6 +111,67 @@ def key_values(pairs: list[tuple[str, str]]) -> Table:
     tb.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"),
                             ("TOPPADDING", (0, 0), (-1, -1), 2), ("BOTTOMPADDING", (0, 0), (-1, -1), 2)]))
     return tb
+
+
+def load_media(url: str | None) -> bytes | None:
+    """Image bytes for an Evidence.media_url, or None (never raises).
+      /crops/x.jpg or crops/x.jpg  -> frontend/public/crops/x.jpg in this repo
+      data:image/...;base64,...     -> decoded inline
+      http(s)://...                 -> fetched with a short timeout
+    """
+    if not url:
+        return None
+    try:
+        if url.startswith("data:"):
+            import base64
+            return base64.b64decode(url.split(",", 1)[1])
+        if url.startswith(("http://", "https://")):
+            with urllib.request.urlopen(url, timeout=3) as r:
+                return r.read()
+        path = os.path.normpath(os.path.join(PUBLIC, url.lstrip("/\\")))
+        if not path.startswith(os.path.normpath(PUBLIC)):   # no ../ escapes out of public/
+            return None
+        with open(path, "rb") as f:
+            return f.read()
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def crop_image(data: bytes, max_w: float, max_h: float) -> Image | None:
+    """Scale an image to fit max_w x max_h points, keeping its aspect ratio."""
+    try:
+        from reportlab.lib.utils import ImageReader
+        iw, ih = ImageReader(io.BytesIO(data)).getSize()
+        k = min(max_w / iw, max_h / ih)
+        return Image(io.BytesIO(data), width=iw * k, height=ih * k)
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def detections_section(evidence: list[Evidence]) -> list:
+    """Grid of drone crops with time, summary and reliability, two per row."""
+    cells = []
+    col_w = PAGE_W / 2 - 6
+    for e in evidence:
+        data = load_media(e.media_url)
+        img = crop_image(data, col_w, 2.1 * inch) if data else None
+        if img is None:
+            continue
+        status = "officer-confirmed" if e.confirmed else "<font color='#c5221f'>not confirmed</font>"
+        caption = Paragraph(f"<b>{t(e.time)}</b> · {esc(e.summary)}<br/>"
+                            f"<font color='#5f6368'>{nice(e.source)} · reliability "
+                            f"{e.reliability:.0%} · {status}</font>", CELL)
+        cells.append([img, Spacer(1, 3), caption])
+    if not cells:
+        return []
+    rows = [cells[i:i + 2] + ([[""]] if len(cells[i:i + 2]) == 1 else []) for i in range(0, len(cells), 2)]
+    grid = Table(rows, colWidths=[PAGE_W / 2, PAGE_W / 2])
+    grid.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"),
+                              ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 12),
+                              ("BOTTOMPADDING", (0, 0), (-1, -1), 10)]))
+    return [Paragraph(f"Drone detections ({len(cells)})", H2),
+            Paragraph("Image crops the AI flagged, with the officer's confirmation status.", SMALL),
+            Spacer(1, 4), grid]
 
 
 def decision_log(log: list[LogEntry]) -> dict[str, list[LogEntry]]:
@@ -202,6 +268,9 @@ def build_pdf(report: Report, out_path: str | None = None, chart_path: str | Non
         [[t(e.time), nice(e.kind), nice(e.source), e.summary, ll(e.location),
           f"{e.reliability:.0%}", "Yes" if e.confirmed else "No"] for e in ev],
         [0.12, 0.11, 0.11, 0.33, 0.15, 0.09, 0.09]))
+
+    # Drone crops (only evidence with a loadable media_url)
+    s += detections_section(ev)
 
     # Tasking requests
     by_asset = decision_log(report.log)
