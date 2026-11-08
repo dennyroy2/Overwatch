@@ -14,6 +14,7 @@ from datetime import datetime, timedelta, timezone
 from contracts.models import (
     Evidence, EvidenceMsg, GeoPoint, GhostsMsg, LogMsg, TaskingMsg,
 )
+from backend.agent.narrator import narrator
 from backend.api.hub import CaseHub
 from backend.engine.interface import GhostEngine, SearchEngine, StubEngine
 
@@ -56,6 +57,7 @@ async def _propose(hub: CaseHub, engine: SearchEngine) -> None:
     for req in engine.propose():
         hub.requests[req.id] = req
         await hub.broadcast(TaskingMsg(data=req))
+        narrator.schedule_reasons(hub, req)          # AI wording follows, same request id
 
 
 async def run_fake_case(hub: CaseHub) -> None:
@@ -90,7 +92,9 @@ async def run_fake_case(hub: CaseHub) -> None:
                 if ev.kind in PROPOSE_ON:
                     await _propose(hub, engine)
 
-            await hub.broadcast(GhostsMsg(data=engine.frame()))
+            frame = engine.frame()
+            narrator.decorate(hub, frame)                # AI cluster stories once ready
+            await hub.broadcast(GhostsMsg(data=frame))
             tick += 1
             seconds += 1 / FPS
             await asyncio.sleep(1 / FPS)
