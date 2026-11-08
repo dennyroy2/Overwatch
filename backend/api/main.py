@@ -136,13 +136,33 @@ async def stream(ws: WebSocket, case_id: str) -> None:
         return
     await ws.accept()
     hub.sockets.add(ws)
+    if hub.stop_task is not None:              # reconnected in time: keep the same run going
+        hub.stop_task.cancel()
+        hub.stop_task = None
     if hub.task is None or hub.task.done():
         hub.task = asyncio.create_task(run_fake_case(hub))
     try:
         while True:
             await ws.receive_text()  # keep alive; client messages ignored for now
     except WebSocketDisconnect:
+        pass
+    finally:
         hub.sockets.discard(ws)
-        if not hub.sockets and hub.task:
-            hub.task.cancel()
-            hub.task = None
+        if not hub.sockets and hub.task and hub.stop_task is None:
+            hub.stop_task = asyncio.create_task(_stop_when_idle(hub))
+
+
+IDLE_STOP_S = float(os.getenv("OVERWATCH_IDLE_STOP_S", "300"))
+
+
+async def _stop_when_idle(hub) -> None:
+    """Stop a case's run only after nobody has watched it for IDLE_STOP_S seconds, so a
+    dropped connection or a page reload resumes the same search instead of restarting it."""
+    try:
+        await asyncio.sleep(IDLE_STOP_S)
+    except asyncio.CancelledError:
+        return
+    if not hub.sockets and hub.task:
+        hub.task.cancel()
+        hub.task = None
+    hub.stop_task = None

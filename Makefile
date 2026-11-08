@@ -1,4 +1,4 @@
-.PHONY: install dev api api-live web types test watch
+.PHONY: install dev api api-live demo web types test watch
 
 install:
 	pip install -r requirements.txt
@@ -8,11 +8,15 @@ dev:
 	@$(MAKE) -j2 api web
 
 api:
-	uvicorn backend.api.main:app --reload --port 8000
+	uvicorn backend.api.main:app --reload --reload-dir backend/api --reload-dir backend/engine --reload-dir backend/agent --reload-dir backend/report --reload-dir contracts --port 8000
+
+# Demo / judging: no auto-reload at all, so nothing restarts the server mid-demo
+demo:
+	OVERWATCH_FAKE_BEATS=0 uvicorn backend.api.main:app --port 8000
 
 # Server without the built-in fake evidence (use with the scripted scenario)
 api-live:
-	OVERWATCH_FAKE_BEATS=0 uvicorn backend.api.main:app --reload --port 8000
+	OVERWATCH_FAKE_BEATS=0 uvicorn backend.api.main:app --reload --reload-dir backend/api --reload-dir backend/engine --reload-dir backend/agent --reload-dir backend/report --reload-dir contracts --port 8000
 
 web:
 	@if [ -f frontend/package.json ]; then cd frontend && npm run dev; else echo "frontend/ not set up yet"; fi

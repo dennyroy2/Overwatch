@@ -24,6 +24,8 @@ class CaseHub:
     task: asyncio.Task | None = None
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
     possible_match_sent: bool = False     # the "possible match" alert goes out once per case
+    beats_sent: int = 0                   # fake beats already played (never replayed on restart)
+    stop_task: asyncio.Task | None = None # pending stop after the last socket leaves
 
     async def broadcast(self, msg) -> None:
         payload = _stream_adapter.dump_json(msg).decode()

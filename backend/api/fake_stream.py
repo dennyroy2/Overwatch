@@ -101,7 +101,7 @@ async def run_fake_case(hub: CaseHub) -> None:
     engine = make_engine()
     start = hub.profile.last_seen_time or datetime.now(timezone.utc)
     engine.reset(hub.profile, start)
-    beats = list(FAKE_BEATS) if FAKE_BEATS_ON else []
+    beats = list(FAKE_BEATS)[hub.beats_sent:] if FAKE_BEATS_ON else []
     applied: dict[str, Evidence] = {}   # id -> version applied (a card can be replaced by id)
     tick = 0
     seconds = 0.0
@@ -121,6 +121,7 @@ async def run_fake_case(hub: CaseHub) -> None:
             # Scripted fake beats
             while beats and seconds >= beats[0][0]:
                 _, spec = beats.pop(0)
+                hub.beats_sent += 1
                 ev = Evidence(case_id=hub.profile.case_id, time=engine.frame().t, confirmed=True, **spec)
                 hub.evidence.append(ev)
                 applied[ev.id] = ev
