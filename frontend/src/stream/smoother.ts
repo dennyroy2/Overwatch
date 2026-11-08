@@ -59,6 +59,14 @@ const MAX_INTERVAL_MS = 1000
 const INTERVAL_SMOOTHING = 0.3
 const NEVER = -1e12
 
+/** The ghosts replaced in the newest frame: their slots and where they were DRAWN when they died (step 36 credits them to evidence). */
+export interface Kills {
+  count: number
+  slots: Int32Array
+  /** [lon, lat, elevation] per killed ghost (stride 3). */
+  pos: Float32Array
+}
+
 export interface SmootherOutput {
   /** [lon, lat, elevation] per slot (stride 12 bytes). */
   pos: Float32Array
@@ -85,6 +93,8 @@ export class GhostSmoother {
   private flip = 0
   /** The ghosts that were just replaced, still on screen and dissolving (step 35). */
   readonly dissolve = new Dissolve(GHOST_RGB_LINEAR)
+  /** Who died in the newest frame (empty on the first frame of a swarm). Valid until the next frame. */
+  readonly kills: Kills = { count: 0, slots: new Int32Array(0), pos: new Float32Array(0) }
   /** Dev slow-motion: 1 normally; 8 makes the fade-in and the dissolve eight times slower so they can be watched. */
   private slowmo = 1
 
@@ -160,6 +170,7 @@ export class GhostSmoother {
     this.ensure(count)
     const first = this.cur === null || this.count !== count
     const prev = this.cur // the previous frame: the dying ghosts' weights are read from it
+    this.kills.count = 0
 
     if (!first) {
       // Freeze the position each ghost is being drawn at RIGHT NOW as the start of the next segment.
@@ -191,9 +202,28 @@ export class GhostSmoother {
     }
   }
 
+  private recordKill(slot: number, x: number, y: number, z: number): void {
+    const k = this.kills
+    if (k.count >= k.slots.length) {
+      const cap = Math.max(1024, k.slots.length * 2)
+      const slots = new Int32Array(cap)
+      slots.set(k.slots)
+      const pos = new Float32Array(cap * 3)
+      pos.set(k.pos)
+      ;(this.kills as { slots: Int32Array }).slots = slots
+      ;(this.kills as { pos: Float32Array }).pos = pos
+    }
+    const n = this.kills.count++
+    this.kills.slots[n] = slot
+    this.kills.pos[n * 3] = x
+    this.kills.pos[n * 3 + 1] = y
+    this.kills.pos[n * 3 + 2] = z
+  }
+
   /** The ghost in slot `i` is about to be replaced: hand its drawn position and brightness to the dissolve. */
   private startDissolve(i: number, arrivalMs: number, prev: Float32Array): void {
     const o3 = i * 3
+    this.recordKill(i, this.from[o3], this.from[o3 + 1], this.from[o3 + 2])
     const a = clamp01((arrivalMs - this.fadeStart[i]) / (FADE_MS * this.slowmo))
     const eased = 1 - (1 - a) * (1 - a)
     const bright = weightBrightness(prev[i * FLOATS_PER_GHOST + OFFSET.weight])

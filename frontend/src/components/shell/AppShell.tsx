@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { ClipboardList, ListChecks } from 'lucide-react'
+import { startAttributionTrigger } from '@/lib/attributionTrigger'
 import { startPipOpener } from '@/lib/pipOpener'
 import { selectPendingCount, useStore } from '@/store'
 import { NewCaseSheet } from '@/components/case/NewCaseSheet'
@@ -11,6 +12,7 @@ import { Rail } from './Rail'
 import { CommandBar } from './CommandBar'
 import { Scrubber } from './Scrubber'
 import { PipSlot, ReportSlot } from './Slots'
+import { AttributionLegend } from './AttributionLegend'
 import { FoundBanner } from './FoundBanner'
 import { Toaster } from './Toaster'
 
@@ -26,6 +28,7 @@ export function AppShell({ map }: { map: React.ReactNode }) {
   const caseId = useStore((s) => s.caseProfile?.case_id ?? null)
   const hasRequests = useStore((s) => s.requests.order.length > 0)
   useEffect(() => startPipOpener(), []) // the drone feed opens when a drone request is approved
+  useEffect(() => startAttributionTrigger(), []) // selecting a card shows what it killed and kept
   return (
     <div className="relative h-full w-full overflow-hidden bg-ground">
       <div className="absolute inset-0 z-0">{map}</div>
@@ -59,6 +62,7 @@ export function AppShell({ map }: { map: React.ReactNode }) {
         <PipSlot open={panels.pip} />
         <Scrubber />
         <CommandBar />
+        <AttributionLegend />
         <Toaster />
         <FoundBanner />
         <ReportSlot open={panels.report} caseId={caseId} onClose={() => setPanel('report', false)} />

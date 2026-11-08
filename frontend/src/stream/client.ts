@@ -9,7 +9,8 @@
 //   openCase(profile) -> POST /case -> GET /report (hydrate) -> WS /stream/{id} -> route by type.
 // Every (re)connect re-hydrates from /report first, because the stream has no history.
 import { API_URL, WS_URL } from '@/lib/config'
-import { resetGhosts, noteEvidence, pushFrame, readRespawned } from './ghostBuffer'
+import { attribution } from './attribution'
+import { currentBuffer, ghosts, resetGhosts, noteEvidence, pushFrame, readRespawned } from './ghostBuffer'
 import { history } from './history'
 import { useStore } from '@/store'
 import type { Report, StreamMessage, SubjectProfile } from '@/types'
@@ -81,6 +82,7 @@ export function closeCase(): void {
   stop(session)
   session = null
   resetGhosts()
+  attribution.reset()
   store().resetCaseData()
   store().setCaseProfile(null)
   store().setConnection('idle')
@@ -90,6 +92,7 @@ export function closeCase(): void {
 function begin(init: { caseId: string | null; profile: SubjectProfile | null }): void {
   stop(session)
   resetGhosts()
+  attribution.reset()
   store().resetCaseData()
   store().setCaseProfile(init.profile)
   const s: Session = {
@@ -174,6 +177,7 @@ function route(msg: StreamMessage): void {
     }
     case 'evidence':
       noteEvidence()
+      attribution.noteEvidence(msg.data.id ?? '', msg.data.kind, ghosts.count, currentBuffer()) // step 36: the window of deaths this card is credited with
       history.noteEvent(performance.now(), 'evidence', msg.data.id) // a tick on the time bar
       store().applyMessage(msg)
       return
@@ -203,6 +207,7 @@ function serverLostCase(s: Session): void {
     s.created = false
     s.everConnected = false
     resetGhosts()
+  attribution.reset()
     store().resetCaseData()
     store().pushToast('info', 'The server restarted, so the case was reopened from the start.')
     void connect(s)

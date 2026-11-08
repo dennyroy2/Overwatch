@@ -8,9 +8,11 @@ import { MapboxOverlay } from '@deck.gl/mapbox'
 import { ScatterplotLayer } from '@deck.gl/layers'
 import { TripsLayer } from '@deck.gl/geo-layers'
 import type { Map as MapLibreMap } from 'maplibre-gl'
+import { attributionLayers } from './attributionLayer'
 import { createGroundSampler, type GroundSampler } from './elevation'
 import { CELL_METRES, CORE_OPACITY, GlowEase, densityStats } from './glow'
 import { SoftDisc, WarmCore } from './softDisc'
+import { attribution } from '@/stream/attribution'
 import { currentBuffer, ghosts, onGhostFrame } from '@/stream/ghostBuffer'
 import { perf } from '@/stream/perf'
 import type { DissolveOutput } from '@/stream/dissolve'
@@ -68,7 +70,7 @@ const NO_TRAILS: TrailOutput = { length: 0, path: new Float32Array(0), timestamp
 /** Dev switch for the step 18 frame-rate measurements: ?trails=0 draws the swarm without trails. */
 const TRAILS_ON = !(import.meta.env.DEV && new URLSearchParams(window.location.search).get('trails') === '0')
 
-function makeLayers(out: SmootherOutput, trails: TrailOutput, glow: { halo: number; core: number }, dying: DissolveOutput | null = null) {
+function makeLayers(out: SmootherOutput, trails: TrailOutput, glow: { halo: number; core: number }, dying: DissolveOutput | null = null, now = 0) {
   const data = () => ({
     length: out.count,
     attributes: {
@@ -130,7 +132,8 @@ function makeLayers(out: SmootherOutput, trails: TrailOutput, glow: { halo: numb
   // Ghosts that were just replaced stay and dissolve (step 35): the same halo and core, fading and shrinking to nothing.
   const dyingLayers = dying && dying.count > 0 ? dissolveLayers(dying, glow, common) : []
   // Order: dissolving ghosts under, then halo, trails, and cores on top.
-  return TRAILS_ON ? [...dyingLayers, ...haloLayer, ...trailLayer, ...coreLayer] : [...dyingLayers, ...haloLayer, ...coreLayer]
+  const overlay = attributionLayers(now, 'highway-name-path') // what the selected card killed and kept (step 36), on top
+  return TRAILS_ON ? [...dyingLayers, ...haloLayer, ...trailLayer, ...coreLayer, ...overlay] : [...dyingLayers, ...haloLayer, ...coreLayer, ...overlay]
 }
 
 /** The dissolving ghosts. Radii come per ghost, in pixels, already shrinking, so no minimum may hold them open. */
@@ -184,6 +187,7 @@ export function attachGhosts(map: MapLibreMap): GhostLayerHandle {
     const count = ghosts.count
     if (count > 0 && sampleGround) sampler.apply(currentBuffer(), count)
     smoother.onFrame(ghosts.receivedAt, currentBuffer(), count, ghosts.respawned, ghosts.allRespawned)
+    attribution.onKills(smoother.kills) // the deaths in this frame go to the latest evidence (step 36)
     trails.onFrame(ghosts.receivedAt, count, smoother) // after the smoother: it reads what the smoother just decided
     perf.trails = trails.trailCount
     const store = useStore.getState()
@@ -290,7 +294,7 @@ export function attachGhosts(map: MapLibreMap): GhostLayerHandle {
         // With trails off (dev switch), skip building them too, so the measurement shows the real saving.
         const dying = smoother.dissolve.tick(now, liveHaloPixels(map), CORE.radiusPixels)
         perf.dissolving = dying.count
-        overlay.setProps({ layers: makeLayers(out, TRAILS_ON ? trails.tick(now, out.pos) : NO_TRAILS, glow, dying) })
+        overlay.setProps({ layers: makeLayers(out, TRAILS_ON ? trails.tick(now, out.pos) : NO_TRAILS, glow, dying, now) })
         drawnEmpty = false
       } else if (!drawnEmpty) {
         overlay.setProps({ layers: [] })
@@ -314,6 +318,7 @@ export function attachGhosts(map: MapLibreMap): GhostLayerHandle {
     w.__perf = perf
     w.__history = history
     w.__playback = playback
+    w.__attribution = attribution
   }
   // New terrain tiles arriving is the only thing that can fill grid holes; camera moves don't matter.
   const onSourceData = (e: { sourceId?: string }) => { if (e.sourceId === 'terrain-dem') sampler.markStale() }

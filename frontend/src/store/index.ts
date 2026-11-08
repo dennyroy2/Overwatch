@@ -65,6 +65,8 @@ export interface UiState {
   /** live, paused (a frozen picture) or playing back a recording (step 38). Position lives in stream/playback.ts. */
   replay: { mode: PlaybackMode }
   panels: { left: boolean; right: boolean; report: boolean; pip: boolean; newCase: boolean; sheetCollapsed: boolean }
+  /** What the overlay for the selected card says (step 36): ghosts it removed, ghosts that stayed and ghosts that arrived; the counts are null when there is no record of the card. */
+  attribution: { id: string; removed: number | null; stayed: number | null; arrived: number | null } | null
   /** The drone request whose approval opened the drone feed (it picks the clip by its target area), or null. */
   pipRequestId: string | null
   /** Last-seen point picked on the map while the New case sheet is open. Draft input, not backend data. */
@@ -121,7 +123,7 @@ export interface StoreState {
   hydrate: (r: Report) => void
   /** Clear everything derived from the backend (new case, or the server lost the case). */
   resetCaseData: () => void
-  setUi: (patch: Partial<Omit<UiState, 'panels' | 'modes' | 'pipRequestId'>>) => void
+  setUi: (patch: Partial<Omit<UiState, 'panels' | 'modes' | 'pipRequestId' | 'attribution'>>) => void
   setDraftLastSeen: (p: GeoPoint | null) => void
   setReplayMode: (mode: PlaybackMode) => void
   selectEvidence: (id: string | null) => void
@@ -129,6 +131,7 @@ export interface StoreState {
   hoverRequest: (id: string | null) => void
   setClosing: (closing: boolean) => void
   /** Open the drone feed (for the request that was just approved, or none), and close it. */
+  setAttribution: (a: UiState['attribution']) => void
   openPip: (requestId: string | null) => void
   closePip: () => void
   dismissFound: (key: string | null) => void
@@ -152,6 +155,7 @@ const initialUi = (): UiState => ({
   replay: { mode: 'live' },
   panels: { left: true, right: true, report: false, pip: false, newCase: true, sheetCollapsed: false },
   pipRequestId: null,
+  attribution: null,
   draftLastSeen: null,
   modes: { why: false },
 })
@@ -249,6 +253,7 @@ export const useStore = create<StoreState>()((set) => ({
 
   // Panels are deliberately kept: a server restart mid-search must not pop the New case sheet open.
   resetCaseData: () => set((s) => ({ ...caseData(), ui: { ...initialUi(), panels: { ...s.ui.panels, pip: false } } })),
+  setAttribution: (a) => set((s) => ({ ui: { ...s.ui, attribution: a } })),
   openPip: (requestId) => set((s) => ({ ui: { ...s.ui, pipRequestId: requestId, panels: { ...s.ui.panels, pip: true } } })),
   closePip: () => set((s) => ({ ui: { ...s.ui, pipRequestId: null, panels: { ...s.ui.panels, pip: false } } })),
 

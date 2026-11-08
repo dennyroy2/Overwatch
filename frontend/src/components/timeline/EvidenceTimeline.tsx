@@ -2,7 +2,10 @@ import { useMemo } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import { focusPoint, visibleAt } from '@/lib/evidence'
 import { useNow } from '@/lib/useNow'
-import { flyToPoint } from '@/map/camera'
+import { flyToPoint, frameRoute } from '@/map/camera'
+import { framePoints } from '@/lib/attributionFrame'
+import { attribution } from '@/stream/attribution'
+import { currentBuffer, ghosts } from '@/stream/ghostBuffer'
 import { getMap } from '@/map/mapRef'
 import { useStore } from '@/store'
 import { history } from '@/stream/history'
@@ -32,11 +35,17 @@ export function EvidenceTimeline() {
   const onSelect = (id: string) => {
     const same = selectedId === id
     selectEvidence(same ? null : id)
-    // Clicking a card flies the camera to its mark.
+    // Clicking a card flies the camera to its mark. If the card changed the swarm over a wide area (a sighting
+    // removes a cloud in one place and brings one up in another), frame the whole before-and-after instead, so
+    // the red and cyan dots the overlay shows are all on screen (step 36).
     const e = byId[id]
     const p = e ? focusPoint(e) : null
     const map = getMap()
-    if (!same && p && map) flyToPoint(map, p)
+    if (same || !map) return
+    const snap = mode === 'live' && e && e.kind !== 'note' ? attribution.snapshot(id, ghosts.count, currentBuffer()) : null
+    const frame = snap ? framePoints(snap.removed, snap.removedCount, snap.arrived, snap.arrivedCount, p) : null
+    if (frame) frameRoute(map, frame)
+    else if (p) flyToPoint(map, p)
   }
 
   if (ids.length === 0) {

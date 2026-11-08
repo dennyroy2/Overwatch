@@ -99,3 +99,36 @@ describe('GhostSmoother: dissolving the ghosts that were replaced', () => {
     expect(s.dissolve.tick(250, 10, 2).count).toBe(0)
   })
 })
+
+describe('GhostSmoother: the list of who died this frame (step 36)', () => {
+  it('names the replaced slots and where each was drawn, and is empty on a first frame and when nothing died', () => {
+    const s = new GhostSmoother()
+    s.onFrame(0, frame([0, 100, 200]), 3, null, false)
+    expect(s.kills.count).toBe(0) // a brand-new swarm: nobody died
+    s.onFrame(-1, frame([0, 100, 200]), 3, null, false)
+    s.onFrame(200, frame([1, 101, 201]), 3, null, false)
+    expect(s.kills.count).toBe(0)
+    const drawn = s.tick(300).pos[1 * 3] // slot 1 mid-glide
+    s.onFrame(300, frame([2, 150, 202]), 3, Int32Array.of(1), false)
+    expect(s.kills.count).toBe(1)
+    expect(s.kills.slots[0]).toBe(1)
+    expect(s.kills.pos[0]).toBeCloseTo(drawn, 4) // where the screen showed it, not the last data frame, not the replacement
+  })
+
+  it('counts every replaced slot, including one still invisible, and every slot on the whole-swarm fallback', () => {
+    const s = running([0, 100, 200, 300])
+    s.onFrame(200, frame([0, 100, 200, 300]), 4, Int32Array.of(0, 2, 3), false)
+    expect(Array.from(s.kills.slots.subarray(0, s.kills.count))).toEqual([0, 2, 3])
+    s.onFrame(400, frame([0, 100, 200, 300]), 4, null, true)
+    expect(s.kills.count).toBe(4)
+  })
+
+  it('grows to hold a big event', () => {
+    const n = 4000
+    const xs = Array.from({ length: n }, (_, i) => i)
+    const s = running(xs)
+    s.onFrame(200, frame(xs), n, Int32Array.from(xs.slice(0, 3750)), false)
+    expect(s.kills.count).toBe(3750)
+    expect(s.kills.slots[3749]).toBe(3749)
+  })
+})
