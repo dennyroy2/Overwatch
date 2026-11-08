@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[3]
-MODULES = ["frames", "detect", "clothing", "geolocate", "sidecar", "emit", "replay", "precompute", "paths"]
+MODULES = ["frames", "detect", "clothing", "geolocate", "sidecar", "emit", "replay", "precompute", "paths", "throttle", "evaluate", "cluecheck", "tune"]
 HEAVY = ["torch", "ultralytics", "sahi", "cv2"]
 
 

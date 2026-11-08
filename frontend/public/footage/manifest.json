@@ -1,0 +1,24 @@
+{
+ "schema": 1,
+ "clips": [
+  {
+   "id": "margaret_drone2",
+   "video": "/footage/margaret_drone2.mp4",
+   "sidecar": "/footage/margaret_drone2.detections.json",
+   "asset": "Drone 2",
+   "width": 1280,
+   "height": 720,
+   "duration_s": 14.5,
+   "time_range_s": [
+    0.0,
+    14.5
+   ],
+   "placement": {
+    "lat": 53.533612,
+    "lon": -113.537809
+   },
+   "detections": 45,
+   "evidence": 1
+  }
+ ]
+}

@@ -8,7 +8,7 @@ Flight-path file (JSON), agreed format. Times are seconds from the start of the 
 compass bearing the drone faces (0 = north, clockwise). A route point may also carry its own
 `pitch_deg` and `fov_h_deg`, which override the file-level `camera`.
 
-`position_error_m` (optional, default 5, a consumer GPS) is how far off the route's positions may be. It goes into every
+`asset` (optional) is the name the officer knows the drone by. `position_error_m` (optional, default 5, a consumer GPS) is how far off the route's positions may be. It goes into every
 detection's radius, so a synthetic or rough flight path never claims more certainty than it has. It may also be set
 per route point.
 """
@@ -39,6 +39,7 @@ class FlightPath:
     height: int
     fps: float
     points: tuple[FlightPoint, ...]
+    asset: str | None = None          # e.g. "Drone 2", shown in the drone feed header
 
     def at(self, t_s: float) -> FlightPoint:
         """The drone's state at clip time `t_s`: linear between points, clamped at both ends,
@@ -76,7 +77,7 @@ def load_flight_path(path: Path) -> FlightPath:
     if any(b.t_s < a.t_s for a, b in zip(points, points[1:])):
         raise ValueError(f"{path}: route points are not in time order")
     return FlightPath(raw.get("clip", Path(path).stem), int(raw.get("width", 1280)), int(raw.get("height", 720)),
-                      float(raw.get("fps", 30)), points)
+                      float(raw.get("fps", 30)), points, raw.get("asset"))
 
 
 # ---------------------------------------------------------------- step 31: from a box in the frame to the ground

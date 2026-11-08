@@ -1,5 +1,6 @@
 {
   "clip": "margaret_drone2",
+  "asset": "Drone 2",
   "note": "Route copied from scenario/margaret_drone2.json (synthetic, no real flight log). Camera per Akshat, 2026-11-08: 84 degree DIAGONAL field of view (= 76.25 horizontal x 47.64 vertical on 16:9), pitch about 45 degrees below the horizon (an estimate from the paper's 45-90 degree range), altitude 40 m, heading 51 degrees constant. position_error_m is 75 because the route is synthetic and the clip is a sequence of different SARD photographs, so one flight path cannot place the same stationary person consistently: computed positions land 19 to 78 m from the scenario's subject spot (53.534, -113.537) and drift by about 70 m. A real flight log would say about 5.",
   "width": 1280,
   "height": 720,

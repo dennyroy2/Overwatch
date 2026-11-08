@@ -53,6 +53,33 @@ def extract_frames(video: Path, fps: float = DEFAULT_FPS) -> Iterator[Frame]:
         cap.release()
 
 
+@dataclass(frozen=True)
+class ClipInfo:
+    width: int
+    height: int
+    fps: float
+    frames: int
+    duration_s: float
+
+
+def clip_info(video: Path) -> ClipInfo:
+    """Size, frame rate and length of a clip. Raises FileNotFoundError / ValueError like `extract_frames`."""
+    import cv2
+
+    video = Path(video)
+    if not video.is_file():
+        raise FileNotFoundError(f"clip not found: {video}")
+    cap = cv2.VideoCapture(str(video))
+    try:
+        fps, count = cap.get(cv2.CAP_PROP_FPS), int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        if not cap.isOpened() or fps <= 0 or count <= 0:
+            raise ValueError(f"cannot decode {video}")
+        return ClipInfo(int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)), fps, count,
+                        round(count / fps, 3))
+    finally:
+        cap.release()
+
+
 def frame_indices(count: int, video_fps: float, fps: float = DEFAULT_FPS) -> list[int]:
     """Which frame numbers of a `count`-frame clip are picked when sampling at `fps`."""
     if count <= 0 or video_fps <= 0:
