@@ -15,6 +15,7 @@ export function openDemo(): void {
   cancelTips = startDemoTips({
     caseId: () => s().caseProfile?.case_id ?? null,
     evidenceCount: () => s().evidence.order.length,
+    hasDroneEvidence: () => s().evidence.order.some((id) => s().evidence.byId[id]?.source === 'drone_ai'),
     lastSeenMs: () => Date.parse(s().caseProfile?.last_seen_time ?? '') || Date.now(),
     post: (ev) => postEvidence(ev),
     setTimer: (fn, ms) => setTimeout(fn, ms),

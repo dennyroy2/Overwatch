@@ -4,7 +4,8 @@
 // The built-in server sends its own tips (family, bus driver, ground team, drone) unless it was started with
 // OVERWATCH_FAKE_BEATS=0 (`make api-live`), which is how the scripted scenario is run. In that mode nothing
 // would arrive on its own, so after a short wait with no evidence this plays the same story as
-// `scenario/margaret.json`. If the server's own tips do arrive, this does nothing, so nothing is doubled.
+// `scenario/margaret.json`. If the server's own tips do arrive, this does nothing, so nothing is doubled; and its last
+// beat, the drone clue, is skipped when a drone clue (perception's `emit`) is already there.
 import { API_URL } from '@/lib/config'
 import { DEMO_PLACES } from '@/lib/geo'
 import type { Evidence } from '@/types'
@@ -54,6 +55,8 @@ export interface DemoDeps {
   caseId: () => string | null
   evidenceCount: () => number
   lastSeenMs: () => number
+  /** True once a drone clue is on the screen (perception's `emit`, or a person's), so this does not post a second one. */
+  hasDroneEvidence?: () => boolean
   post: (ev: Partial<Evidence>) => Promise<void>
   setTimer: (fn: () => void, ms: number) => unknown
   clearTimer: (h: unknown) => void
@@ -75,6 +78,8 @@ export function startDemoTips(deps: DemoDeps): () => void {
     for (const tip of DEMO_TIPS) {
       timers.push(deps.setTimer(() => {
         if (cancelled || deps.caseId() !== caseId) return    // closed, or another case was opened
+        // One drone clue only: if perception (or a person) has already delivered one, this beat would count it twice.
+        if (tip.source === 'drone_ai' && deps.hasDroneEvidence?.()) return
         deps.post(buildDemoEvidence(caseId, tip, deps.lastSeenMs())).catch(() => {
           deps.onError?.('Could not send a demo tip. Is the API running?')
         })

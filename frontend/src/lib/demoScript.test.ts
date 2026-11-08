@@ -67,6 +67,27 @@ describe('demo tips', () => {
     expect(posted.map((p) => p.kind)).toEqual(['last_seen', 'favourite_place', 'searched_area', 'sighting', 'clue'])
   })
 
+  it('skips its drone clue when one is already on screen (perception delivered it), and posts it when not', () => {
+    const withClue = setup({ hasDroneEvidence: () => true })
+    startDemoTips(withClue.deps)
+    withClue.c.advance(QUIET_AFTER_MS + 120_000)
+    expect(withClue.posted.map((p) => p.kind)).toEqual(['last_seen', 'favourite_place', 'searched_area', 'sighting']) // no clue
+    const without = setup({ hasDroneEvidence: () => false })
+    startDemoTips(without.deps)
+    without.c.advance(QUIET_AFTER_MS + 120_000)
+    expect(without.posted.map((p) => p.kind)).toEqual(['last_seen', 'favourite_place', 'searched_area', 'sighting', 'clue'])
+  })
+
+  it('checks for a drone clue at the moment the beat is due, not when the demo opens', () => {
+    let present = false
+    const { c, deps, posted } = setup({ hasDroneEvidence: () => present })
+    startDemoTips(deps)
+    c.advance(QUIET_AFTER_MS + 30_000) // four beats posted, the clue not yet due
+    present = true // perception's clue arrives in the meantime
+    c.advance(30_000)
+    expect(posted.map((p) => p.kind)).not.toContain('clue')
+  })
+
   it('stops when cancelled or when another case is open', () => {
     const a = setup()
     const cancel = startDemoTips(a.deps)
