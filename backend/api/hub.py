@@ -26,6 +26,11 @@ class CaseHub:
     possible_match_sent: bool = False     # the "possible match" alert goes out once per case
     beats_sent: int = 0                   # fake beats already played (never replayed on restart)
     stop_task: asyncio.Task | None = None # pending stop after the last socket leaves
+    alerts: list = field(default_factory=list)          # AlertArea suggestions, in order
+    alert_centre: object = None                          # centre of the latest alert area (metres)
+    family_answers: list = field(default_factory=list)   # FamilyAnswerRecord
+    last_left_area: float | None = None                  # from the latest ghost frame
+    last_clusters: list = field(default_factory=list)    # from the latest ghost frame
 
     async def broadcast(self, msg) -> None:
         payload = _stream_adapter.dump_json(msg).decode()
