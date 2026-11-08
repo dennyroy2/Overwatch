@@ -6,3 +6,8 @@ FOOTAGE_DIR = REPO_ROOT / "frontend" / "public" / "footage"   # *.mp4 are gitign
 CROPS_DIR = REPO_ROOT / "frontend" / "public" / "crops"
 SCRATCH_DIR = Path(__file__).resolve().parent / "scratch"     # annotated frames, never committed
 FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
+WEIGHTS_DIR = Path(__file__).resolve().parent / "weights"     # *.pt, never committed
+
+
+def clip_path(clip_id: str) -> Path:
+    return FOOTAGE_DIR / f"{clip_id}.mp4"

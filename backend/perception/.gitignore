@@ -2,3 +2,4 @@
 scratch/
 *.pt
 __pycache__/
+weights/
