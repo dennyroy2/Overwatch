@@ -10,3 +10,6 @@ numpy>=1.26
 httpx>=0.27
 pydantic>=2.7
 pytest>=8
+certifi>=2024.0
+# Text encoder YOLO-World needs. Ultralytics would pip-install it on first use; listed here so it is explicit.
+clip @ git+https://github.com/ultralytics/CLIP.git
