@@ -57,7 +57,11 @@ BEHAVIOUR = dict(
     k_goal=2.5,            # strength of that pull
     p_stay_at_goal=0.7,    # chance a ghost that reaches its favourite place stays
     goal_reach_m=60.0,
+    p_left_prior=0.08,     # prior chance she left the area (bus, car) before police arrived
+    edge_band_m=150.0,     # ghosts this close to the map edge may already be beyond it
 )
+DRONE_RANGE_M = 1500.0     # beyond this from the command post, the helicopter goes instead
+AERIAL = {"Drone 2", "Air 1"}
 BACKGROUND_AREA_M2 = 10e6  # where a mistaken report could have put her (~10 km^2)
 TIP_WINDOW_S = 600.0       # a tip's time is approximate: +-10 minutes
 SURPRISE = 0.01            # if <1% of the ghosts could match a credible sighting, the model
@@ -163,6 +167,9 @@ class GhostEngine:
         self.base_xy = np.zeros(2)
         self._respawned: set[int] = set()
         self.alive_fraction = 1.0
+        self.p_out = self.b["p_left_prior"]
+        self.last_search: dict | None = None
+        self._lo, self._hi = self.g.xy.min(0), self.g.xy.max(0)
 
     # ---------------------------------------------------------------- interface
     def reset(self, profile: SubjectProfile, start_time: datetime) -> None:
@@ -175,6 +182,8 @@ class GhostEngine:
         self.proposed = []
         self._respawned = set()
         self.alive_fraction = 1.0
+        self.p_out = b["p_left_prior"]
+        self.last_search = None
         ls = profile.last_seen or GeoPoint(lat=53.5422, lon=-113.5337)
         start = g.nearest(ls.lon, ls.lat)
         self.base_xy = g.xy[start].copy()
@@ -253,6 +262,7 @@ class GhostEngine:
             support = float((self.w * near).sum() / self.w.sum())
             if support < SURPRISE and ev.reliability >= 0.6 and ev.kind != "last_seen":
                 self._reseed(ev, c, sigma)                    # credible report the model didn't expect
+                self._update_left(z_in=ev.reliability, l_out=1 - ev.reliability)
                 return
             # Report is right (Gaussian around the reported spot) or wrong (could be
             # anywhere in the search area). Both as densities, scaled so a ghost right
@@ -263,7 +273,10 @@ class GhostEngine:
             inside = self._inside(self._xy_at(ev.time), ev, radius)
             if ev.kind == "searched_area":
                 pod = ev.detection_prob if ev.detection_prob is not None else 0.7
-                miss = 1 - pod * ev.reliability
+                pod_eff = pod * ev.reliability
+                miss = 1 - pod_eff
+                poa = float(self.w[inside].sum() / self.w.sum()) * (1 - self.p_out)
+                self.last_search = {"evidence_id": ev.id, "poa": poa, "pod": pod_eff, "pos": poa * pod_eff}
             else:
                 miss = 1 - ev.reliability
             like = np.where(inside, miss, 1.0)
@@ -276,6 +289,11 @@ class GhostEngine:
             return
         self.w = w * (self.n / after)
         self.alive_fraction = float(np.clip(self.alive_fraction * after / before, 0.0, 1.0))
+        # "left the area": a report placing her here is unlikely if she has gone; a search that
+        # finds nothing here is fully consistent with her having gone
+        l_out = 1.0 if ev.kind in ("searched_area", "constraint") else float(
+            (1 - ev.reliability) * (2 * np.pi * max(radius, 40.0) ** 2) / BACKGROUND_AREA_M2)
+        self._update_left(z_in=after / before, l_out=l_out)
         if self._ess() < 0.5 * self.n:
             self._resample()
 
@@ -287,7 +305,8 @@ class GhostEngine:
         self._respawned = set()
         return GhostFrame(case_id=self.case_id, t=self.t, positions=pos,
                           alive_fraction=round(self.alive_fraction, 4),
-                          clusters=self.clusters(), respawned=respawned)
+                          clusters=self.clusters(), respawned=respawned,
+                          left_area=round(self.left_area(), 4))
 
     def propose(self) -> list[TaskingRequest]:
         """One request for the most likely area not yet covered: a drone takes the first
@@ -296,9 +315,10 @@ class GhostEngine:
         for cl in clusters:
             c = self.g.to_xy(cl.center.lon, cl.center.lat)
             before = {a for p, a in self.proposed if np.linalg.norm(c - p) < 300}
+            far = float(np.linalg.norm(c - self.base_xy)) > DRONE_RANGE_M
             if not before:
-                asset = "Drone 2"
-            elif "Drone 2" in before and "Ground Team 1" not in before and cl.probability >= 0.5:
+                asset = "Air 1" if far else "Drone 2"
+            elif before & AERIAL and "Ground Team 1" not in before and cl.probability >= 0.5:
                 asset = "Ground Team 1"
             else:
                 continue
@@ -397,6 +417,44 @@ class GhostEngine:
         u = rng.random(len(pick))[:, None]
         choice = (np.cumsum(p, axis=1) < u).sum(1)
         self.goal[pick] = fav_nodes[np.minimum(choice, len(fav_nodes) - 1)]
+
+    def left_area(self) -> float:
+        """Chance she is outside the search area: the 'left by bus/car' hypothesis plus ghosts at
+        the map edge (they may already be past it). Planners call this 'rest of world'."""
+        xy, b = self._xy(), self.b["edge_band_m"]
+        near_edge = ((xy - self._lo) < b).any(1) | ((self._hi - xy) < b).any(1)
+        edge = float(self.w[near_edge].sum() / self.w.sum())
+        return float(np.clip(self.p_out + (1 - self.p_out) * edge, 0.0, 1.0))
+
+    def _update_left(self, z_in: float, l_out: float) -> None:
+        num = self.p_out * l_out
+        den = num + (1 - self.p_out) * z_in
+        if den > 0 and np.isfinite(den):
+            self.p_out = float(np.clip(num / den, 0.001, 0.95))
+
+    def alert_area(self, cover: float = 0.7, cell: float = 150.0, pad: float = 150.0) -> dict | None:
+        """Smallest set of 150 m cells holding `cover` of the probability, wrapped in a padded
+        convex outline: where a targeted public alert would reach most of the possibilities."""
+        xy = self._xy()
+        w = self.w / self.w.sum()
+        ij = np.floor(xy / cell).astype(int)
+        keys, inv = np.unique(ij, axis=0, return_inverse=True)
+        mass = np.bincount(inv.ravel(), weights=w)
+        order = np.argsort(-mass)
+        k = int(np.searchsorted(np.cumsum(mass[order]), cover)) + 1
+        chosen = keys[order[:k]]
+        corners = np.concatenate([chosen * cell + np.array(o) * cell for o in ((0, 0), (1, 0), (0, 1), (1, 1))])
+        hull = _convex_hull(corners)
+        centre = hull.mean(0)
+        direction = hull - centre
+        norm = np.linalg.norm(direction, axis=1, keepdims=True)
+        hull = hull + direction / np.maximum(norm, 1e-9) * pad
+        x, y = hull[:, 0], hull[:, 1]
+        area_m2 = 0.5 * abs(float(np.dot(x, np.roll(y, -1)) - np.dot(y, np.roll(x, -1))))
+        inside = _in_polygon(xy, hull)
+        covers = float(w[inside].sum()) * (1 - self.p_out)
+        return {"polygon": [self._xy_to_lonlat(p) for p in hull], "area_km2": area_m2 / 1e6,
+                "covers": covers, "centre_xy": centre}
 
     def _restates_last_seen(self, ev: Evidence) -> bool:
         p = self.profile
@@ -550,7 +608,8 @@ class GhostEngine:
     def _request(self, cl: Cluster, c: np.ndarray, others: list[Cluster], asset: str) -> TaskingRequest:
         dist = float(np.linalg.norm(c - self.base_xy))
         drone = asset.startswith("Drone")
-        pod = 0.8 if drone else 0.9
+        heli = asset == "Air 1"
+        pod = 0.8 if drone else 0.7 if heli else 0.9
         half = 150.0
         corners = [c + np.array(d) for d in ((-half, -half), (half, -half), (half, half), (-half, half))]
 
@@ -559,22 +618,64 @@ class GhostEngine:
             return GeoPoint(lat=round(lat, 6), lon=round(lon, 6))
 
         evid = [e for e in self.evidence if e.id in cl.evidence_ids]
-        reasons = [f"{cl.probability:.0%} of the remaining possibilities are within 350 m of this point."]
-        if not drone:
-            reasons.append("A drone has already looked here; a ground team can confirm in person.")
+        poa = cl.probability * (1 - self.p_out)
+        reasons = [f"{likelihood_words(poa).capitalize()}: {cl.probability:.0%} of the remaining possibilities "
+                   f"are within 350 m (POA {poa:.0%} x POD {pod:.0%} = POS {poa * pod:.0%})."]
+        if asset.startswith("Ground"):
+            reasons.append("Already looked at from the air; a ground team can confirm in person.")
+        if heli:
+            reasons.append("Beyond drone range from the command post; Air 1's infrared covers it fastest.")
         reasons += [e.summary for e in sorted(evid, key=lambda e: e.time, reverse=True)[:3]]
         if others:
             reasons.append(f"Next most likely area holds {others[0].probability:.0%}.")
-        speed_m_min = 600.0 if drone else 250.0          # drone flight vs drive-then-walk
+        speed_m_min = 600.0 if drone else 2500.0 if heli else 250.0   # drone, helicopter, drive-then-walk
         return TaskingRequest(
             case_id=self.case_id, asset=asset,
             target_area=[to_pt(p) for p in corners],
             route=[to_pt(self.base_xy), to_pt(c)],
-            expected_gain=round(min(cl.probability * pod, 1.0), 4),
+            expected_gain=round(min(poa * pod, 1.0), 4),
             duration_min=round(dist / speed_m_min + (8 if drone else 15), 1),
             reasons=reasons, evidence_ids=cl.evidence_ids,
             alternatives=[f"Area {i + 2}: {o.probability:.0%} of possibilities"
                           for i, o in enumerate(others[:2])],
-            constraints_ok=({"battery": True, "airspace": True, "wind": True, "line_of_sight": dist < 1500}
-                            if drone else {"daylight": True}),
+            constraints_ok=({"battery": True, "airspace": True, "wind": True, "line_of_sight": dist < DRONE_RANGE_M}
+                            if drone else {"airspace": True, "weather": True} if heli else {"daylight": True}),
         )
+
+
+def likelihood_words(p: float) -> str:
+    """Planners read words faster than numbers; always shown next to the number."""
+    return ("very likely" if p >= 0.5 else "likely" if p >= 0.25 else
+            "possible" if p >= 0.1 else "unlikely")
+
+
+def _convex_hull(pts: np.ndarray) -> np.ndarray:
+    """Andrew's monotone chain; returns hull vertices counter-clockwise."""
+    pts = np.unique(pts, axis=0)
+    if len(pts) < 3:
+        return pts
+    pts = pts[np.lexsort((pts[:, 1], pts[:, 0]))]
+
+    def cross(o, a, b):
+        return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+    lower, upper = [], []
+    for p in pts:
+        while len(lower) >= 2 and cross(lower[-2], lower[-1], p) <= 0:
+            lower.pop()
+        lower.append(p)
+    for p in pts[::-1]:
+        while len(upper) >= 2 and cross(upper[-2], upper[-1], p) <= 0:
+            upper.pop()
+        upper.append(p)
+    return np.array(lower[:-1] + upper[:-1])
+
+
+def _in_polygon(pts: np.ndarray, poly: np.ndarray) -> np.ndarray:
+    x, y = pts[:, 0], pts[:, 1]
+    inside = np.zeros(len(pts), dtype=bool)
+    j = len(poly) - 1
+    for i in range(len(poly)):
+        (xi, yi), (xj, yj) = poly[i], poly[j]
+        inside ^= ((yi > y) != (yj > y)) & (x < (xj - xi) * (y - yi) / ((yj - yi) or 1e-12) + xi)
+        j = i
+    return inside

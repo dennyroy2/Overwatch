@@ -29,10 +29,11 @@ from fastapi import FastAPI, HTTPException, Response, WebSocket, WebSocketDiscon
 from fastapi.middleware.cors import CORSMiddleware
 
 from contracts.models import (
-    CloseSearch,
+    AlertArea, CloseSearch, utcnow, FamilyAnswer, FamilyAnswerRecord, FamilyQuestion,
     Decision, Evidence, EvidenceMsg, LogMsg, Report, StreamMessage, SubjectProfile,
 )
 from backend.agent.hook import needs_parsing, schedule_upgrade
+from backend.agent import family
 from backend.api.fake_stream import run_fake_case
 from backend.api.hub import registry
 from backend.engine.interface import EDMONTON_DEFAULT
@@ -90,7 +91,66 @@ def report(case_id: str) -> Report:
     if hub is None:
         raise HTTPException(404, f"Unknown case {case_id}")
     return Report(case=hub.profile, evidence=hub.evidence,
-                  requests=list(hub.requests.values()), log=hub.log)
+                  requests=list(hub.requests.values()), log=hub.log,
+                  alerts=hub.alerts, family_answers=hub.family_answers,
+                  areas=hub.last_clusters, left_area=hub.last_left_area)
+
+
+@app.get("/case/{case_id}/alert", response_model=AlertArea)
+def latest_alert(case_id: str) -> AlertArea:
+    """The latest suggested public-alert area (also pushed on the stream as type "alert")."""
+    hub = registry.get(case_id)
+    if hub is None:
+        raise HTTPException(404, f"Unknown case {case_id}")
+    if not hub.alerts:
+        raise HTTPException(404, "No alert area suggested yet")
+    return hub.alerts[-1]
+
+
+@app.get("/case/{case_id}/questions", response_model=list[FamilyQuestion])
+async def family_questions(case_id: str) -> list[FamilyQuestion]:
+    """Questions for the family, tailored by AI to this case (curated fallback)."""
+    hub = registry.get(case_id)
+    if hub is None:
+        raise HTTPException(404, f"Unknown case {case_id}")
+    known = [e.summary for e in hub.evidence if e.kind in ("favourite_place", "last_seen")]
+    return await asyncio.to_thread(family.questions, hub.profile, known)
+
+
+@app.post("/case/{case_id}/answers")
+async def family_answer(case_id: str, body: FamilyAnswer) -> dict:
+    """A family answer. Place answers are resolved to the map (street data only) and become a
+    favourite_place card the ghosts react to; other answers become a note card."""
+    hub = registry.get(case_id)
+    if hub is None:
+        raise HTTPException(404, f"Unknown case {case_id}")
+    qs = {q.id: q for q in await asyncio.to_thread(family.questions, hub.profile, [])}
+    q = qs.get(body.question_id)
+    question = q.text if q else body.question_id
+    answer = body.answer.strip()
+    if not answer:
+        raise HTTPException(422, "Empty answer")
+    ev = None
+    if q is None or q.kind == "place":
+        from backend.agent.tip_parser import parse_tip_verbose
+        res = await asyncio.to_thread(parse_tip_verbose, answer, hub.profile)
+        loc = res.evidence.location
+        if loc is not None:
+            ev = Evidence(case_id=case_id, kind="favourite_place", source="family", time=utcnow(),
+                          location=loc, radius_m=150, reliability=0.75, confirmed=True,
+                          summary=f"Family: {answer}"[:160], raw_text=answer)
+    if ev is None:
+        needs_pin = q is None or q.kind == "place"
+        ev = Evidence(case_id=case_id, kind="note", source="family", time=utcnow(),
+                      summary=(f"Family (place not found on the map, drop a pin): {answer}" if needs_pin
+                               else f"Family: {answer}")[:160], raw_text=f"{question} {answer}")
+    async with hub.lock:
+        hub.evidence.append(ev)
+    record = FamilyAnswerRecord(question=question, answer=answer, evidence_id=ev.id)
+    hub.family_answers.append(record)
+    await hub.broadcast(EvidenceMsg(data=ev))
+    await hub.broadcast(LogMsg(data=hub.add_log("family", "family_answer", f"{question} -> {answer}")))
+    return {"evidence": ev.model_dump(mode="json"), "on_map": ev.kind == "favourite_place"}
 
 
 @app.get("/report/{case_id}/pdf", response_class=Response,
