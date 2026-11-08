@@ -8,11 +8,12 @@ changing `make_engine()` only.
 from __future__ import annotations
 
 import asyncio
+import math
 import os
 from datetime import datetime, timedelta, timezone
 
 from contracts.models import (
-    Evidence, EvidenceMsg, GeoPoint, GhostsMsg, LogMsg, TaskingMsg,
+    Evidence, EvidenceMsg, FoundEvent, FoundMsg, GeoPoint, GhostsMsg, LogMsg, TaskingMsg,
 )
 from backend.agent.narrator import narrator
 from backend.api.hub import CaseHub
@@ -60,6 +61,42 @@ async def _propose(hub: CaseHub, engine: SearchEngine) -> None:
         narrator.schedule_reasons(hub, req)          # AI wording follows, same request id
 
 
+# A detection from a sensor (drone, camera, ground team) that lands where the engine already
+# concentrates most of the probability raises the "possible match" alert. Only an officer can
+# confirm a find (POST /case/{id}/close with found=true); the system never claims it.
+MATCH_SOURCES = ("drone_ai", "camera", "ground_team")
+MATCH_MIN_RELIABILITY = 0.75
+MATCH_MIN_PROBABILITY = 0.6
+MATCH_WITHIN_M = 300.0
+
+
+def _metres(a: GeoPoint, b: GeoPoint) -> float:
+    dx = (a.lon - b.lon) * 111_320 * math.cos(math.radians(a.lat))
+    return math.hypot(dx, (a.lat - b.lat) * 111_320)
+
+
+async def _check_possible_match(hub: CaseHub, engine: SearchEngine, new: list[Evidence]) -> None:
+    if hub.possible_match_sent:
+        return
+    hits = [e for e in new if e.kind in ("clue", "sighting") and e.source in MATCH_SOURCES
+            and e.reliability >= MATCH_MIN_RELIABILITY and e.location is not None]
+    if not hits:
+        return
+    clusters = engine.clusters() if hasattr(engine, "clusters") else engine.frame().clusters
+    if not clusters:
+        return
+    top = clusters[0]
+    for ev in hits:
+        if top.probability >= MATCH_MIN_PROBABILITY and _metres(top.center, ev.location) <= MATCH_WITHIN_M:
+            hub.possible_match_sent = True
+            await hub.broadcast(FoundMsg(data=FoundEvent(case_id=hub.profile.case_id,
+                                                          location=ev.location, evidence_id=ev.id)))
+            detail = (f"{ev.summary} | {top.probability:.0%} of the remaining possibilities are here. "
+                      "Awaiting officer confirmation.")
+            await hub.broadcast(LogMsg(data=hub.add_log("system", "possible_match", detail)))
+            return
+
+
 async def run_fake_case(hub: CaseHub) -> None:
     engine = make_engine()
     start = hub.profile.last_seen_time or datetime.now(timezone.utc)
@@ -79,6 +116,7 @@ async def run_fake_case(hub: CaseHub) -> None:
                 applied[ev.id] = ev
             if any(ev.kind in PROPOSE_ON for ev in pending):
                 await _propose(hub, engine)
+            await _check_possible_match(hub, engine, pending)
 
             # Scripted fake beats
             while beats and seconds >= beats[0][0]:
@@ -91,6 +129,7 @@ async def run_fake_case(hub: CaseHub) -> None:
                 await hub.broadcast(LogMsg(data=hub.add_log("system", "evidence_added", ev.summary)))
                 if ev.kind in PROPOSE_ON:
                     await _propose(hub, engine)
+                await _check_possible_match(hub, engine, [ev])
 
             frame = engine.frame()
             narrator.decorate(hub, frame)                # AI cluster stories once ready
