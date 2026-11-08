@@ -16,7 +16,7 @@ export function DebugPanel() {
   const connection = useStore((s) => s.connection)
   const openPip = useStore((s) => s.openPip)
   const caseId = useStore((s) => s.caseProfile?.case_id)
-  const [g, setG] = useState({ points: 0, frames: 0, fps: 0, frameAge: 0, workMs: 0, respawn: '-', peak: 0, typical: 0, halo: 0, trails: 0 })
+  const [g, setG] = useState({ points: 0, frames: 0, fps: 0, frameAge: 0, workMs: 0, respawn: '-', dissolving: 0, peak: 0, typical: 0, halo: 0, trails: 0 })
   const [open, setOpen] = useState(false)
   useEffect(() => {
     const id = setInterval(() => {
@@ -31,6 +31,7 @@ export function DebugPanel() {
         typical: +perf.typicalPerCell.toFixed(1),
         halo: +perf.haloOpacity.toFixed(3),
         trails: perf.trails,
+        dissolving: perf.dissolving,
         // Slots that were replaced in the newest frame ('all' = fallback while the backend sends no list).
         respawn: ghosts.allRespawned ? 'all' : ghosts.respawned ? String(ghosts.respawned.length) : '-',
       })
@@ -68,6 +69,7 @@ export function DebugPanel() {
       {row('frame age ms', g.frameAge)}
       {row('render ms', g.workMs)}
       {row('respawned', g.respawn)}
+      {row('dissolving', g.dissolving)}
       {row('peak / cell', g.peak)}
       {row('typical / cell', g.typical)}
       {row('glow opacity', g.halo)}

@@ -13,6 +13,7 @@ import { CELL_METRES, CORE_OPACITY, GlowEase, densityStats } from './glow'
 import { SoftDisc, WarmCore } from './softDisc'
 import { currentBuffer, ghosts, onGhostFrame } from '@/stream/ghostBuffer'
 import { perf } from '@/stream/perf'
+import type { DissolveOutput } from '@/stream/dissolve'
 import { GhostSmoother, type SmootherOutput } from '@/stream/smoother'
 import { history } from '@/stream/history'
 import { playback } from '@/stream/playback'
@@ -67,7 +68,7 @@ const NO_TRAILS: TrailOutput = { length: 0, path: new Float32Array(0), timestamp
 /** Dev switch for the step 18 frame-rate measurements: ?trails=0 draws the swarm without trails. */
 const TRAILS_ON = !(import.meta.env.DEV && new URLSearchParams(window.location.search).get('trails') === '0')
 
-function makeLayers(out: SmootherOutput, trails: TrailOutput, glow: { halo: number; core: number }) {
+function makeLayers(out: SmootherOutput, trails: TrailOutput, glow: { halo: number; core: number }, dying: DissolveOutput | null = null) {
   const data = () => ({
     length: out.count,
     attributes: {
@@ -126,9 +127,38 @@ function makeLayers(out: SmootherOutput, trails: TrailOutput, glow: { halo: numb
       extensions: WARM_CORE,
     })
   ]
-  // Order: halo, then trails, then cores on top.
-  return TRAILS_ON ? [...haloLayer, ...trailLayer, ...coreLayer] : [...haloLayer, ...coreLayer]
+  // Ghosts that were just replaced stay and dissolve (step 35): the same halo and core, fading and shrinking to nothing.
+  const dyingLayers = dying && dying.count > 0 ? dissolveLayers(dying, glow, common) : []
+  // Order: dissolving ghosts under, then halo, trails, and cores on top.
+  return TRAILS_ON ? [...dyingLayers, ...haloLayer, ...trailLayer, ...coreLayer] : [...dyingLayers, ...haloLayer, ...coreLayer]
 }
+
+/** The dissolving ghosts. Radii come per ghost, in pixels, already shrinking, so no minimum may hold them open. */
+function dissolveLayers(d: DissolveOutput, glow: { halo: number; core: number }, common: Record<string, unknown>) {
+  const data = (radius: Float32Array) => ({
+    length: d.count,
+    attributes: {
+      getPosition: { value: d.pos, size: 3 },
+      getFillColor: { value: d.col, size: 4 },
+      getRadius: { value: radius, size: 1 },
+    },
+  })
+  return [
+    new ScatterplotLayer({ ...common, id: 'ghost-dying-halo', data: data(d.haloRadius), radiusUnits: 'pixels', radiusMinPixels: 0, radiusMaxPixels: 100, opacity: glow.halo, extensions: SOFT_EDGE }),
+    new ScatterplotLayer({ ...common, id: 'ghost-dying-core', data: data(d.coreRadius), radiusUnits: 'pixels', radiusMinPixels: 0, radiusMaxPixels: 100, opacity: glow.core, extensions: WARM_CORE }),
+  ]
+}
+
+/** MapLibre (512 px tiles): metres on the ground per screen pixel at the map centre. */
+const metresPerPixel = (map: MapLibreMap): number => (78271.51696 * Math.cos((map.getCenter().lat * Math.PI) / 180)) / 2 ** map.getZoom()
+
+/** What a live ghost's halo radius is on screen right now, in pixels, so a dissolving one shrinks from the same size. */
+const liveHaloPixels = (map: MapLibreMap): number => Math.min(HALO.maxPixels, Math.max(HALO.minPixels, HALO.radiusMeters / metresPerPixel(map)))
+
+const prefersReducedMotion = (): boolean => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
+
+/** Dev switch for watching the dissolve: ?slowmo=8 slows the fade-in and the dissolve eight times. */
+const SLOWMO = import.meta.env.DEV ? Number(new URLSearchParams(window.location.search).get('slowmo')) || 1 : 1
 
 export function attachGhosts(map: MapLibreMap): GhostLayerHandle {
   // Dev switch for isolating map issues: ?ghostlayer=0 skips deck.gl entirely.
@@ -142,6 +172,7 @@ export function attachGhosts(map: MapLibreMap): GhostLayerHandle {
   const sampleGround = !(import.meta.env.DEV && new URLSearchParams(window.location.search).get('ghostz') === '0')
 
   const smoother = new GhostSmoother()
+  smoother.configure({ slowmo: SLOWMO, reducedMotion: prefersReducedMotion() })
   const glow = new GlowEase()
   const trails = new TrailBuffer()
   const renderer = new ReplayRenderer()
@@ -257,7 +288,9 @@ export function attachGhosts(map: MapLibreMap): GhostLayerHandle {
         glow.step(now)
         perf.haloOpacity = glow.halo
         // With trails off (dev switch), skip building them too, so the measurement shows the real saving.
-        overlay.setProps({ layers: makeLayers(out, TRAILS_ON ? trails.tick(now, out.pos) : NO_TRAILS, glow) })
+        const dying = smoother.dissolve.tick(now, liveHaloPixels(map), CORE.radiusPixels)
+        perf.dissolving = dying.count
+        overlay.setProps({ layers: makeLayers(out, TRAILS_ON ? trails.tick(now, out.pos) : NO_TRAILS, glow, dying) })
         drawnEmpty = false
       } else if (!drawnEmpty) {
         overlay.setProps({ layers: [] })

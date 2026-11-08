@@ -12,9 +12,10 @@
 // would hop it backwards. Starting from where it is drawn keeps motion continuous.
 //
 // Pure and clock-free: every method takes `nowMs`, so tests use fake time.
+import { Dissolve, DISSOLVE_MS } from './dissolve'
 import { FLOATS_PER_GHOST, OFFSET } from './ghostBuffer'
 
-/** A respawned ghost fades in over this long (user choice, step 14). Step 35 owns the longer dissolve. */
+/** A respawned ghost fades in over this long (user choice, step 14). The dying one dissolves over `DISSOLVE_MS` (step 35). */
 export const FADE_MS = 300
 /**
  * Warm amber as it should APPEAR (sRGB), never cyan (cyan is reserved for the AI). Drawn additively, so
@@ -82,6 +83,10 @@ export class GhostSmoother {
   private allFlag = false
   private bufs: [SmootherOutput, SmootherOutput] = [this.makeOut(0), this.makeOut(0)]
   private flip = 0
+  /** The ghosts that were just replaced, still on screen and dissolving (step 35). */
+  readonly dissolve = new Dissolve(GHOST_RGB_LINEAR)
+  /** Dev slow-motion: 1 normally; 8 makes the fade-in and the dissolve eight times slower so they can be watched. */
+  private slowmo = 1
 
   private makeOut(slots: number): SmootherOutput {
     return { pos: new Float32Array(slots * 3), col: new Uint8ClampedArray(slots * 4), count: 0 }
@@ -124,8 +129,15 @@ export class GhostSmoother {
     return this.interval
   }
 
+  /** Slow the fade-in and the dissolve down by `factor` (dev only), and turn the dissolve off with `reducedMotion`. */
+  configure(opts: { slowmo?: number; reducedMotion?: boolean }): void {
+    if (opts.slowmo !== undefined) this.slowmo = Math.max(1, opts.slowmo)
+    this.dissolve.durationMs = opts.reducedMotion ? 0 : DISSOLVE_MS * this.slowmo
+  }
+
   /** Forget everything (case closed or replaced). */
   reset(): void {
+    this.dissolve.reset()
     this.cur = null
     this.allFlag = false
     this.count = 0
@@ -147,6 +159,7 @@ export class GhostSmoother {
     if (count === 0) return this.reset()
     this.ensure(count)
     const first = this.cur === null || this.count !== count
+    const prev = this.cur // the previous frame: the dying ghosts' weights are read from it
 
     if (!first) {
       // Freeze the position each ghost is being drawn at RIGHT NOW as the start of the next segment.
@@ -163,14 +176,28 @@ export class GhostSmoother {
     this.allFlag = first || allRespawned
 
     if (first || allRespawned) {
-      // Brand-new swarm (or the whole swarm resampled): snap to the new positions and fade everything in.
+      // Brand-new swarm (or the whole swarm resampled): snap to the new positions and fade everything in. A swarm
+      // that was resampled keeps its old ghosts dissolving; a brand-new swarm has nothing to dissolve.
+      if (!first && prev) for (let i = 0; i < count; i++) this.startDissolve(i, arrivalMs, prev)
       for (let i = 0; i < count; i++) this.snapAndFade(i, arrivalMs)
     } else if (respawned) {
       for (let k = 0; k < respawned.length; k++) {
         const i = respawned[k]
-        if (i >= 0 && i < count) this.snapAndFade(i, arrivalMs)
+        if (i >= 0 && i < count) {
+          if (prev) this.startDissolve(i, arrivalMs, prev)
+          this.snapAndFade(i, arrivalMs)
+        }
       }
     }
+  }
+
+  /** The ghost in slot `i` is about to be replaced: hand its drawn position and brightness to the dissolve. */
+  private startDissolve(i: number, arrivalMs: number, prev: Float32Array): void {
+    const o3 = i * 3
+    const a = clamp01((arrivalMs - this.fadeStart[i]) / (FADE_MS * this.slowmo))
+    const eased = 1 - (1 - a) * (1 - a)
+    const bright = weightBrightness(prev[i * FLOATS_PER_GHOST + OFFSET.weight])
+    this.dissolve.capture(i, this.from[o3], this.from[o3 + 1], this.from[o3 + 2], GHOST_ALPHA * eased * bright, arrivalMs)
   }
 
   /** A respawned slot is a NEW ghost: no glide from the dead one's position, hidden now, fading in. */
@@ -210,7 +237,7 @@ export class GhostSmoother {
     const [r, g, b] = GHOST_RGB_LINEAR
     const cur = this.cur
     for (let i = 0; i < this.count; i++) {
-      const a = clamp01((nowMs - this.fadeStart[i]) / FADE_MS)
+      const a = clamp01((nowMs - this.fadeStart[i]) / (FADE_MS * this.slowmo))
       const eased = 1 - (1 - a) * (1 - a) // ease-out: appears quickly, settles gently
       const bright = weightBrightness(cur[i * FLOATS_PER_GHOST + OFFSET.weight])
       const o = i * 4
