@@ -51,7 +51,7 @@ def make_case(graph: StreetGraph, seed: int) -> BenchCase:
     start = rnd.choice(central)
     profile = SubjectProfile(case_id=cid, name="Simulated subject", age=rnd.randint(68, 90),
                              condition=condition, mobility=mobility,
-                             clothing=["blue puffer jacket"], notes="benchmark case",
+                             clothing=["grey hooded jacket"], notes="benchmark case",
                              last_seen=_pt(graph, start), last_seen_time=T0)
     # familiar places near home are the likely ones (within ~2.5 km of last seen)
     sx0, sy0 = graph.xy[start]

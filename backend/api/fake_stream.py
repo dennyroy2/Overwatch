@@ -33,16 +33,16 @@ PROPOSE_ON = ("sighting", "clue")
 FAKE_BEATS = [
     (6, dict(kind="favourite_place", source="family", reliability=0.8,
              location=GeoPoint(lat=53.5405, lon=-113.5097), radius_m=150,
-             summary="Family: she loves the coffee shop on 109 St")),
+             summary="Family: she often walks to a bakery near Jasper Ave")),
     (14, dict(kind="sighting", source="transit", reliability=0.75,
               location=GeoPoint(lat=53.5330, lon=-113.5250), radius_m=250,
-              summary="Bus driver: woman in a blue jacket got off near the river valley stop")),
+              summary="Bus driver: woman in a grey hooded jacket got off near the river valley stop")),
     (24, dict(kind="searched_area", source="ground_team", reliability=0.9, detection_prob=0.7,
               location=GeoPoint(lat=53.5440, lon=-113.5300), radius_m=400,
               summary="Ground Team 1 searched blocks north of Jasper Ave, nothing found")),
     (34, dict(kind="clue", source="drone_ai", reliability=0.82,
               location=GeoPoint(lat=53.5310, lon=-113.5205), radius_m=120,
-              summary="Drone 2: possible blue puffer jacket in ravine (82%)")),
+              summary="Drone 2: possible grey hooded jacket in ravine (82%)")),
 ]
 
 
