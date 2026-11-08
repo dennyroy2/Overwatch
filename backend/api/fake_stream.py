@@ -1,20 +1,23 @@
 """Fake live stream so the frontend and everyone else can build from minute one.
 
-Runs the StubEngine (random-walk ghosts on real Edmonton coordinates) and sprinkles
+Runs the GhostEngine (particle filter on Edmonton's street graph; OVERWATCH_ENGINE=stub
+for the old random walk) and sprinkles
 in scripted evidence cards and tasking requests. Swap in the real engine later by
 changing `make_engine()` only.
 """
 from __future__ import annotations
 
 import asyncio
+import math
 import os
 from datetime import datetime, timedelta, timezone
 
 from contracts.models import (
-    Evidence, EvidenceMsg, GeoPoint, GhostsMsg, LogMsg, TaskingMsg,
+    Evidence, EvidenceMsg, FoundEvent, FoundMsg, GeoPoint, GhostsMsg, LogMsg, TaskingMsg,
 )
+from backend.agent.narrator import narrator
 from backend.api.hub import CaseHub
-from backend.engine.interface import SearchEngine, StubEngine
+from backend.engine.interface import GhostEngine, SearchEngine, StubEngine
 
 FPS = float(os.getenv("OVERWATCH_FPS", "5"))
 GHOSTS = int(os.getenv("OVERWATCH_GHOSTS", "5000"))
@@ -42,14 +45,56 @@ FAKE_BEATS = [
 ]
 
 
+ENGINE = os.getenv("OVERWATCH_ENGINE", "ghost")   # "ghost" (real) or "stub" (old random walk)
+
+
 def make_engine() -> SearchEngine:
-    return StubEngine(n_ghosts=GHOSTS)
+    if ENGINE == "stub":
+        return StubEngine(n_ghosts=GHOSTS)
+    return GhostEngine(n_ghosts=GHOSTS)
 
 
 async def _propose(hub: CaseHub, engine: SearchEngine) -> None:
     for req in engine.propose():
         hub.requests[req.id] = req
         await hub.broadcast(TaskingMsg(data=req))
+        narrator.schedule_reasons(hub, req)          # AI wording follows, same request id
+
+
+# A detection from a sensor (drone, camera, ground team) that lands where the engine already
+# concentrates most of the probability raises the "possible match" alert. Only an officer can
+# confirm a find (POST /case/{id}/close with found=true); the system never claims it.
+MATCH_SOURCES = ("drone_ai", "camera", "ground_team")
+MATCH_MIN_RELIABILITY = 0.75
+MATCH_MIN_PROBABILITY = 0.6
+MATCH_WITHIN_M = 300.0
+
+
+def _metres(a: GeoPoint, b: GeoPoint) -> float:
+    dx = (a.lon - b.lon) * 111_320 * math.cos(math.radians(a.lat))
+    return math.hypot(dx, (a.lat - b.lat) * 111_320)
+
+
+async def _check_possible_match(hub: CaseHub, engine: SearchEngine, new: list[Evidence]) -> None:
+    if hub.possible_match_sent:
+        return
+    hits = [e for e in new if e.kind in ("clue", "sighting") and e.source in MATCH_SOURCES
+            and e.reliability >= MATCH_MIN_RELIABILITY and e.location is not None]
+    if not hits:
+        return
+    clusters = engine.clusters() if hasattr(engine, "clusters") else engine.frame().clusters
+    if not clusters:
+        return
+    top = clusters[0]
+    for ev in hits:
+        if top.probability >= MATCH_MIN_PROBABILITY and _metres(top.center, ev.location) <= MATCH_WITHIN_M:
+            hub.possible_match_sent = True
+            await hub.broadcast(FoundMsg(data=FoundEvent(case_id=hub.profile.case_id,
+                                                          location=ev.location, evidence_id=ev.id)))
+            detail = (f"{ev.summary} | {top.probability:.0%} of the remaining possibilities are here. "
+                      "Awaiting officer confirmation.")
+            await hub.broadcast(LogMsg(data=hub.add_log("system", "possible_match", detail)))
+            return
 
 
 async def run_fake_case(hub: CaseHub) -> None:
@@ -57,7 +102,7 @@ async def run_fake_case(hub: CaseHub) -> None:
     start = hub.profile.last_seen_time or datetime.now(timezone.utc)
     engine.reset(hub.profile, start)
     beats = list(FAKE_BEATS) if FAKE_BEATS_ON else []
-    applied: set[str] = set()
+    applied: dict[str, Evidence] = {}   # id -> version applied (a card can be replaced by id)
     tick = 0
     seconds = 0.0
     try:
@@ -65,26 +110,30 @@ async def run_fake_case(hub: CaseHub) -> None:
             engine.step(SIM_MINUTES_PER_TICK)
             # Apply evidence posted by real teammates (perception, agent, scenario)
             async with hub.lock:
-                pending = [e for e in hub.evidence if e.id not in applied]
+                pending = [e for e in hub.evidence if applied.get(e.id) is not e]
             for ev in pending:
                 engine.apply(ev)
-                applied.add(ev.id)
+                applied[ev.id] = ev
             if any(ev.kind in PROPOSE_ON for ev in pending):
                 await _propose(hub, engine)
+            await _check_possible_match(hub, engine, pending)
 
             # Scripted fake beats
             while beats and seconds >= beats[0][0]:
                 _, spec = beats.pop(0)
                 ev = Evidence(case_id=hub.profile.case_id, time=engine.frame().t, confirmed=True, **spec)
                 hub.evidence.append(ev)
-                applied.add(ev.id)
+                applied[ev.id] = ev
                 engine.apply(ev)
                 await hub.broadcast(EvidenceMsg(data=ev))
                 await hub.broadcast(LogMsg(data=hub.add_log("system", "evidence_added", ev.summary)))
                 if ev.kind in PROPOSE_ON:
                     await _propose(hub, engine)
+                await _check_possible_match(hub, engine, [ev])
 
-            await hub.broadcast(GhostsMsg(data=engine.frame()))
+            frame = engine.frame()
+            narrator.decorate(hub, frame)                # AI cluster stories once ready
+            await hub.broadcast(GhostsMsg(data=frame))
             tick += 1
             seconds += 1 / FPS
             await asyncio.sleep(1 / FPS)

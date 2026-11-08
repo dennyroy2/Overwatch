@@ -23,6 +23,7 @@ class CaseHub:
     sockets: set[WebSocket] = field(default_factory=set)
     task: asyncio.Task | None = None
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+    possible_match_sent: bool = False     # the "possible match" alert goes out once per case
 
     async def broadcast(self, msg) -> None:
         payload = _stream_adapter.dump_json(msg).decode()
