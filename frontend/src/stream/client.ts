@@ -204,6 +204,7 @@ function serverLostCase(s: Session): void {
     s.everConnected = false
     resetGhosts()
     store().resetCaseData()
+    store().pushToast('info', 'The server restarted, so the case was reopened from the start.')
     void connect(s)
     return
   }

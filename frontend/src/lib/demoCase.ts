@@ -8,7 +8,7 @@ export function demoCase(): SubjectProfile {
     age: 79,
     condition: 'dementia',
     mobility: 'low',
-    clothing: ['blue puffer jacket', 'grey pants'],
+    clothing: ['grey hooded jacket', 'dark track pants with white side stripes', 'dark sneakers'], // as in scenario/margaret.json
     notes: 'Fictional demo case. Last seen near 124 St and Jasper Ave.',
     last_seen: DEMO_LAST_SEEN,
     last_seen_time: new Date().toISOString(),

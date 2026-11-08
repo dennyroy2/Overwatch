@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import { useStore } from '@/store'
 import { ghosts } from '@/stream/ghostBuffer'
 import { perf } from '@/stream/perf'
-import { attachCase, closeCase, openCase } from '@/stream/client'
-import { demoCase } from '@/lib/demoCase'
+import { attachCase, closeCase } from '@/stream/client'
+import { openDemo } from '@/lib/openDemo'
 
 /**
  * Dev-only. Live counts so the data path can be verified by eye. Ghost counters are read from the
@@ -76,7 +76,7 @@ export function DebugPanel() {
       {row('log', log)}
       <div className="mt-2 flex flex-wrap gap-1.5">
         <button className="rounded-sm bg-control px-2 py-1 text-ink hover:bg-raised" onClick={() => setOpen(false)}>Hide</button>
-        <button className="rounded-sm bg-control px-2 py-1 text-ink hover:bg-raised" onClick={() => openCase(demoCase())}>Open demo</button>
+        <button className="rounded-sm bg-control px-2 py-1 text-ink hover:bg-raised" onClick={openDemo}>Open demo</button>
         <button className="rounded-sm bg-control px-2 py-1 text-ink hover:bg-raised" onClick={() => attachCase('case_doesnotexist')}>Unknown case</button>
         <button className="rounded-sm bg-control px-2 py-1 text-ink hover:bg-raised" onClick={closeCase}>Close</button>
       </div>
