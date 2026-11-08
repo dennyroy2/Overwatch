@@ -70,6 +70,23 @@ export const EDMONTON_CENTRE: GeoPoint = { lat: 53.5461, lon: -113.4938 }
 /** The fictional demo case's last-seen point: 124 St & Jasper Ave (same as the backend's EDMONTON_DEFAULT). */
 export const DEMO_LAST_SEEN: GeoPoint = { lat: 53.5422, lon: -113.5337 }
 
+/** Places in the demo story (scenario/margaret.json), for the demo tips in lib/demoScript.ts. Fictional. */
+export const DEMO_PLACES: Record<'lastSeen' | 'coffeeShop' | 'busStop' | 'droneSpot', GeoPoint> = {
+  lastSeen: DEMO_LAST_SEEN,
+  coffeeShop: { lat: 53.5424, lon: -113.5091 },   // 109 St & Jasper Ave
+  busStop: { lat: 53.5328, lon: -113.5395 },      // Groat Rd & Emily Murphy Park Rd
+  droneSpot: { lat: 53.534, lon: -113.537 },      // the grassy bank by the water
+}
+
+/** A GeoPoint from untrusted JSON (a footage file), or null if it is not one. Keeps all lat/lon reading in this file. */
+export function asGeoPoint(raw: unknown): GeoPoint | null {
+  if (typeof raw !== 'object' || raw === null) return null
+  const p = raw as Record<string, unknown>
+  const lat = p.lat
+  const lon = p.lon
+  return typeof lat === 'number' && typeof lon === 'number' && Number.isFinite(lat) && Number.isFinite(lon) ? { lat, lon } : null
+}
+
 /** "53.5422, -113.5337": for display only (readouts, form status). */
 export const formatPoint = (p: GeoPoint): string => `${p.lat.toFixed(4)}, ${p.lon.toFixed(4)}`
 

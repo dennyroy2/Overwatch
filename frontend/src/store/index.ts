@@ -65,6 +65,8 @@ export interface UiState {
   /** live, paused (a frozen picture) or playing back a recording (step 38). Position lives in stream/playback.ts. */
   replay: { mode: PlaybackMode }
   panels: { left: boolean; right: boolean; report: boolean; pip: boolean; newCase: boolean; sheetCollapsed: boolean }
+  /** The drone request whose approval opened the drone feed (it picks the clip by its target area), or null. */
+  pipRequestId: string | null
   /** Last-seen point picked on the map while the New case sheet is open. Draft input, not backend data. */
   draftLastSeen: GeoPoint | null
   /** "why" mode etc. (step 37). */
@@ -119,13 +121,16 @@ export interface StoreState {
   hydrate: (r: Report) => void
   /** Clear everything derived from the backend (new case, or the server lost the case). */
   resetCaseData: () => void
-  setUi: (patch: Partial<Omit<UiState, 'panels' | 'modes'>>) => void
+  setUi: (patch: Partial<Omit<UiState, 'panels' | 'modes' | 'pipRequestId'>>) => void
   setDraftLastSeen: (p: GeoPoint | null) => void
   setReplayMode: (mode: PlaybackMode) => void
   selectEvidence: (id: string | null) => void
   hoverEvidence: (id: string | null) => void
   hoverRequest: (id: string | null) => void
   setClosing: (closing: boolean) => void
+  /** Open the drone feed (for the request that was just approved, or none), and close it. */
+  openPip: (requestId: string | null) => void
+  closePip: () => void
   dismissFound: (key: string | null) => void
   /** Remember that a decision was just sent (the card shows a spinner until the stream confirms it). */
   beginDecision: (requestId: string, choice: Choice) => void
@@ -146,6 +151,7 @@ const initialUi = (): UiState => ({
   hoveredRequestId: null,
   replay: { mode: 'live' },
   panels: { left: true, right: true, report: false, pip: false, newCase: true, sheetCollapsed: false },
+  pipRequestId: null,
   draftLastSeen: null,
   modes: { why: false },
 })
@@ -242,7 +248,9 @@ export const useStore = create<StoreState>()((set) => ({
     })),
 
   // Panels are deliberately kept: a server restart mid-search must not pop the New case sheet open.
-  resetCaseData: () => set((s) => ({ ...caseData(), ui: { ...initialUi(), panels: s.ui.panels } })),
+  resetCaseData: () => set((s) => ({ ...caseData(), ui: { ...initialUi(), panels: { ...s.ui.panels, pip: false } } })),
+  openPip: (requestId) => set((s) => ({ ui: { ...s.ui, pipRequestId: requestId, panels: { ...s.ui.panels, pip: true } } })),
+  closePip: () => set((s) => ({ ui: { ...s.ui, pipRequestId: null, panels: { ...s.ui.panels, pip: false } } })),
 
   setUi: (patch) => set((s) => ({ ui: { ...s.ui, ...patch } })),
   selectEvidence: (id) => set((s) => ({ ui: { ...s.ui, selectedEvidenceId: id } })),

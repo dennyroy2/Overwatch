@@ -1,8 +1,8 @@
 import { MapView } from '@/components/map/MapView'
 import { AppShell } from '@/components/shell/AppShell'
 import Styleguide from '@/routes/Styleguide'
-import { attachCase, openCase } from '@/stream/client'
-import { demoCase } from '@/lib/demoCase'
+import { attachCase } from '@/stream/client'
+import { openDemo } from '@/lib/openDemo'
 import { useStore } from '@/store'
 
 // Dev-only URL switches, applied once at module load (never inside a component, so React
@@ -18,7 +18,7 @@ if (import.meta.env.DEV && window.location.pathname !== '/styleguide') {
   if (review.includes('pip')) setPanel('pip', true)
   if (review.includes('report')) setPanel('report', true)
   const auto = q.get('autostart')
-  if (auto === 'demo') { openCase(demoCase()); setPanel('newCase', false) }
+  if (auto === 'demo') openDemo()
   if (auto === 'unknown') { attachCase('case_doesnotexist'); setPanel('newCase', false) }
 }
 

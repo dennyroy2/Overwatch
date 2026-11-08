@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
-import { demoCase } from '@/lib/demoCase'
+import { openDemo } from '@/lib/openDemo'
 import { EDMONTON_CENTRE, formatPoint } from '@/lib/geo'
 import { flyToArea } from '@/map/camera'
 import { getMap } from '@/map/mapRef'
@@ -204,7 +204,7 @@ export function NewCaseSheet() {
               onChange={(e) => setClothingInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addClothing() } }}
               onBlur={addClothing}
-              placeholder="blue puffer jacket, then Enter"
+              placeholder="grey hooded jacket, then Enter"
               autoComplete="off"
             />
             {clothing.length > 0 && (
@@ -253,7 +253,7 @@ export function NewCaseSheet() {
         </div>
 
         <div className="flex shrink-0 items-center gap-2 border-t border-line p-3">
-          <Button type="button" variant="secondary" onClick={() => launch(demoCase())}>Load demo case</Button>
+          <Button type="button" variant="secondary" onClick={() => { openDemo(); setDraft(null) }}>Load demo case</Button>
           <Button type="submit" className="ml-auto" aria-disabled={submitted && !valid}>Open case</Button>
         </div>
       </form>

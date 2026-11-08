@@ -320,6 +320,11 @@ export interface components {
             alive_fraction: number;
             /** Clusters */
             clusters?: components["schemas"]["Cluster"][];
+            /**
+             * Respawned
+             * @description Slots reused for a new ghost since the last frame: don't animate these, fade them in
+             */
+            respawned?: number[];
         };
         /** GhostsMsg */
         GhostsMsg: {

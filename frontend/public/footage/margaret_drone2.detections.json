@@ -1,0 +1,1421 @@
+{
+ "schema": 1,
+ "clip": "margaret_drone2",
+ "asset": "Drone 2",
+ "width": 1280,
+ "height": 720,
+ "duration_s": 14.5,
+ "fps_sampled": 2.0,
+ "model": {
+  "detector": "yolo11m.pt",
+  "tile": 320,
+  "overlap": 0.2,
+  "imgsz": 1024,
+  "conf": 0.1,
+  "clothing": "yolov8s-worldv2.pt"
+ },
+ "clothing": [
+  "grey hooded jacket",
+  "dark track pants with white side stripes",
+  "dark sneakers"
+ ],
+ "match_threshold": 0.45,
+ "frames": [
+  {
+   "index": 0,
+   "time_s": 0.0,
+   "drone": {
+    "lat": 53.533379,
+    "lon": -113.538293,
+    "alt_m": 40.0,
+    "heading_deg": 51.0
+   }
+  },
+  {
+   "index": 1,
+   "time_s": 0.5,
+   "drone": {
+    "lat": 53.533394,
+    "lon": -113.538261,
+    "alt_m": 40.0,
+    "heading_deg": 51.0
+   }
+  },
+  {
+   "index": 2,
+   "time_s": 1.0,
+   "drone": {
+    "lat": 53.53341,
+    "lon": -113.538229,
+    "alt_m": 40.0,
+    "heading_deg": 51.0
+   }
+  },
+  {
+   "index": 3,
+   "time_s": 1.5,
+   "drone": {
+    "lat": 53.533426,
+    "lon": -113.538196,
+    "alt_m": 40.0,
+    "heading_deg": 51.0
+   }
+  },
+  {
+   "index": 4,
+   "time_s": 2.0,
+   "drone": {
+    "lat": 53.533441,
+    "lon": -113.538164,
+    "alt_m": 40.0,
+    "heading_deg": 51.0
+   }
+  },
+  {
+   "index": 5,
+   "time_s": 2.5,
+   "drone": {
+    "lat": 53.533457,
+    "lon": -113.538131,
+    "alt_m": 40.0,
+    "heading_deg": 51.0
+   }
+  },
+  {
+   "index": 6,
+   "time_s": 3.0,
+   "drone": {
+    "lat": 53.533473,
+    "lon": -113.538099,
+    "alt_m": 40.0,
+    "heading_deg": 51.0
+   }
+  },
+  {
+   "index": 7,
+   "time_s": 3.5,
+   "drone": {
+    "lat": 53.533489,
+    "lon": -113.538066,
+    "alt_m": 40.0,
+    "heading_deg": 51.0
+   }
+  },
+  {
+   "index": 8,
+   "time_s": 4.0,
+   "drone": {
+    "lat": 53.533504,
+    "lon": -113.538034,
+    "alt_m": 40.0,
+    "heading_deg": 51.0
+   }
+  },
+  {
+   "index": 9,
+   "time_s": 4.5,
+   "drone": {
+    "lat": 53.533519,
+    "lon": -113.538002,
+    "alt_m": 40.0,
+    "heading_deg": 51.0
+   }
+  },
+  {
+   "index": 10,
+   "time_s": 5.0,
+   "drone": {
+    "lat": 53.533535,
+    "lon": -113.537969,
+    "alt_m": 40.0,
+    "heading_deg": 51.0
+   }
+  },
+  {
+   "index": 11,
+   "time_s": 5.5,
+   "drone": {
+    "lat": 53.533551,
+    "lon": -113.537937,
+    "alt_m": 40.0,
+    "heading_deg": 51.0
+   }
+  },
+  {
+   "index": 12,
+   "time_s": 6.0,
+   "drone": {
+    "lat": 53.533566,
+    "lon": -113.537904,
+    "alt_m": 40.0,
+    "heading_deg": 51.0
+   }
+  },
+  {
+   "index": 13,
+   "time_s": 6.5,
+   "drone": {
+    "lat": 53.533581,
+    "lon": -113.537871,
+    "alt_m": 40.0,
+    "heading_deg": 51.0
+   }
+  },
+  {
+   "index": 14,
+   "time_s": 7.0,
+   "drone": {
+    "lat": 53.533597,
+    "lon": -113.537839,
+    "alt_m": 40.0,
+    "heading_deg": 51.0
+   }
+  },
+  {
+   "index": 15,
+   "time_s": 7.5,
+   "drone": {
+    "lat": 53.533613,
+    "lon": -113.537807,
+    "alt_m": 40.0,
+    "heading_deg": 51.0
+   }
+  },
+  {
+   "index": 16,
+   "time_s": 8.0,
+   "drone": {
+    "lat": 53.533628,
+    "lon": -113.537774,
+    "alt_m": 40.0,
+    "heading_deg": 51.0
+   }
+  },
+  {
+   "index": 17,
+   "time_s": 8.5,
+   "drone": {
+    "lat": 53.533643,
+    "lon": -113.537742,
+    "alt_m": 40.0,
+    "heading_deg": 51.0
+   }
+  },
+  {
+   "index": 18,
+   "time_s": 9.0,
+   "drone": {
+    "lat": 53.533659,
+    "lon": -113.53771,
+    "alt_m": 40.0,
+    "heading_deg": 51.0
+   }
+  },
+  {
+   "index": 19,
+   "time_s": 9.5,
+   "drone": {
+    "lat": 53.533675,
+    "lon": -113.537678,
+    "alt_m": 40.0,
+    "heading_deg": 51.0
+   }
+  },
+  {
+   "index": 20,
+   "time_s": 10.0,
+   "drone": {
+    "lat": 53.533691,
+    "lon": -113.537645,
+    "alt_m": 40.0,
+    "heading_deg": 51.0
+   }
+  },
+  {
+   "index": 21,
+   "time_s": 10.5,
+   "drone": {
+    "lat": 53.533706,
+    "lon": -113.537612,
+    "alt_m": 40.0,
+    "heading_deg": 51.0
+   }
+  },
+  {
+   "index": 22,
+   "time_s": 11.0,
+   "drone": {
+    "lat": 53.533722,
+    "lon": -113.53758,
+    "alt_m": 40.0,
+    "heading_deg": 51.0
+   }
+  },
+  {
+   "index": 23,
+   "time_s": 11.5,
+   "drone": {
+    "lat": 53.533738,
+    "lon": -113.537548,
+    "alt_m": 40.0,
+    "heading_deg": 51.0
+   }
+  },
+  {
+   "index": 24,
+   "time_s": 12.0,
+   "drone": {
+    "lat": 53.533753,
+    "lon": -113.537515,
+    "alt_m": 40.0,
+    "heading_deg": 51.0
+   }
+  },
+  {
+   "index": 25,
+   "time_s": 12.5,
+   "drone": {
+    "lat": 53.533768,
+    "lon": -113.537483,
+    "alt_m": 40.0,
+    "heading_deg": 51.0
+   }
+  },
+  {
+   "index": 26,
+   "time_s": 13.0,
+   "drone": {
+    "lat": 53.533784,
+    "lon": -113.53745,
+    "alt_m": 40.0,
+    "heading_deg": 51.0
+   }
+  },
+  {
+   "index": 27,
+   "time_s": 13.5,
+   "drone": {
+    "lat": 53.5338,
+    "lon": -113.537418,
+    "alt_m": 40.0,
+    "heading_deg": 51.0
+   }
+  },
+  {
+   "index": 28,
+   "time_s": 14.0,
+   "drone": {
+    "lat": 53.533815,
+    "lon": -113.537385,
+    "alt_m": 40.0,
+    "heading_deg": 51.0
+   }
+  }
+ ],
+ "detections": [
+  {
+   "frame": 0,
+   "time_s": 0.0,
+   "box": [
+    0.5011,
+    0.1176,
+    0.5086,
+    0.1455
+   ],
+   "label": "person",
+   "confidence": 0.265,
+   "matched": false,
+   "clue": null,
+   "clue_score": 0.0,
+   "generic": [],
+   "location": {
+    "lat": 53.533819,
+    "lon": -113.537364
+   },
+   "radius_m": 81.7,
+   "kind": null,
+   "evidence_id": null,
+   "reliability": null
+  },
+  {
+   "frame": 1,
+   "time_s": 0.5,
+   "box": [
+    0.5011,
+    0.1176,
+    0.5086,
+    0.1455
+   ],
+   "label": "person",
+   "confidence": 0.265,
+   "matched": false,
+   "clue": null,
+   "clue_score": 0.0,
+   "generic": [],
+   "location": {
+    "lat": 53.533834,
+    "lon": -113.537332
+   },
+   "radius_m": 81.7,
+   "kind": null,
+   "evidence_id": null,
+   "reliability": null
+  },
+  {
+   "frame": 2,
+   "time_s": 1.0,
+   "box": [
+    0.5011,
+    0.1176,
+    0.5086,
+    0.1455
+   ],
+   "label": "person",
+   "confidence": 0.265,
+   "matched": false,
+   "clue": null,
+   "clue_score": 0.0,
+   "generic": [],
+   "location": {
+    "lat": 53.53385,
+    "lon": -113.5373
+   },
+   "radius_m": 81.7,
+   "kind": null,
+   "evidence_id": null,
+   "reliability": null
+  },
+  {
+   "frame": 3,
+   "time_s": 1.5,
+   "box": [
+    0.5011,
+    0.1176,
+    0.5086,
+    0.1455
+   ],
+   "label": "person",
+   "confidence": 0.265,
+   "matched": false,
+   "clue": null,
+   "clue_score": 0.0,
+   "generic": [],
+   "location": {
+    "lat": 53.533865,
+    "lon": -113.537268
+   },
+   "radius_m": 81.7,
+   "kind": null,
+   "evidence_id": null,
+   "reliability": null
+  },
+  {
+   "frame": 4,
+   "time_s": 2.0,
+   "box": [
+    0.5441,
+    0.114,
+    0.5506,
+    0.141
+   ],
+   "label": "person",
+   "confidence": 0.202,
+   "matched": false,
+   "clue": null,
+   "clue_score": 0.0,
+   "generic": [],
+   "location": {
+    "lat": 53.533845,
+    "lon": -113.537174
+   },
+   "radius_m": 81.7,
+   "kind": null,
+   "evidence_id": null,
+   "reliability": null
+  },
+  {
+   "frame": 5,
+   "time_s": 2.5,
+   "box": [
+    0.5443,
+    0.1145,
+    0.5504,
+    0.141
+   ],
+   "label": "person",
+   "confidence": 0.294,
+   "matched": false,
+   "clue": null,
+   "clue_score": 0.0,
+   "generic": [],
+   "location": {
+    "lat": 53.533861,
+    "lon": -113.537142
+   },
+   "radius_m": 81.6,
+   "kind": null,
+   "evidence_id": null,
+   "reliability": null
+  },
+  {
+   "frame": 6,
+   "time_s": 3.0,
+   "box": [
+    0.6236,
+    0.1244,
+    0.6321,
+    0.1564
+   ],
+   "label": "person",
+   "confidence": 0.429,
+   "matched": false,
+   "clue": null,
+   "clue_score": 0.0,
+   "generic": [],
+   "location": {
+    "lat": 53.533793,
+    "lon": -113.537034
+   },
+   "radius_m": 82.1,
+   "kind": null,
+   "evidence_id": null,
+   "reliability": null
+  },
+  {
+   "frame": 6,
+   "time_s": 3.0,
+   "box": [
+    0.0043,
+    0.8195,
+    0.1127,
+    0.9149
+   ],
+   "label": "dark sneakers",
+   "confidence": 0.402,
+   "matched": true,
+   "clue": "dark sneakers",
+   "clue_score": 0.968,
+   "generic": [],
+   "location": {
+    "lat": 53.533795,
+    "lon": -113.538141
+   },
+   "radius_m": 82.8,
+   "kind": null,
+   "evidence_id": null,
+   "reliability": 0.88
+  },
+  {
+   "frame": 6,
+   "time_s": 3.0,
+   "box": [
+    0.5973,
+    0.1099,
+    0.6036,
+    0.1364
+   ],
+   "label": "person",
+   "confidence": 0.148,
+   "matched": false,
+   "clue": null,
+   "clue_score": 0.0,
+   "generic": [],
+   "location": {
+    "lat": 53.533831,
+    "lon": -113.537034
+   },
+   "radius_m": 81.8,
+   "kind": null,
+   "evidence_id": null,
+   "reliability": null
+  },
+  {
+   "frame": 8,
+   "time_s": 4.0,
+   "box": [
+    0.0699,
+    0.7125,
+    0.1624,
+    0.7866
+   ],
+   "label": "grey hooded jacket",
+   "confidence": 0.617,
+   "matched": true,
+   "clue": "grey hooded jacket",
+   "clue_score": 1.0,
+   "generic": [
+    {
+     "label": "backpack",
+     "score": 1.0
+    }
+   ],
+   "location": {
+    "lat": 53.533843,
+    "lon": -113.537999
+   },
+   "radius_m": 82.4,
+   "kind": "clue",
+   "evidence_id": "ev_margaret_drone2_8_0",
+   "reliability": 0.9
+  },
+  {
+   "frame": 8,
+   "time_s": 4.0,
+   "box": [
+    0.6621,
+    0.3556,
+    0.682,
+    0.3792
+   ],
+   "label": "person",
+   "confidence": 0.149,
+   "matched": false,
+   "clue": null,
+   "clue_score": 0.038,
+   "generic": [],
+   "location": {
+    "lat": 53.533669,
+    "lon": -113.537275
+   },
+   "radius_m": 80.0,
+   "kind": null,
+   "evidence_id": null,
+   "reliability": null
+  },
+  {
+   "frame": 9,
+   "time_s": 4.5,
+   "box": [
+    0.0636,
+    0.709,
+    0.1581,
+    0.7799
+   ],
+   "label": "dark sneakers",
+   "confidence": 0.233,
+   "matched": true,
+   "clue": "dark sneakers",
+   "clue_score": 1.0,
+   "generic": [
+    {
+     "label": "cane",
+     "score": 0.837
+    }
+   ],
+   "location": {
+    "lat": 53.533864,
+    "lon": -113.537969
+   },
+   "radius_m": 82.4,
+   "kind": null,
+   "evidence_id": null,
+   "reliability": 0.9
+  },
+  {
+   "frame": 9,
+   "time_s": 4.5,
+   "box": [
+    0.6552,
+    0.3556,
+    0.6741,
+    0.3731
+   ],
+   "label": "person",
+   "confidence": 0.209,
+   "matched": false,
+   "clue": null,
+   "clue_score": 0.0,
+   "generic": [],
+   "location": {
+    "lat": 53.533691,
+    "lon": -113.537246
+   },
+   "radius_m": 79.7,
+   "kind": null,
+   "evidence_id": null,
+   "reliability": null
+  },
+  {
+   "frame": 10,
+   "time_s": 5.0,
+   "box": [
+    0.6489,
+    0.3556,
+    0.662,
+    0.3695
+   ],
+   "label": "person",
+   "confidence": 0.487,
+   "matched": false,
+   "clue": null,
+   "clue_score": 0.0,
+   "generic": [],
+   "location": {
+    "lat": 53.533714,
+    "lon": -113.53722
+   },
+   "radius_m": 79.3,
+   "kind": null,
+   "evidence_id": null,
+   "reliability": null
+  },
+  {
+   "frame": 11,
+   "time_s": 5.5,
+   "box": [
+    0.643,
+    0.3556,
+    0.6562,
+    0.3657
+   ],
+   "label": "person",
+   "confidence": 0.339,
+   "matched": false,
+   "clue": null,
+   "clue_score": 0.0,
+   "generic": [],
+   "location": {
+    "lat": 53.533734,
+    "lon": -113.537191
+   },
+   "radius_m": 79.2,
+   "kind": null,
+   "evidence_id": null,
+   "reliability": null
+  },
+  {
+   "frame": 11,
+   "time_s": 5.5,
+   "box": [
+    0.6024,
+    0.1205,
+    0.6097,
+    0.1522
+   ],
+   "label": "person",
+   "confidence": 0.219,
+   "matched": false,
+   "clue": null,
+   "clue_score": 0.0,
+   "generic": [],
+   "location": {
+    "lat": 53.533894,
+    "lon": -113.53689
+   },
+   "radius_m": 82.0,
+   "kind": null,
+   "evidence_id": null,
+   "reliability": null
+  },
+  {
+   "frame": 12,
+   "time_s": 6.0,
+   "box": [
+    0.6874,
+    0.3557,
+    0.7019,
+    0.3696
+   ],
+   "label": "person",
+   "confidence": 0.456,
+   "matched": false,
+   "clue": null,
+   "clue_score": 0.0,
+   "generic": [],
+   "location": {
+    "lat": 53.533717,
+    "lon": -113.537117
+   },
+   "radius_m": 79.5,
+   "kind": null,
+   "evidence_id": null,
+   "reliability": null
+  },
+  {
+   "frame": 12,
+   "time_s": 6.0,
+   "box": [
+    0.1014,
+    0.6695,
+    0.1886,
+    0.7389
+   ],
+   "label": "dark sneakers",
+   "confidence": 0.33,
+   "matched": true,
+   "clue": "dark sneakers",
+   "clue_score": 0.509,
+   "generic": [
+    {
+     "label": "backpack",
+     "score": 0.666
+    }
+   ],
+   "location": {
+    "lat": 53.533909,
+    "lon": -113.537832
+   },
+   "radius_m": 82.2,
+   "kind": null,
+   "evidence_id": null,
+   "reliability": 0.54
+  },
+  {
+   "frame": 13,
+   "time_s": 6.5,
+   "box": [
+    0.1177,
+    0.6547,
+    0.2033,
+    0.7228
+   ],
+   "label": "dark sneakers",
+   "confidence": 0.729,
+   "matched": true,
+   "clue": "dark sneakers",
+   "clue_score": 0.807,
+   "generic": [
+    {
+     "label": "backpack",
+     "score": 1.0
+    },
+    {
+     "label": "cane",
+     "score": 0.507
+    }
+   ],
+   "location": {
+    "lat": 53.533923,
+    "lon": -113.537782
+   },
+   "radius_m": 82.2,
+   "kind": null,
+   "evidence_id": null,
+   "reliability": 0.76
+  },
+  {
+   "frame": 13,
+   "time_s": 6.5,
+   "box": [
+    0.7025,
+    0.3557,
+    0.7239,
+    0.3729
+   ],
+   "label": "person",
+   "confidence": 0.508,
+   "matched": false,
+   "clue": null,
+   "clue_score": 0.0,
+   "generic": [],
+   "location": {
+    "lat": 53.533719,
+    "lon": -113.537069
+   },
+   "radius_m": 79.9,
+   "kind": null,
+   "evidence_id": null,
+   "reliability": null
+  },
+  {
+   "frame": 13,
+   "time_s": 6.5,
+   "box": [
+    0.6686,
+    0.1283,
+    0.676,
+    0.1589
+   ],
+   "label": "person",
+   "confidence": 0.189,
+   "matched": false,
+   "clue": null,
+   "clue_score": 0.0,
+   "generic": [],
+   "location": {
+    "lat": 53.533859,
+    "lon": -113.536758
+   },
+   "radius_m": 82.0,
+   "kind": null,
+   "evidence_id": null,
+   "reliability": null
+  },
+  {
+   "frame": 14,
+   "time_s": 7.0,
+   "box": [
+    0.1802,
+    0.625,
+    0.259,
+    0.6908
+   ],
+   "label": "person",
+   "confidence": 0.658,
+   "matched": false,
+   "clue": null,
+   "clue_score": 0.097,
+   "generic": [],
+   "location": {
+    "lat": 53.53392,
+    "lon": -113.537692
+   },
+   "radius_m": 81.9,
+   "kind": null,
+   "evidence_id": null,
+   "reliability": null
+  },
+  {
+   "frame": 14,
+   "time_s": 7.0,
+   "box": [
+    0.7606,
+    0.3556,
+    0.7822,
+    0.3794
+   ],
+   "label": "person",
+   "confidence": 0.268,
+   "matched": false,
+   "clue": null,
+   "clue_score": 0.0,
+   "generic": [],
+   "location": {
+    "lat": 53.533693,
+    "lon": -113.536985
+   },
+   "radius_m": 80.3,
+   "kind": null,
+   "evidence_id": null,
+   "reliability": null
+  },
+  {
+   "frame": 15,
+   "time_s": 7.5,
+   "box": [
+    0.7573,
+    0.3556,
+    0.7805,
+    0.3794
+   ],
+   "label": "person",
+   "confidence": 0.391,
+   "matched": false,
+   "clue": null,
+   "clue_score": 0.0,
+   "generic": [],
+   "location": {
+    "lat": 53.53371,
+    "lon": -113.536955
+   },
+   "radius_m": 80.4,
+   "kind": null,
+   "evidence_id": null,
+   "reliability": null
+  },
+  {
+   "frame": 16,
+   "time_s": 8.0,
+   "box": [
+    0.1869,
+    0.7088,
+    0.2786,
+    0.794
+   ],
+   "label": "dark sneakers",
+   "confidence": 0.834,
+   "matched": true,
+   "clue": "dark sneakers",
+   "clue_score": 0.947,
+   "generic": [],
+   "location": {
+    "lat": 53.533908,
+    "lon": -113.53766
+   },
+   "radius_m": 82.1,
+   "kind": null,
+   "evidence_id": null,
+   "reliability": 0.86
+  },
+  {
+   "frame": 16,
+   "time_s": 8.0,
+   "box": [
+    0.8185,
+    0.1454,
+    0.828,
+    0.1711
+   ],
+   "label": "person",
+   "confidence": 0.218,
+   "matched": false,
+   "clue": null,
+   "clue_score": 0.0,
+   "generic": [],
+   "location": {
+    "lat": 53.533763,
+    "lon": -113.536507
+   },
+   "radius_m": 82.0,
+   "kind": null,
+   "evidence_id": null,
+   "reliability": null
+  },
+  {
+   "frame": 16,
+   "time_s": 8.0,
+   "box": [
+    0.7361,
+    0.1544,
+    0.7467,
+    0.1757
+   ],
+   "label": "person",
+   "confidence": 0.197,
+   "matched": false,
+   "clue": null,
+   "clue_score": 0.0,
+   "generic": [],
+   "location": {
+    "lat": 53.533832,
+    "lon": -113.53662
+   },
+   "radius_m": 81.3,
+   "kind": null,
+   "evidence_id": null,
+   "reliability": null
+  },
+  {
+   "frame": 16,
+   "time_s": 8.0,
+   "box": [
+    0.8405,
+    0.3888,
+    0.8499,
+    0.4208
+   ],
+   "label": "person",
+   "confidence": 0.114,
+   "matched": false,
+   "clue": null,
+   "clue_score": 0.0,
+   "generic": [],
+   "location": {
+    "lat": 53.533662,
+    "lon": -113.5369
+   },
+   "radius_m": 80.2,
+   "kind": null,
+   "evidence_id": null,
+   "reliability": null
+  },
+  {
+   "frame": 17,
+   "time_s": 8.5,
+   "box": [
+    0.2058,
+    0.851,
+    0.3152,
+    0.9766
+   ],
+   "label": "grey hooded jacket",
+   "confidence": 0.814,
+   "matched": true,
+   "clue": "grey hooded jacket",
+   "clue_score": 1.0,
+   "generic": [],
+   "location": {
+    "lat": 53.533857,
+    "lon": -113.537672
+   },
+   "radius_m": 82.4,
+   "kind": null,
+   "evidence_id": null,
+   "reliability": 0.9
+  },
+  {
+   "frame": 17,
+   "time_s": 8.5,
+   "box": [
+    0.9278,
+    0.1546,
+    0.9386,
+    0.187
+   ],
+   "label": "person",
+   "confidence": 0.155,
+   "matched": false,
+   "clue": null,
+   "clue_score": 0.0,
+   "generic": [],
+   "location": {
+    "lat": 53.533676,
+    "lon": -113.536371
+   },
+   "radius_m": 82.9,
+   "kind": null,
+   "evidence_id": null,
+   "reliability": null
+  },
+  {
+   "frame": 17,
+   "time_s": 8.5,
+   "box": [
+    0.8413,
+    0.1726,
+    0.8541,
+    0.1929
+   ],
+   "label": "person",
+   "confidence": 0.153,
+   "matched": false,
+   "clue": null,
+   "clue_score": 0.0,
+   "generic": [],
+   "location": {
+    "lat": 53.533746,
+    "lon": -113.536499
+   },
+   "radius_m": 81.5,
+   "kind": null,
+   "evidence_id": null,
+   "reliability": null
+  },
+  {
+   "frame": 18,
+   "time_s": 9.0,
+   "box": [
+    0.174,
+    0.8717,
+    0.288,
+    0.9992
+   ],
+   "label": "dark sneakers",
+   "confidence": 0.642,
+   "matched": true,
+   "clue": "dark sneakers",
+   "clue_score": 0.81,
+   "generic": [],
+   "location": {
+    "lat": 53.53388,
+    "lon": -113.537665
+   },
+   "radius_m": 82.5,
+   "kind": null,
+   "evidence_id": null,
+   "reliability": 0.76
+  },
+  {
+   "frame": 18,
+   "time_s": 9.0,
+   "box": [
+    0.9237,
+    0.1544,
+    0.9366,
+    0.1865
+   ],
+   "label": "person",
+   "confidence": 0.232,
+   "matched": false,
+   "clue": null,
+   "clue_score": 0.0,
+   "generic": [],
+   "location": {
+    "lat": 53.533695,
+    "lon": -113.536342
+   },
+   "radius_m": 82.9,
+   "kind": null,
+   "evidence_id": null,
+   "reliability": null
+  },
+  {
+   "frame": 19,
+   "time_s": 9.5,
+   "box": [
+    0.1087,
+    0.8605,
+    0.221,
+    0.9908
+   ],
+   "label": "dark sneakers",
+   "confidence": 0.804,
+   "matched": true,
+   "clue": "dark sneakers",
+   "clue_score": 0.865,
+   "generic": [],
+   "location": {
+    "lat": 53.533929,
+    "lon": -113.53767
+   },
+   "radius_m": 82.8,
+   "kind": null,
+   "evidence_id": null,
+   "reliability": 0.8
+  },
+  {
+   "frame": 19,
+   "time_s": 9.5,
+   "box": [
+    0.9217,
+    0.1518,
+    0.9331,
+    0.1867
+   ],
+   "label": "person",
+   "confidence": 0.204,
+   "matched": false,
+   "clue": null,
+   "clue_score": 0.0,
+   "generic": [],
+   "location": {
+    "lat": 53.533713,
+    "lon": -113.53631
+   },
+   "radius_m": 83.1,
+   "kind": null,
+   "evidence_id": null,
+   "reliability": null
+  },
+  {
+   "frame": 19,
+   "time_s": 9.5,
+   "box": [
+    0.9131,
+    0.1549,
+    0.9234,
+    0.1879
+   ],
+   "label": "person",
+   "confidence": 0.154,
+   "matched": false,
+   "clue": null,
+   "clue_score": 0.0,
+   "generic": [],
+   "location": {
+    "lat": 53.533721,
+    "lon": -113.536326
+   },
+   "radius_m": 82.8,
+   "kind": null,
+   "evidence_id": null,
+   "reliability": null
+  },
+  {
+   "frame": 20,
+   "time_s": 10.0,
+   "box": [
+    0.1241,
+    0.8148,
+    0.2261,
+    0.9336
+   ],
+   "label": "dark sneakers",
+   "confidence": 0.631,
+   "matched": true,
+   "clue": "dark sneakers",
+   "clue_score": 1.0,
+   "generic": [],
+   "location": {
+    "lat": 53.533956,
+    "lon": -113.537615
+   },
+   "radius_m": 82.6,
+   "kind": null,
+   "evidence_id": null,
+   "reliability": 0.9
+  },
+  {
+   "frame": 21,
+   "time_s": 10.5,
+   "box": [
+    0.1316,
+    0.7789,
+    0.2216,
+    0.8937
+   ],
+   "label": "dark sneakers",
+   "confidence": 0.755,
+   "matched": true,
+   "clue": "dark sneakers",
+   "clue_score": 0.779,
+   "generic": [],
+   "location": {
+    "lat": 53.533984,
+    "lon": -113.537568
+   },
+   "radius_m": 82.3,
+   "kind": null,
+   "evidence_id": null,
+   "reliability": 0.74
+  },
+  {
+   "frame": 22,
+   "time_s": 11.0,
+   "box": [
+    0.2997,
+    0.7167,
+    0.3681,
+    0.8218
+   ],
+   "label": "dark sneakers",
+   "confidence": 0.363,
+   "matched": true,
+   "clue": "dark sneakers",
+   "clue_score": 1.0,
+   "generic": [],
+   "location": {
+    "lat": 53.533944,
+    "lon": -113.537404
+   },
+   "radius_m": 81.3,
+   "kind": null,
+   "evidence_id": null,
+   "reliability": 0.9
+  },
+  {
+   "frame": 23,
+   "time_s": 11.5,
+   "box": [
+    0.4144,
+    0.7105,
+    0.4789,
+    0.8146
+   ],
+   "label": "dark sneakers",
+   "confidence": 0.862,
+   "matched": true,
+   "clue": "dark sneakers",
+   "clue_score": 0.781,
+   "generic": [],
+   "location": {
+    "lat": 53.533905,
+    "lon": -113.537291
+   },
+   "radius_m": 81.0,
+   "kind": null,
+   "evidence_id": null,
+   "reliability": 0.74
+  },
+  {
+   "frame": 24,
+   "time_s": 12.0,
+   "box": [
+    0.5001,
+    0.7356,
+    0.5739,
+    0.8466
+   ],
+   "label": "dark sneakers",
+   "confidence": 0.423,
+   "matched": true,
+   "clue": "dark sneakers",
+   "clue_score": 0.744,
+   "generic": [],
+   "location": {
+    "lat": 53.533868,
+    "lon": -113.537212
+   },
+   "radius_m": 81.1,
+   "kind": null,
+   "evidence_id": null,
+   "reliability": 0.71
+  },
+  {
+   "frame": 25,
+   "time_s": 12.5,
+   "box": [
+    0.5629,
+    0.795,
+    0.6497,
+    0.9243
+   ],
+   "label": "dark sneakers",
+   "confidence": 0.771,
+   "matched": true,
+   "clue": "dark sneakers",
+   "clue_score": 0.73,
+   "generic": [],
+   "location": {
+    "lat": 53.533836,
+    "lon": -113.537171
+   },
+   "radius_m": 81.6,
+   "kind": null,
+   "evidence_id": null,
+   "reliability": 0.7
+  },
+  {
+   "frame": 26,
+   "time_s": 13.0,
+   "box": [
+    0.6505,
+    0.9005,
+    0.754,
+    0.9998
+   ],
+   "label": "grey hooded jacket",
+   "confidence": 0.813,
+   "matched": true,
+   "clue": "grey hooded jacket",
+   "clue_score": 0.478,
+   "generic": [],
+   "location": {
+    "lat": 53.533792,
+    "lon": -113.537125
+   },
+   "radius_m": 81.5,
+   "kind": null,
+   "evidence_id": null,
+   "reliability": 0.52
+  },
+  {
+   "frame": 27,
+   "time_s": 13.5,
+   "box": [
+    0.6528,
+    0.9005,
+    0.7539,
+    0.9998
+   ],
+   "label": "grey hooded jacket",
+   "confidence": 0.834,
+   "matched": true,
+   "clue": "grey hooded jacket",
+   "clue_score": 0.525,
+   "generic": [],
+   "location": {
+    "lat": 53.533807,
+    "lon": -113.537092
+   },
+   "radius_m": 81.4,
+   "kind": null,
+   "evidence_id": null,
+   "reliability": 0.55
+  },
+  {
+   "frame": 28,
+   "time_s": 14.0,
+   "box": [
+    0.6528,
+    0.9007,
+    0.7539,
+    0.9998
+   ],
+   "label": "grey hooded jacket",
+   "confidence": 0.834,
+   "matched": true,
+   "clue": "grey hooded jacket",
+   "clue_score": 0.536,
+   "generic": [],
+   "location": {
+    "lat": 53.533822,
+    "lon": -113.53706
+   },
+   "radius_m": 81.4,
+   "kind": null,
+   "evidence_id": null,
+   "reliability": 0.56
+  }
+ ]
+}

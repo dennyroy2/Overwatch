@@ -1,4 +1,6 @@
+import { useEffect } from 'react'
 import { ClipboardList, ListChecks } from 'lucide-react'
+import { startPipOpener } from '@/lib/pipOpener'
 import { selectPendingCount, useStore } from '@/store'
 import { NewCaseSheet } from '@/components/case/NewCaseSheet'
 import { TaskingList } from '@/components/tasking/TaskingList'
@@ -23,6 +25,7 @@ export function AppShell({ map }: { map: React.ReactNode }) {
   const hasEvidence = useStore((s) => s.evidence.order.length > 0)
   const caseId = useStore((s) => s.caseProfile?.case_id ?? null)
   const hasRequests = useStore((s) => s.requests.order.length > 0)
+  useEffect(() => startPipOpener(), []) // the drone feed opens when a drone request is approved
   return (
     <div className="relative h-full w-full overflow-hidden bg-ground">
       <div className="absolute inset-0 z-0">{map}</div>

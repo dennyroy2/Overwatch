@@ -1,0 +1,127 @@
+{
+  "clip": "margaret_drone2",
+  "asset": "Drone 2",
+  "note": "Route copied from scenario/margaret_drone2.json (synthetic, no real flight log). Camera per Akshat, 2026-11-08: 84 degree DIAGONAL field of view (= 76.25 horizontal x 47.64 vertical on 16:9), pitch about 45 degrees below the horizon (an estimate from the paper's 45-90 degree range), altitude 40 m, heading 51 degrees constant. position_error_m is 75 because the route is synthetic and the clip is a sequence of different SARD photographs, so one flight path cannot place the same stationary person consistently: computed positions land 19 to 78 m from the scenario's subject spot (53.534, -113.537) and drift by about 70 m. A real flight log would say about 5.",
+  "width": 1280,
+  "height": 720,
+  "fps": 30,
+  "camera": {
+    "pitch_deg": 45,
+    "fov_h_deg": 76.25
+  },
+  "position_error_m": 75,
+  "route": [
+    {
+      "t_s": 0.0,
+      "lat": 53.533379,
+      "lon": -113.538293,
+      "alt_m": 40,
+      "heading_deg": 51
+    },
+    {
+      "t_s": 1.0,
+      "lat": 53.53341,
+      "lon": -113.538229,
+      "alt_m": 40,
+      "heading_deg": 51
+    },
+    {
+      "t_s": 2.0,
+      "lat": 53.533441,
+      "lon": -113.538164,
+      "alt_m": 40,
+      "heading_deg": 51
+    },
+    {
+      "t_s": 3.0,
+      "lat": 53.533473,
+      "lon": -113.538099,
+      "alt_m": 40,
+      "heading_deg": 51
+    },
+    {
+      "t_s": 4.0,
+      "lat": 53.533504,
+      "lon": -113.538034,
+      "alt_m": 40,
+      "heading_deg": 51
+    },
+    {
+      "t_s": 5.0,
+      "lat": 53.533535,
+      "lon": -113.537969,
+      "alt_m": 40,
+      "heading_deg": 51
+    },
+    {
+      "t_s": 6.0,
+      "lat": 53.533566,
+      "lon": -113.537904,
+      "alt_m": 40,
+      "heading_deg": 51
+    },
+    {
+      "t_s": 7.0,
+      "lat": 53.533597,
+      "lon": -113.537839,
+      "alt_m": 40,
+      "heading_deg": 51
+    },
+    {
+      "t_s": 8.0,
+      "lat": 53.533628,
+      "lon": -113.537774,
+      "alt_m": 40,
+      "heading_deg": 51
+    },
+    {
+      "t_s": 9.0,
+      "lat": 53.533659,
+      "lon": -113.53771,
+      "alt_m": 40,
+      "heading_deg": 51
+    },
+    {
+      "t_s": 10.0,
+      "lat": 53.533691,
+      "lon": -113.537645,
+      "alt_m": 40,
+      "heading_deg": 51
+    },
+    {
+      "t_s": 11.0,
+      "lat": 53.533722,
+      "lon": -113.53758,
+      "alt_m": 40,
+      "heading_deg": 51
+    },
+    {
+      "t_s": 12.0,
+      "lat": 53.533753,
+      "lon": -113.537515,
+      "alt_m": 40,
+      "heading_deg": 51
+    },
+    {
+      "t_s": 13.0,
+      "lat": 53.533784,
+      "lon": -113.53745,
+      "alt_m": 40,
+      "heading_deg": 51
+    },
+    {
+      "t_s": 14.0,
+      "lat": 53.533815,
+      "lon": -113.537385,
+      "alt_m": 40,
+      "heading_deg": 51
+    },
+    {
+      "t_s": 14.5,
+      "lat": 53.533831,
+      "lon": -113.537353,
+      "alt_m": 40,
+      "heading_deg": 51
+    }
+  ]
+}
