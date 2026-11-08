@@ -16,6 +16,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import time
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 
@@ -24,6 +25,7 @@ from backend.agent import gazetteer as gz
 
 LLM_MODEL = os.getenv("OVERWATCH_LLM_MODEL", "claude-haiku-5-5")
 LLM_URL = "https://api.anthropic.com/v1/messages"
+LLM_BUDGET_S = 5.0                 # dashboard waits 6 s for the structured card
 
 SOURCE_LABEL = {
     "officer": "Officer", "family": "Family", "witness": "Witness", "drone_ai": "Drone",
@@ -241,9 +243,12 @@ def extract_llm(text: str) -> Extraction | None:
                 "messages": [{"role": "user", "content": text}]}
         # Haiku 5.5 thinks by default; a one-sentence extraction doesn't need it, and it adds delay.
         fast = {**body, "thinking": {"type": "disabled"}, "output_config": {"effort": "low"}}
-        r = httpx.post(LLM_URL, timeout=8.0, headers=headers, json=fast)
-        if r.status_code == 400:            # settings not accepted: retry with the plain request
-            r = httpx.post(LLM_URL, timeout=8.0, headers=headers, json=body)
+        # The dashboard shows "Parsing" for 6 s, so the whole call, retry included, must fit in 5 s.
+        deadline = time.monotonic() + LLM_BUDGET_S
+        r = httpx.post(LLM_URL, timeout=LLM_BUDGET_S, headers=headers, json=fast)
+        left = deadline - time.monotonic()
+        if r.status_code == 400 and left > 0.5:   # settings not accepted: retry with the plain request
+            r = httpx.post(LLM_URL, timeout=left, headers=headers, json=body)
         r.raise_for_status()
         raw = "".join(b.get("text", "") for b in r.json().get("content", []) if b.get("type") == "text")
         return extraction_from_llm_json(raw)

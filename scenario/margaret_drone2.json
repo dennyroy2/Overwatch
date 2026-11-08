@@ -16,7 +16,7 @@
   },
   "suggested_timing": {
     "detector_flag_at_s": 3.5,
-    "explanation": "Start the clip ~3.5 s before the drone_ai clue (beat 5, at_s 45 in margaret.json) is posted, i.e. play it at demo second ~41.5."
+    "explanation": "Start the clip ~3.5 s before the drone_ai clue (beat 5, at_s 48 in margaret.json) is posted, i.e. play it at demo second ~44.5."
   },
   "route": [
     {

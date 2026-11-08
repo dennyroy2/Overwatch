@@ -25,21 +25,21 @@
       "raw_text": "She loves the coffee shop on 109 Street, she goes there almost every day."
     },
     {
-      "at_s": 18, "minutes_after": 50,
+      "at_s": 34, "minutes_after": 85,
       "kind": "searched_area", "source": "ground_team", "reliability": 0.9, "detection_prob": 0.7,
       "location": {"lat": 53.5424, "lon": -113.5091}, "radius_m": 300,
       "summary": "Ground Team 1 searched 300 m around the 109 St coffee shop. Nothing found.",
       "raw_text": "Team 1 cleared the blocks around the coffee shop on 109 and Jasper, no sign of her."
     },
     {
-      "at_s": 28, "minutes_after": 35,
+      "at_s": 40, "minutes_after": 35,
       "kind": "sighting", "source": "transit", "reliability": 0.75,
       "location": {"lat": 53.5328, "lon": -113.5395}, "radius_m": 100,
       "summary": "Bus driver: woman in a grey hooded jacket got off at Groat Rd & Emily Murphy Park Rd",
       "raw_text": "I'm a bus driver. An older lady in a grey hoodie got off at the Emily Murphy Park stop on Groat Road, maybe 2:35."
     },
     {
-      "at_s": 45, "minutes_after": 95,
+      "at_s": 48, "minutes_after": 120,
       "kind": "clue", "source": "drone_ai", "reliability": 0.82,
       "location": {"lat": 53.5340, "lon": -113.5370}, "radius_m": 50,
       "summary": "Drone 2: possible person in grey hooded jacket lying on the grassy bank by the water, Emily Murphy Park (82%)",
