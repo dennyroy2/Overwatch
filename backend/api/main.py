@@ -14,6 +14,7 @@ from contracts.models import (
     CloseSearch,
     Decision, Evidence, EvidenceMsg, LogMsg, Report, StreamMessage, SubjectProfile,
 )
+from backend.agent.hook import needs_parsing, schedule_upgrade
 from backend.api.fake_stream import run_fake_case
 from backend.api.hub import registry
 from backend.engine.interface import EDMONTON_DEFAULT
@@ -47,6 +48,8 @@ async def add_evidence(ev: Evidence) -> Evidence:
         hub.evidence.append(ev)
     await hub.broadcast(EvidenceMsg(data=ev))
     await hub.broadcast(LogMsg(data=hub.add_log(ev.source, "evidence_added", ev.summary)))
+    if needs_parsing(ev):                       # officer's raw note from the tip box
+        schedule_upgrade(hub, ev)               # same id comes back structured
     return ev
 
 
@@ -88,12 +91,16 @@ async def close_search(case_id: str, body: CloseSearch) -> dict:
     hub = registry.get(case_id)
     if hub is None:
         raise HTTPException(404, f"Unknown case {case_id}")
+    if any(e.action == "search_closed" for e in hub.log):
+        # Already closed (e.g. a double click): change nothing, report the original outcome
+        found = any(e.action == "found_confirmed" for e in hub.log)
+        return {"ok": True, "found": found, "already_closed": True}
     if body.found:
         detail = body.note or f"{hub.profile.name} located and confirmed by {body.officer}"
         await hub.broadcast(LogMsg(data=hub.add_log(body.officer, "found_confirmed", detail)))
     detail = body.note or ("Subject located" if body.found else "Search closed without locating subject")
     await hub.broadcast(LogMsg(data=hub.add_log(body.officer, "search_closed", detail)))
-    return {"ok": True, "found": body.found}
+    return {"ok": True, "found": body.found, "already_closed": False}
 
 
 @app.get("/schema/stream", response_model=StreamMessage, include_in_schema=True)

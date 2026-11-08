@@ -108,3 +108,12 @@ def test_close_search_and_pdf():
 
 def test_close_unknown_case_404():
     assert client.post("/case/nope/close", json={}).status_code == 404
+
+
+def test_close_twice_logs_once():
+    cid = _case()
+    assert client.post(f"/case/{cid}/close", json={"found": True}).json()["already_closed"] is False
+    again = client.post(f"/case/{cid}/close", json={"found": False}).json()
+    assert again["already_closed"] is True and again["found"] is True
+    actions = [e["action"] for e in client.get(f"/report/{cid}").json()["log"]]
+    assert actions.count("search_closed") == 1 and actions.count("found_confirmed") == 1
