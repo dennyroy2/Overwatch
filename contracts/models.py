@@ -86,6 +86,10 @@ class GhostFrame(BaseModel):
     positions: list[list[float]]
     alive_fraction: float = Field(ge=0.0, le=1.0)
     clusters: list[Cluster] = Field(default_factory=list)
+    respawned: list[int] = Field(
+        default_factory=list,
+        description="Slots reused for a new ghost since the last frame: don't animate these, fade them in",
+    )
 
 
 class TaskingRequest(BaseModel):

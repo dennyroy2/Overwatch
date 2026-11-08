@@ -148,3 +148,7 @@ class StubEngine:
 
 def new_cluster_id() -> str:
     return new_id("cl")
+
+
+# The real engine (particle filter on the Edmonton street graph). Server and benchmark use this.
+from backend.engine.ghost_engine import GhostEngine  # noqa: E402,F401

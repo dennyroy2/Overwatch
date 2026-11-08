@@ -8,3 +8,6 @@ data/graphs/*.graphml
 data/footage/
 *.pt
 .DS_Store
+
+# engine graph cache (rebuilt automatically)
+cache/

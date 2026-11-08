@@ -1,6 +1,7 @@
 """Fake live stream so the frontend and everyone else can build from minute one.
 
-Runs the StubEngine (random-walk ghosts on real Edmonton coordinates) and sprinkles
+Runs the GhostEngine (particle filter on Edmonton's street graph; OVERWATCH_ENGINE=stub
+for the old random walk) and sprinkles
 in scripted evidence cards and tasking requests. Swap in the real engine later by
 changing `make_engine()` only.
 """
@@ -14,7 +15,7 @@ from contracts.models import (
     Evidence, EvidenceMsg, GeoPoint, GhostsMsg, LogMsg, TaskingMsg,
 )
 from backend.api.hub import CaseHub
-from backend.engine.interface import SearchEngine, StubEngine
+from backend.engine.interface import GhostEngine, SearchEngine, StubEngine
 
 FPS = float(os.getenv("OVERWATCH_FPS", "5"))
 GHOSTS = int(os.getenv("OVERWATCH_GHOSTS", "5000"))
@@ -42,8 +43,13 @@ FAKE_BEATS = [
 ]
 
 
+ENGINE = os.getenv("OVERWATCH_ENGINE", "ghost")   # "ghost" (real) or "stub" (old random walk)
+
+
 def make_engine() -> SearchEngine:
-    return StubEngine(n_ghosts=GHOSTS)
+    if ENGINE == "stub":
+        return StubEngine(n_ghosts=GHOSTS)
+    return GhostEngine(n_ghosts=GHOSTS)
 
 
 async def _propose(hub: CaseHub, engine: SearchEngine) -> None:

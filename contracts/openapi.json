@@ -682,6 +682,14 @@
             },
             "type": "array",
             "title": "Clusters"
+          },
+          "respawned": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Respawned",
+            "description": "Slots reused for a new ghost since the last frame: don't animate these, fade them in"
           }
         },
         "type": "object",
