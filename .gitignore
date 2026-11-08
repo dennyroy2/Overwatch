@@ -8,6 +8,7 @@ data/graphs/*.graphml
 data/footage/
 *.pt
 .DS_Store
-
+frontend/public/footage/*.mp4
+frontend/public/footage/*_frames/
 # engine graph cache (rebuilt automatically)
 cache/
