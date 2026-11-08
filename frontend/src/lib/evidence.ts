@@ -32,6 +32,18 @@ export const PIN_KINDS: readonly EvidenceKind[] = ['sighting', 'clue', 'favourit
 export const AREA_KINDS: readonly EvidenceKind[] = ['searched_area', 'constraint']
 
 export const reliabilityOf = (e: Evidence): number => e.reliability ?? 0.7
+/**
+ * The picture for a card (a drone crop), or null. Only a path on this site ("/crops/x.jpg", which the dev server and
+ * the build both serve from public/) or an http(s) address is used; anything else (javascript:, data:, a bare word)
+ * is ignored rather than put in an <img>.
+ */
+export function mediaSrc(e: Pick<Evidence, 'media_url'>): string | null {
+  const u = e.media_url?.trim()
+  if (!u) return null
+  if (u.startsWith('/') && !u.startsWith('//')) return u
+  return /^https?:\/\//i.test(u) ? u : null
+}
+
 export const isConfirmed = (e: Evidence): boolean => e.confirmed ?? false
 
 /** A note the AI has not structured yet: raw text, no place on the map. */

@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Callable, Iterable
 
 from . import sidecar, throttle
+from .calibrate import reliability as calibrated_reliability
 from .clothing import MATCH_THRESHOLD, WORLD_WEIGHTS
 from .detect import DEFAULT_WEIGHTS, SLICE_IMGSZ, SLICE_OVERLAP, SLICE_TILE, SLICED_CONF, Detection
 from .frames import ClipInfo, Frame, clip_info, extract_frames
@@ -63,7 +64,7 @@ def build_clip(clip_id: str, frames: Iterable[Frame], detector: Callable, scorer
                 "generic": [{"label": g.phrase, "score": round(g.score, 3)} for g in cs.generic if g.score >= GENERIC_MIN_SCORE],
                 "location": None if ground is None else {"lat": round(ground.lat, 6), "lon": round(ground.lon, 6)},
                 "radius_m": None if ground is None else ground.radius_m,
-                "kind": None, "evidence_id": None,
+                "kind": None, "evidence_id": None, "reliability": None,
             }
             records.append(rec)
             images.setdefault(frame.index, frame.image)
@@ -83,6 +84,7 @@ def build_clip(clip_id: str, frames: Iterable[Frame], detector: Callable, scorer
         rec = records[idx]
         eid = sidecar.evidence_id(clip_id, rec["frame"], rec["n"])
         rec["kind"], rec["evidence_id"] = cand.kind, eid
+        rec["reliability"] = calibrated_reliability(cand.kind, rec["clue_score"], rec["confidence"])
         img = images[rec["frame"]]
         h, w = img.shape[:2]
         x1, y1, x2, y2 = rec["box"]

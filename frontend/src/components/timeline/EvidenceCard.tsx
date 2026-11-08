@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import { Sparkles } from 'lucide-react'
-import { KIND_LABEL, SOURCE_LABEL, cardText, isAiText, isConfirmed, isParsing, reliabilityOf } from '@/lib/evidence'
+import { KIND_LABEL, SOURCE_LABEL, cardText, isAiText, isConfirmed, isParsing, mediaSrc, reliabilityOf } from '@/lib/evidence'
 import { clockTime } from '@/lib/ui'
 import { cn } from '@/lib/utils'
 import type { Evidence, WithId } from '@/types'
@@ -33,6 +33,8 @@ export function EvidenceCard({ evidence: e, seenAt, now, selected, hovered, onSe
   const ai = isAiText(e)
   const pct = Math.round(reliabilityOf(e) * 100)
   const SourceIcon = SOURCE_ICON[e.source]
+  const src = mediaSrc(e)
+  const [imageFailed, setImageFailed] = useState(false) // a missing crop hides itself; it never breaks the card
 
   // Flash when a plain note becomes a structured card.
   const prevKind = useRef(e.kind)
@@ -97,6 +99,17 @@ export function EvidenceCard({ evidence: e, seenAt, now, selected, hovered, onSe
               <span className="ow-shimmer block h-full w-1/3 bg-ai" />
             </div>
           </div>
+        )}
+
+        {src && !imageFailed && (
+          <img
+            src={src}
+            alt={`Crop from the drone frame: ${cardText(e)}`}
+            loading="lazy"
+            decoding="async"
+            onError={() => setImageFailed(true)}
+            className="mx-auto mt-2 block max-h-32 w-auto max-w-full rounded-sm border border-line"
+          />
         )}
 
         <p className="mt-1.5 text-xs text-ink-3">

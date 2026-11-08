@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { distanceMetres } from '@/lib/geo'
 import {
-  AREA_KINDS, PARSE_MS, PIN_KINDS, areaPolygon, cardText, circlePolygon, focusPoint, isAiText, isParsing, isPlainNote, visibleAt,
+  AREA_KINDS, PARSE_MS, PIN_KINDS, areaPolygon, cardText, circlePolygon, focusPoint, isAiText, isParsing, isPlainNote, visibleAt, mediaSrc,
 } from './evidence'
 import type { Evidence } from '@/types'
 
@@ -82,5 +82,19 @@ describe('visibleAt (cards and pins follow the replay time)', () => {
     expect(visibleAt({ mode: 'paused', t: 6000 }, 5000)).toBe(true)
     expect(visibleAt({ mode: 'playing', t: 4000 }, undefined)).toBe(true)
     expect(visibleAt({ mode: 'paused', t: null }, 5000)).toBe(true)
+  })
+})
+
+describe('mediaSrc', () => {
+  it('uses a path on this site or an http(s) address', () => {
+    expect(mediaSrc({ media_url: '/crops/ev_margaret_drone2_8_0.jpg' })).toBe('/crops/ev_margaret_drone2_8_0.jpg')
+    expect(mediaSrc({ media_url: ' https://example.org/a.jpg ' })).toBe('https://example.org/a.jpg')
+    expect(mediaSrc({ media_url: 'http://localhost:8000/c.png' })).toBe('http://localhost:8000/c.png')
+  })
+
+  it('ignores nothing, blanks and anything that is not an image address', () => {
+    for (const bad of [undefined, null, '', '   ', 'javascript:alert(1)', 'data:image/png;base64,AAAA', 'crops/x.jpg', '//evil.example/x.jpg', 'ftp://x/y.jpg']) {
+      expect(mediaSrc({ media_url: bad as string | null | undefined })).toBeNull()
+    }
   })
 })
