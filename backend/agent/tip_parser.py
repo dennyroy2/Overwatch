@@ -100,6 +100,9 @@ def detect_kind(t: str) -> str:
         return "favourite_place"
     if _has(r"\b(saw|seen|spotted|noticed|got (off|on)|walking|sitting|standing|wandering|heading|looked lost)\b", t):
         return "sighting"
+    if _has(r"\b(camera|cctv|footage|doorbell)\b", t) and \
+       _has(r"\b(shows?|showed|caught|captured|recorded|picked up)\b", t):
+        return "sighting"
     return "note"
 
 
@@ -226,7 +229,7 @@ LLM_SYSTEM = """You extract facts from police notes about a missing person. Repl
  "kind_hint": "cafe|bus_stop|park|place_of_worship or null (type of place mentioned)",
  "time_24h": "HH:MM if a clock time is given (assume afternoon for 1-7 without am/pm), else null",
  "minutes_ago": number or null,
- "reliability": 0..1 (family 0.8, transit 0.75, witness 0.6, ground team 0.9; lower it for 'maybe', 'I think'),
+ "reliability": 0..1 (camera 0.85, family 0.8, transit 0.75, witness 0.6, ground team 0.9; lower it for 'maybe', 'I think'),
  "summary": "one line, max 100 chars, starting with who said it, e.g. 'Bus driver: woman in grey jacket got off at Emily Murphy Park stop'"}
 Never invent coordinates or places that are not in the text."""
 
@@ -310,15 +313,69 @@ def _when(ex: Extraction, now: datetime, case: SubjectProfile | None) -> datetim
     return t
 
 
-def _clothing_match(text: str, case: SubjectProfile | None) -> bool:
+# Colours people mix up. A witness who says "navy" for a dark jacket, or "silver" for grey, still counts.
+COLOUR_FAMILY = {
+    "grey": "grey", "gray": "grey", "silver": "grey", "charcoal": "grey", "ash": "grey",
+    "blue": "blue", "navy": "blue", "teal": "blue", "denim": "blue",
+    "black": "dark", "dark": "dark",
+    "white": "light", "cream": "light", "beige": "light", "light": "light", "tan": "light",
+    "red": "red", "maroon": "red", "burgundy": "red", "pink": "red",
+    "green": "green", "olive": "green", "khaki": "green",
+    "brown": "brown", "yellow": "yellow", "orange": "orange", "purple": "purple",
+}
+NEAR_FAMILY = {("dark", "grey"), ("dark", "blue"), ("dark", "brown"), ("light", "grey")}
+_NOT_GARMENT = {"with", "and", "the", "side", "white", "stripes", "stripe"}
+
+# How much a clothing match moves reliability. People misremember colours, cameras don't:
+# a witness gets the same bump for a near colour and no penalty for a wrong one; a camera is
+# only rewarded for the right colour family and is marked down for a clearly different colour.
+CLOTHING_BONUS = {
+    "witness": {"exact": 0.10, "near": 0.10, "none": 0.05, "wrong": 0.0},
+    "camera":  {"exact": 0.10, "near": 0.03, "none": 0.03, "wrong": -0.15},
+}
+
+
+def _family(word: str) -> str | None:
+    return COLOUR_FAMILY.get(word)
+
+
+def _colours_agree(a: str, b: str) -> str:
+    """'exact' (same family), 'near' (easily confused), or 'wrong'."""
+    if a == b:
+        return "exact"
+    return "near" if (a, b) in NEAR_FAMILY or (b, a) in NEAR_FAMILY else "wrong"
+
+
+def _clothing_match(text: str, case: SubjectProfile | None) -> str | None:
+    """Best match between the tip and the case's clothing: 'exact', 'near', 'none' (garment named
+    with no colour), 'wrong' (garment named in a different colour), or None (no garment matched).
+    The colour must sit just before the garment word ("grey hoodie", "dark blue jacket")."""
     if not case:
-        return False
-    t = text.lower()
+        return None
+    tokens = re.findall(r"[a-z]+", text.lower())
+    best, order = None, ["wrong", "none", "near", "exact"]
     for item in case.clothing:
-        words = [w for w in re.findall(r"[a-z]+", item.lower()) if len(w) > 2]
-        if len(words) >= 2 and sum(w[:4] in t for w in words) >= 2:
-            return True
-    return False
+        words = re.findall(r"[a-z]+", item.lower())
+        colour = next((_family(w) for w in words if _family(w)), None)
+        garments = {w[:4] for w in words if len(w) > 3 and not _family(w) and w not in _NOT_GARMENT}
+        for i, tok in enumerate(tokens):
+            if len(tok) < 4 or tok[:4] not in garments:
+                continue
+            said = [_family(w) for w in tokens[max(0, i - 3):i] if _family(w)]
+            if not said or colour is None:
+                found = "none"
+            else:
+                found = max((_colours_agree(s, colour) for s in said), key=order.index)
+            if best is None or order.index(found) > order.index(best):
+                best = found
+    return best
+
+
+def _clothing_bonus(match: str | None, source: str) -> float:
+    if match is None:
+        return 0.0
+    table = CLOTHING_BONUS["camera"] if source in ("camera", "drone_ai") else CLOTHING_BONUS["witness"]
+    return table[match]
 
 
 def parse_tip(text: str, case: SubjectProfile | dict | None = None, now: datetime | None = None,
@@ -358,8 +415,8 @@ def parse_tip_verbose(text: str, case: SubjectProfile | dict | None = None, now:
 
     kind = ex.kind
     rel = ex.reliability if ex.reliability is not None else BASE_RELIABILITY.get(ex.source, 0.6)
-    if kind == "sighting" and _clothing_match(text, case):
-        rel += 0.1
+    if kind == "sighting":
+        rel += _clothing_bonus(_clothing_match(text, case), ex.source)
     rel = max(0.2, min(0.95, rel))
     radius = ex.radius_m or RADIUS_M.get(kind, 200)
     if loc is not None and not loc.precise:

@@ -20,16 +20,16 @@
     {
       "at_s": 8, "minutes_after": 0,
       "kind": "favourite_place", "source": "family", "reliability": 0.8,
-      "location": {"lat": 53.5424, "lon": -113.5091}, "radius_m": 150,
-      "summary": "Family: she walks to the coffee shop at 109 St & Jasper most afternoons",
-      "raw_text": "She loves the coffee shop on 109 Street, she goes there almost every day."
+      "location": {"lat": 53.5434, "lon": -113.5104}, "radius_m": 150,
+      "summary": "Family: she walks in Railtown Park (110 St & 104 Ave) most afternoons",
+      "raw_text": "She loves Railtown Park, she walks there almost every afternoon."
     },
     {
       "at_s": 34, "minutes_after": 85,
       "kind": "searched_area", "source": "ground_team", "reliability": 0.9, "detection_prob": 0.7,
-      "location": {"lat": 53.5424, "lon": -113.5091}, "radius_m": 300,
-      "summary": "Ground Team 1 searched 300 m around the 109 St coffee shop. Nothing found.",
-      "raw_text": "Team 1 cleared the blocks around the coffee shop on 109 and Jasper, no sign of her."
+      "location": {"lat": 53.5434, "lon": -113.5104}, "radius_m": 300,
+      "summary": "Ground Team 1 searched 300 m around Railtown Park. Nothing found.",
+      "raw_text": "Team 1 cleared the blocks around Railtown Park, no sign of her."
     },
     {
       "at_s": 40, "minutes_after": 35,

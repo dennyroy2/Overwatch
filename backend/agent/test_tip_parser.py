@@ -38,6 +38,23 @@ def test_clothing_match_raises_reliability():
     assert match > plain
 
 
+def test_witness_colours_are_approximate():
+    rel = lambda colour: parse(f"Witness saw a woman in a {colour} hoodie at the Emily Murphy Park stop"
+                               ).evidence.reliability
+    assert rel("silver") == rel("grey")              # same colour family
+    assert rel("dark") == rel("grey")                # easily confused with grey
+    assert rel("red") >= parse("Witness saw a woman at the Emily Murphy Park stop").evidence.reliability
+
+
+def test_camera_trusted_more_and_held_to_its_colour():
+    cam = lambda colour: parse(f"Security camera footage shows a woman in a {colour} jacket at the "
+                               "Emily Murphy Park stop").evidence
+    wit = parse("Witness saw a woman in a grey jacket at the Emily Murphy Park stop").evidence
+    assert cam("grey").source == "camera"
+    assert cam("grey").reliability > wit.reliability
+    assert cam("red").reliability < cam("grey").reliability   # a camera seeing red is evidence against
+
+
 def test_searched_area_intersection_and_cafe():
     e = parse("Team 1 cleared the blocks around the coffee shop on 109 and Jasper, no sign of her.").evidence
     assert (e.kind, e.source) == ("searched_area", "ground_team")
