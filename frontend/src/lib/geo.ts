@@ -78,3 +78,12 @@ export const lerpPoint = (a: GeoPoint, b: GeoPoint, t: number): GeoPoint => ({
   lat: a.lat + (b.lat - a.lat) * t,
   lon: a.lon + (b.lon - a.lon) * t,
 })
+
+/** The average of some points (the middle of a small area), or null for none. */
+export function centroid(pts: readonly GeoPoint[]): GeoPoint | null {
+  if (pts.length === 0) return null
+  return {
+    lat: pts.reduce((sum, p) => sum + p.lat, 0) / pts.length,
+    lon: pts.reduce((sum, p) => sum + p.lon, 0) / pts.length,
+  }
+}
