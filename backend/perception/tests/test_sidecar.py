@@ -125,3 +125,11 @@ def test_write_crops_removes_this_clips_stale_crops_only(tmp_path):
     write_crops("clipx", {"ev_clipx_1_0": img}, tmp_path)
     assert sorted(p.name for p in tmp_path.iterdir()) == ["ev_clipx_1_0.jpg", "ev_other_1_0.jpg"]
     assert (tmp_path / "ev_clipx_1_0.jpg").stat().st_size > 10      # rewritten as a real JPEG
+
+
+def test_every_clothing_match_carries_a_reliability_but_plain_boxes_do_not():
+    r = run(small_conf=lambda i: 0.1)
+    for d in r.sidecar["detections"]:
+        assert (d["reliability"] is not None) == d["matched"]
+    sent = [d for d in r.sidecar["detections"] if d["kind"]]
+    assert sent[0]["reliability"] == 0.83                      # clothing score 0.9 -> calibrated (only a perfect 1.0 reaches 0.90)

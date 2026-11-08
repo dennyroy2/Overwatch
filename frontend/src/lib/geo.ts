@@ -78,6 +78,15 @@ export const DEMO_PLACES: Record<'lastSeen' | 'coffeeShop' | 'busStop' | 'droneS
   droneSpot: { lat: 53.534, lon: -113.537 },      // the grassy bank by the water
 }
 
+/** A GeoPoint from untrusted JSON (a footage file), or null if it is not one. Keeps all lat/lon reading in this file. */
+export function asGeoPoint(raw: unknown): GeoPoint | null {
+  if (typeof raw !== 'object' || raw === null) return null
+  const p = raw as Record<string, unknown>
+  const lat = p.lat
+  const lon = p.lon
+  return typeof lat === 'number' && typeof lon === 'number' && Number.isFinite(lat) && Number.isFinite(lon) ? { lat, lon } : null
+}
+
 /** "53.5422, -113.5337": for display only (readouts, form status). */
 export const formatPoint = (p: GeoPoint): string => `${p.lat.toFixed(4)}, ${p.lon.toFixed(4)}`
 

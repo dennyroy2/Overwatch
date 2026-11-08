@@ -4,7 +4,8 @@
 video frame. `frames` is the sampled times with the drone's state at each; `detections` is flat, one entry per box, in
 time order. The drone-feed panel shows the boxes whose `time_s` is nearest the video's `currentTime` (samples are
 `1 / fps_sampled` apart). A detection that became evidence has `kind` ("clue" or "sighting"), `evidence_id` and
-`reliability` (see calibrate.py); the rest are plain boxes. Everything is rounded and written in a fixed order, so running it twice gives the same bytes.
+`reliability` (see calibrate.py); the rest are plain boxes. Every clothing match also carries `reliability`, so a label on
+the video and the evidence card show the same number. Everything is rounded and written in a fixed order, so running it twice gives the same bytes.
 """
 from __future__ import annotations
 

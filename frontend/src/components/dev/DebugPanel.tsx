@@ -14,6 +14,7 @@ export function DebugPanel() {
   const requests = useStore((s) => s.requests.order.length)
   const log = useStore((s) => s.log.length)
   const connection = useStore((s) => s.connection)
+  const openPip = useStore((s) => s.openPip)
   const caseId = useStore((s) => s.caseProfile?.case_id)
   const [g, setG] = useState({ points: 0, frames: 0, fps: 0, frameAge: 0, workMs: 0, respawn: '-', peak: 0, typical: 0, halo: 0, trails: 0 })
   const [open, setOpen] = useState(false)
@@ -78,6 +79,7 @@ export function DebugPanel() {
         <button className="rounded-sm bg-control px-2 py-1 text-ink hover:bg-raised" onClick={() => setOpen(false)}>Hide</button>
         <button className="rounded-sm bg-control px-2 py-1 text-ink hover:bg-raised" onClick={openDemo}>Open demo</button>
         <button className="rounded-sm bg-control px-2 py-1 text-ink hover:bg-raised" onClick={() => attachCase('case_doesnotexist')}>Unknown case</button>
+        <button className="rounded-sm bg-control px-2 py-1 text-ink hover:bg-raised" onClick={() => openPip(null)}>Drone feed</button>
         <button className="rounded-sm bg-control px-2 py-1 text-ink hover:bg-raised" onClick={closeCase}>Close</button>
       </div>
     </div>

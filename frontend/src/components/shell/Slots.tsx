@@ -1,25 +1,13 @@
-import { Drone } from 'lucide-react'
+import { DroneFeed } from '@/components/pip/DroneFeed'
+import { useStore } from '@/store'
 import { ReportView } from '@/panels/ReportView'
 
-/** Drone feed picture-in-picture. Opens when a drone request is approved (step 34). */
+/** Drone feed picture-in-picture. Opens when a drone request is approved (lib/pipOpener.ts, step 34). */
 export function PipSlot({ open }: { open: boolean }) {
+  const requestId = useStore((s) => s.ui.pipRequestId)
+  const closePip = useStore((s) => s.closePip)
   if (!open) return null
-  return (
-    <section
-      aria-label="Drone feed"
-      className="pointer-events-auto absolute bottom-[var(--ow-dock)] right-[calc(var(--ow-rail-width)+1.5rem)] z-10 w-[24rem] overflow-hidden rounded-lg border border-line bg-panel shadow-panel"
-    >
-      <div className="flex h-9 items-center gap-2 border-b border-line px-3">
-        <Drone className="size-4 text-ink-2" aria-hidden />
-        <span className="font-mono text-sm text-ink-2">Drone feed</span>
-      </div>
-      <div className="grid aspect-video place-items-center bg-ground">
-        <p className="max-w-[28ch] text-center text-base text-ink-3">
-          No drone feed yet. It opens when you approve a drone request.
-        </p>
-      </div>
-    </section>
-  )
+  return <DroneFeed requestId={requestId} onClose={closePip} />
 }
 
 /**

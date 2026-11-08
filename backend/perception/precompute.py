@@ -91,6 +91,8 @@ def build_clip(clip_id: str, frames: Iterable[Frame], detector: Callable, scorer
         crops[eid] = sidecar.crop_image(img, (x1 * w, y1 * h, x2 * w, y2 * h))
     for rec in records:
         del rec["n"]
+        if rec["matched"] and rec["reliability"] is None:       # every clothing match carries the same calibrated number
+            rec["reliability"] = calibrated_reliability("clue", rec["clue_score"], rec["confidence"])
 
     route = flight.points
     doc = {

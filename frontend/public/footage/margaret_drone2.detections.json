@@ -503,7 +503,7 @@
    "radius_m": 82.8,
    "kind": null,
    "evidence_id": null,
-   "reliability": null
+   "reliability": 0.88
   },
   {
    "frame": 6,
@@ -609,7 +609,7 @@
    "radius_m": 82.4,
    "kind": null,
    "evidence_id": null,
-   "reliability": null
+   "reliability": 0.9
   },
   {
    "frame": 9,
@@ -758,7 +758,7 @@
    "radius_m": 82.2,
    "kind": null,
    "evidence_id": null,
-   "reliability": null
+   "reliability": 0.54
   },
   {
    "frame": 13,
@@ -791,7 +791,7 @@
    "radius_m": 82.2,
    "kind": null,
    "evidence_id": null,
-   "reliability": null
+   "reliability": 0.76
   },
   {
    "frame": 13,
@@ -935,7 +935,7 @@
    "radius_m": 82.1,
    "kind": null,
    "evidence_id": null,
-   "reliability": null
+   "reliability": 0.86
   },
   {
    "frame": 16,
@@ -1031,7 +1031,7 @@
    "radius_m": 82.4,
    "kind": null,
    "evidence_id": null,
-   "reliability": null
+   "reliability": 0.9
   },
   {
    "frame": 17,
@@ -1103,7 +1103,7 @@
    "radius_m": 82.5,
    "kind": null,
    "evidence_id": null,
-   "reliability": null
+   "reliability": 0.76
   },
   {
    "frame": 18,
@@ -1151,7 +1151,7 @@
    "radius_m": 82.8,
    "kind": null,
    "evidence_id": null,
-   "reliability": null
+   "reliability": 0.8
   },
   {
    "frame": 19,
@@ -1223,7 +1223,7 @@
    "radius_m": 82.6,
    "kind": null,
    "evidence_id": null,
-   "reliability": null
+   "reliability": 0.9
   },
   {
    "frame": 21,
@@ -1247,7 +1247,7 @@
    "radius_m": 82.3,
    "kind": null,
    "evidence_id": null,
-   "reliability": null
+   "reliability": 0.74
   },
   {
    "frame": 22,
@@ -1271,7 +1271,7 @@
    "radius_m": 81.3,
    "kind": null,
    "evidence_id": null,
-   "reliability": null
+   "reliability": 0.9
   },
   {
    "frame": 23,
@@ -1295,7 +1295,7 @@
    "radius_m": 81.0,
    "kind": null,
    "evidence_id": null,
-   "reliability": null
+   "reliability": 0.74
   },
   {
    "frame": 24,
@@ -1319,7 +1319,7 @@
    "radius_m": 81.1,
    "kind": null,
    "evidence_id": null,
-   "reliability": null
+   "reliability": 0.71
   },
   {
    "frame": 25,
@@ -1343,7 +1343,7 @@
    "radius_m": 81.6,
    "kind": null,
    "evidence_id": null,
-   "reliability": null
+   "reliability": 0.7
   },
   {
    "frame": 26,
@@ -1367,7 +1367,7 @@
    "radius_m": 81.5,
    "kind": null,
    "evidence_id": null,
-   "reliability": null
+   "reliability": 0.52
   },
   {
    "frame": 27,
@@ -1391,7 +1391,7 @@
    "radius_m": 81.4,
    "kind": null,
    "evidence_id": null,
-   "reliability": null
+   "reliability": 0.55
   },
   {
    "frame": 28,
@@ -1415,7 +1415,7 @@
    "radius_m": 81.4,
    "kind": null,
    "evidence_id": null,
-   "reliability": null
+   "reliability": 0.56
   }
  ]
 }
