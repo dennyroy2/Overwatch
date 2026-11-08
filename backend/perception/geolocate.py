@@ -2,7 +2,7 @@
 
 Flight-path file (JSON), agreed format. Times are seconds from the start of the clip:
     {"clip": "margaret_drone2", "width": 1280, "height": 720, "fps": 30,
-     "camera": {"pitch_deg": 90, "fov_h_deg": 84},
+     "camera": {"pitch_deg": 45, "fov_h_deg": 76.25},
      "route": [{"t_s": 0.0, "lat": 53.5, "lon": -113.5, "alt_m": 40, "heading_deg": 51}, ...]}
 `pitch_deg` is the camera's angle below the horizon (90 = looking straight down). `heading_deg` is the
 compass bearing the drone faces (0 = north, clockwise). A route point may also carry its own

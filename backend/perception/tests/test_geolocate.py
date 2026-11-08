@@ -7,13 +7,13 @@ from backend.perception.geolocate import FlightPath, FlightPoint, load_flight_pa
 FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "flight_margaret_drone2.json"
 
 
-def test_fixture_loads_with_the_assumed_camera():
+def test_fixture_loads_with_akshats_camera():
     fp = load_flight_path(FIXTURE)
     assert fp.clip == "margaret_drone2"
     assert (fp.width, fp.height, fp.fps) == (1280, 720, 30)
     assert len(fp.points) == 16
     assert fp.points[0].alt_m == 40
-    assert (fp.points[0].pitch_deg, fp.points[0].fov_h_deg) == (90, 84)
+    assert (fp.points[0].pitch_deg, fp.points[0].fov_h_deg) == (45, 76.25)
 
 
 def test_at_is_clamped_before_and_after_the_route():

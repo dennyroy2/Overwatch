@@ -3,10 +3,10 @@
   "width": 1280,
   "height": 720,
   "fps": 30,
-  "note": "Route copied from scenario/margaret_drone2.json (synthetic, no real flight log). The camera block is ASSUMED (nadir, 84 degree horizontal field of view) until Akshat confirms the real pitch and field of view (ask #7).",
+  "note": "Route copied from scenario/margaret_drone2.json (synthetic, no real flight log). Camera per Akshat, 2026-11-08: 84 degree DIAGONAL field of view (= 76.25 horizontal x 47.64 vertical on 16:9), pitch about 45 degrees below the horizon (an estimate from the paper's 45-90 degree range), altitude 40 m, heading 51 degrees constant.",
   "camera": {
-    "pitch_deg": 90,
-    "fov_h_deg": 84
+    "pitch_deg": 45,
+    "fov_h_deg": 76.25
   },
   "route": [
     {
