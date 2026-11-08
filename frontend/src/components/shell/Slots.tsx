@@ -1,5 +1,5 @@
-import { Drone, FileText, X } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Drone } from 'lucide-react'
+import { ReportView } from '@/panels/ReportView'
 
 /** Drone feed picture-in-picture. Opens when a drone request is approved (step 34). */
 export function PipSlot({ open }: { open: boolean }) {
@@ -23,29 +23,14 @@ export function PipSlot({ open }: { open: boolean }) {
 }
 
 /**
- * Report slot. Varad's `frontend/src/panels/ReportView.tsx` fills this (props: { caseId, onClose }).
- * His file is not on main yet, so this is a placeholder. The real import is wired in step 24.
- * Never create or edit the panels/ folder (hard rule 1).
+ * Report slot: Varad's `ReportView` (frontend/src/panels/ReportView.tsx, imported only, never edited: hard rule 1).
+ * It fetches GET /report/{caseId} itself. Opened by Close search after the server accepted the close.
  */
-export function ReportSlot({ open, onClose }: { open: boolean; onClose: () => void }) {
-  if (!open) return null
+export function ReportSlot({ open, caseId, onClose }: { open: boolean; caseId: string | null; onClose: () => void }) {
+  if (!open || !caseId) return null
   return (
-    <section
-      aria-label="Search report"
-      className="pointer-events-auto absolute inset-0 z-30 grid place-items-center bg-ground/80 p-6"
-    >
-      <div className="w-full max-w-xl rounded-lg border border-line bg-panel p-5 shadow-panel">
-        <div className="flex items-center gap-2">
-          <FileText className="size-4 text-ink-2" aria-hidden />
-          <h2 className="text-lg font-medium text-ink">Search report</h2>
-          <Button variant="ghost" size="icon" className="ml-auto" onClick={onClose} aria-label="Close report">
-            <X />
-          </Button>
-        </div>
-        <p className="mt-3 max-w-[60ch] text-base text-ink-2">
-          The report view isn't available yet. It will load here when the report panel is added.
-        </p>
-      </div>
+    <section aria-label="Search report" className="pointer-events-auto absolute inset-0 z-30 grid place-items-center bg-ground/80 p-6">
+      <ReportView caseId={caseId} onClose={onClose} />
     </section>
   )
 }

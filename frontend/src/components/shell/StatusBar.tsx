@@ -11,6 +11,8 @@ export interface StatusBarProps {
   aliveFraction?: number
   connection?: ConnectionState
   onNewCase?: () => void
+  /** Extra controls at the right end (Close search). */
+  actions?: React.ReactNode
   /** Shown when the view is paused or replaying, so a frozen picture is never mistaken for the live one. */
   viewNote?: string
 }
@@ -39,6 +41,7 @@ export function StatusBar({
   aliveFraction,
   connection = 'idle',
   onNewCase,
+  actions,
   viewNote,
 }: StatusBarProps) {
   return (
@@ -60,6 +63,7 @@ export function StatusBar({
             {viewNote}
           </span>
         )}
+        {actions}
         {onNewCase && (
           <Button variant="secondary" size="sm" onClick={onNewCase}>
             <Plus data-icon="inline-start" />
