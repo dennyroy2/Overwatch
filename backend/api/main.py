@@ -6,6 +6,24 @@ Docs: http://localhost:8000/docs
 from __future__ import annotations
 
 import asyncio
+import os
+from pathlib import Path
+
+
+def _load_env_file() -> None:
+    """Read KEY=value lines from the repo's .env (never committed) without overriding
+    variables already set in the shell. Keeps ANTHROPIC_API_KEY out of the code."""
+    path = Path(__file__).resolve().parents[2] / ".env"
+    if not path.exists():
+        return
+    for line in path.read_text().splitlines():
+        line = line.strip()
+        if line and not line.startswith("#") and "=" in line:
+            key, value = line.split("=", 1)
+            os.environ.setdefault(key.strip().removeprefix("export ").strip(), value.strip().strip("\"'"))
+
+
+_load_env_file()
 
 from fastapi import FastAPI, HTTPException, Response, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
