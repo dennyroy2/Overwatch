@@ -179,6 +179,19 @@ def build_pdf(report: Report, out_path: str | None = None, chart_path: str | Non
     s.append(Spacer(1, 4))
     s.append(Paragraph(status_detail, BODY))
 
+    # Map (never allowed to break the report)
+    try:
+        from backend.report.map_figure import render_map_png
+        png = render_map_png(report)
+    except Exception as exc:  # noqa: BLE001
+        png = None
+        print(f"[report] map skipped: {exc}")
+    if png:
+        s.append(KeepTogether([
+            Paragraph("Search map", H2),
+            Image(io.BytesIO(png), width=PAGE_W, height=PAGE_W * 4.6 / 7.0),
+        ]))
+
     # Evidence
     ev: list[Evidence] = sorted(report.evidence, key=lambda e: e.time)
     s.append(Paragraph(f"Evidence ({len(ev)})", H2))

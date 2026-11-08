@@ -1,0 +1,60 @@
+{
+  "overwatch": {
+    "found_rate": 0.815,
+    "found_within_1km2": 0.598,
+    "found_within_3km2": 0.76,
+    "median_area_km2": 0.65,
+    "median_team_hours": 1.3
+  },
+  "standard_search": {
+    "found_rate": 0.815,
+    "found_within_1km2": 0.522,
+    "found_within_3km2": 0.695,
+    "median_area_km2": 0.87,
+    "median_team_hours": 1.7
+  },
+  "area_reduction": "25% less area searched (median)",
+  "tip_value": {
+    "cases_with_tip": 240,
+    "median_area_km2_with_tip": 0.4,
+    "median_area_km2_without_tip": 1.06,
+    "found_within_1km2_with_tip": 0.704,
+    "found_within_1km2_without_tip": 0.471,
+    "area_reduction_from_tip": 0.623
+  },
+  "settings": {
+    "cases": 400,
+    "ghosts": 5000,
+    "cell_m": 100.0,
+    "pod": 0.8,
+    "team_km2_per_hour": 0.5,
+    "graph": "data\\graphs\\edmonton_demo.graphml",
+    "familiar_places": 329,
+    "engine": "backend (GhostEngine)",
+    "note": "Simulation only. Not data from real incidents."
+  },
+  "sets": [
+    {
+      "name": "seed1",
+      "cases": 200,
+      "engine": "backend (GhostEngine)",
+      "overwatch_median_km2": 0.65,
+      "standard_median_km2": 1.01,
+      "area_reduction": 0.356,
+      "overwatch_found_within_1km2": 0.585,
+      "standard_found_within_1km2": 0.495,
+      "tip_area_reduction": 0.659
+    },
+    {
+      "name": "seed2",
+      "cases": 200,
+      "engine": "backend (GhostEngine)",
+      "overwatch_median_km2": 0.63,
+      "standard_median_km2": 0.87,
+      "area_reduction": 0.276,
+      "overwatch_found_within_1km2": 0.61,
+      "standard_found_within_1km2": 0.55,
+      "tip_area_reduction": 0.621
+    }
+  ]
+}
