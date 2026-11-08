@@ -143,6 +143,37 @@ def summarize(rows, strategies):
     return out
 
 
+def median_area(vals):
+    """Median km^2 to find, counting unfound cases as 'never' (None if under half found)."""
+    found = sorted(v for v in vals if v is not None)
+    need = (len(vals) + 1) // 2
+    return found[need - 1] if vals and len(found) >= need else None
+
+
+def tip_value(rows):
+    """Paired comparison on cases that had a witness tip: Overwatch with vs without it."""
+    by_case = {}
+    for r in rows:
+        if r["has_sighting"] and r["strategy"] in ("overwatch", "overwatch_no_tip"):
+            by_case.setdefault(r["case"], {})[r["strategy"]] = r["area_km2"]
+    pairs = [v for v in by_case.values() if len(v) == 2]
+    if not pairs:
+        return None
+    with_tip = [p["overwatch"] for p in pairs]
+    without = [p["overwatch_no_tip"] for p in pairs]
+    a, b = median_area(with_tip), median_area(without)
+    out = {
+        "cases_with_tip": len(pairs),
+        "median_area_km2_with_tip": a,
+        "median_area_km2_without_tip": b,
+        "found_within_1km2_with_tip": round(sum(v is not None and v <= 1 for v in with_tip) / len(pairs), 3),
+        "found_within_1km2_without_tip": round(sum(v is not None and v <= 1 for v in without) / len(pairs), 3),
+    }
+    if a and b:
+        out["area_reduction_from_tip"] = round(1 - a / b, 3)
+    return out
+
+
 def make_chart(rows, path, n_cases):
     import matplotlib
     matplotlib.use("Agg")
@@ -175,6 +206,8 @@ def main():
     ap.add_argument("--ghosts", type=int, default=1000)
     ap.add_argument("--graph", default=None, help="GraphML path (default: data/graphs/edmonton_demo.graphml, else synthetic grid)")
     ap.add_argument("--seed", type=int, default=1)
+    ap.add_argument("--no-tip-test", action="store_true",
+                    help="skip the with/without-witness-tip comparison (faster)")
     ap.add_argument("--engine", choices=["backend", "local"], default=None,
                     help="backend = Rishaan's engine (default if available); local = test stand-in")
     ap.add_argument("--out", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "results"))
@@ -203,6 +236,12 @@ def main():
             "standard_search": standard_order(cells, case),
         }
         has_sighting = any(e.kind == "sighting" for e in case.evidence)
+        if has_sighting and not args.no_tip_test:
+            # "Value of a tip": same case, same luck, but the officer never entered the witness tip
+            no_tip = [e for e in case.evidence if e.kind != "sighting"]
+            ghosts_nt = engine_adapter.predict_ghosts(graph, case.profile, no_tip,
+                                                      case.report_delay_s, args.ghosts, seed)
+            orders["overwatch_no_tip"] = overwatch_order(cells, ghosts_nt)
         for s, order in orders.items():
             rows.append({"case": case.case_id, "strategy": s, "condition": case.profile.condition,
                          "mobility": case.profile.mobility, "has_sighting": has_sighting,
@@ -217,6 +256,9 @@ def main():
         w.writerows(rows)
 
     summary = summarize(rows, ["overwatch", "standard_search"])
+    tv = tip_value(rows)
+    if tv:
+        summary["tip_value"] = tv
     summary["settings"] = {"cases": args.cases, "ghosts": args.ghosts, "cell_m": CELL_M, "pod": POD,
                            "team_km2_per_hour": TEAM_KM2_PER_HOUR, "graph": graph.source, "familiar_places": len(graph.places),
                            "engine": engine_adapter.engine_name(),
@@ -225,6 +267,7 @@ def main():
         json.dump(summary, f, indent=2)
     make_chart(rows, os.path.join(args.out, "chart.png"), args.cases)
     print(json.dumps(summary, indent=2))
+    print("\nNext: python benchmark/pitch_assets.py  (pitch chart + 'How we tested it' text)")
 
 
 if __name__ == "__main__":
