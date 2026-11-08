@@ -86,7 +86,45 @@ def draw_detections(image, detections: list[Detection], colour=(36, 178, 255)):
     return out
 
 
-def detect_people_sliced(image, weights: str = DEFAULT_WEIGHTS, conf: float = 0.25,
-                         tile: int = 640, overlap: float = 0.2) -> list[Detection]:
-    """Sliced inference with SAHI, merged back to full-frame coordinates. Step 28."""
-    raise NotImplementedError("step 28")
+# Sliced-inference settings chosen in step 28 (see frontend/DECISIONS.md for the table they came from).
+SLICED_CONF = 0.10      # lower than whole-frame's 0.25: tiles are small, and precision stayed at 97-100% on both halves
+SLICE_TILE = 320        # px per tile of the frame as given: tuned for the demo clip, which is 1280 wide
+SLICE_OVERLAP = 0.2     # fraction shared by neighbouring tiles
+SLICE_IMGSZ = 1024      # each tile is enlarged to this before the detector sees it
+
+_SAHI_MODELS: dict[tuple, object] = {}
+
+
+def _sahi_model(weights: str, conf: float, imgsz: int):
+    key = (weights, conf, imgsz)
+    if key not in _SAHI_MODELS:
+        from sahi import AutoDetectionModel  # heavy import stays inside the function
+
+        _SAHI_MODELS[key] = AutoDetectionModel.from_pretrained(
+            model_type="ultralytics", model_path=_weights_path(weights), confidence_threshold=conf, image_size=imgsz,
+        )
+    return _SAHI_MODELS[key]
+
+
+def detect_people_sliced(image, weights: str = DEFAULT_WEIGHTS, conf: float = SLICED_CONF, tile: int = SLICE_TILE,
+                         overlap: float = SLICE_OVERLAP, imgsz: int = SLICE_IMGSZ, standard_pass: bool = True) -> list[Detection]:
+    """Sliced inference (SAHI): cut the frame into overlapping `tile`-pixel squares, detect in each (the tile is
+    run at `imgsz`, so a small tile is enlarged), and merge the boxes back to full-frame pixels. Boxes cut by a
+    tile edge are merged with their other half; duplicates from the overlap are removed. `standard_pass` also
+    runs one ordinary whole-frame pass, which keeps large people that no single tile contains whole."""
+    from PIL import Image
+    from sahi.predict import get_sliced_prediction
+
+    rgb = Image.fromarray(image[:, :, ::-1])      # OpenCV arrays are BGR; SAHI and PIL want RGB
+    result = get_sliced_prediction(
+        rgb, _sahi_model(weights, conf, imgsz), slice_height=tile, slice_width=tile,
+        overlap_height_ratio=overlap, overlap_width_ratio=overlap, perform_standard_pred=standard_pass,
+        postprocess_type="GREEDYNMM", postprocess_match_metric="IOS", postprocess_match_threshold=0.5, verbose=0,
+    )
+    boxes, scores, classes = [], [], []
+    for p in result.object_prediction_list:
+        b = p.bbox
+        boxes.append((b.minx, b.miny, b.maxx, b.maxy))
+        scores.append(p.score.value)
+        classes.append(p.category.id)
+    return to_detections(boxes, scores, classes, {PERSON_CLASS: "person"})

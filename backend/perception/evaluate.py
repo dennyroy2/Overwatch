@@ -82,6 +82,11 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--conf", type=float, default=0.25)
     p.add_argument("--iou", type=float, default=DEFAULT_IOU)
     p.add_argument("--weights", default=None)
+    p.add_argument("--width", type=int, default=None, help="shrink every image to this width first (the demo clip is 1280 wide)")
+    p.add_argument("--sliced", action="store_true", help="use sliced inference (SAHI) with the tile settings below")
+    p.add_argument("--tile", type=int, default=480)
+    p.add_argument("--overlap", type=float, default=0.2)
+    p.add_argument("--standard-pass", type=int, default=1, help="1 = also run a whole-frame pass")
     args = p.parse_args(argv)
 
     import cv2
@@ -92,12 +97,19 @@ def main(argv: list[str] | None = None) -> int:
     total = Counts(0, 0, 0, 0)
     for img_path in sorted(args.images.glob("*.jpg")):
         image = cv2.imread(str(img_path))
+        if args.width:
+            image = cv2.resize(image, (args.width, round(image.shape[0] * args.width / image.shape[1])), interpolation=cv2.INTER_AREA)
         h, w = image.shape[:2]
         truth = read_yolo_labels(args.labels / f"{img_path.stem}.txt", w, h)
-        c = match(truth, detect.detect_people(image, weights, args.conf, args.imgsz), args.iou)
+        if args.sliced:
+            dets = detect.detect_people_sliced(image, weights, args.conf, args.tile, args.overlap, args.imgsz, bool(args.standard_pass))
+        else:
+            dets = detect.detect_people(image, weights, args.conf, args.imgsz)
+        c = match(truth, dets, args.iou)
         total += c
         print(f"{img_path.name:24s} people {c.truth:2d}  found {c.found:2d}  boxes {c.boxes:2d}  correct {c.correct:2d}")
-    print(f"TOTAL  imgsz={args.imgsz} conf={args.conf} iou>={args.iou}: found {total.found} of {total.truth} people "
+    mode = f"sliced tile={args.tile} overlap={args.overlap} std={args.standard_pass} " if args.sliced else "whole-frame "
+    print(f"TOTAL  {mode}imgsz={args.imgsz} conf={args.conf} iou>={args.iou}: found {total.found} of {total.truth} people "
           f"(recall {total.recall:.0%}), {total.correct} of {total.boxes} boxes real (precision {total.precision:.0%})")
     return 0
 
