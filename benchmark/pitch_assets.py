@@ -8,6 +8,8 @@ Reads benchmark/results/{results.csv, summary.json} (written by run_benchmark.py
 
 Run (after run_benchmark.py):
   python benchmark/pitch_assets.py
+  python benchmark/pitch_assets.py --combine benchmark/results/seed1 benchmark/results/seed2
+      -> merges both case sets into benchmark/results/final/ (pitch uses this)
 
 Styled to frontend/DESIGN.md ("The Watch Floor"): IBM Plex Sans + Plex Mono (benchmark/fonts/,
 converted from the app's @fontsource files, SIL Open Font License), dark ground, panel cards with
@@ -94,6 +96,58 @@ def load(results_dir):
     return summary, rows
 
 
+def combine(dirs: list[str], out_dir: str):
+    """Merge several benchmark runs (e.g. --seed 1 and --seed 2) into one summary + CSV,
+    recomputed from the raw rows, and remember each run's own headline numbers."""
+    import sys
+    sys.path.insert(0, HERE)
+    from run_benchmark import summarize, tip_value
+
+    rows, sets = [], []
+    first_settings = None
+    for d in dirs:
+        summ, r = load(d)
+        first_settings = first_settings or summ.get("settings", {})
+        rows += r
+        ow, sd = summ["overwatch"], summ["standard_search"]
+        sets.append({
+            "name": os.path.basename(os.path.normpath(d)),
+            "cases": summ.get("settings", {}).get("cases"),
+            "engine": summ.get("settings", {}).get("engine"),
+            "overwatch_median_km2": ow.get("median_area_km2"),
+            "standard_median_km2": sd.get("median_area_km2"),
+            "area_reduction": (round(1 - ow["median_area_km2"] / sd["median_area_km2"], 3)
+                               if ow.get("median_area_km2") and sd.get("median_area_km2") else None),
+            "overwatch_found_within_1km2": ow.get("found_within_1km2"),
+            "standard_found_within_1km2": sd.get("found_within_1km2"),
+            "tip_area_reduction": (summ.get("tip_value") or {}).get("area_reduction_from_tip"),
+        })
+    engines = {x["engine"] for x in sets}
+    if len(engines) > 1:
+        raise SystemExit(f"Runs used different engines {engines}; re-run them on the same engine.")
+    summary = summarize(rows, ["overwatch", "standard_search"])
+    tv = tip_value(rows)
+    if tv:
+        summary["tip_value"] = tv
+    summary["settings"] = dict(first_settings, cases=sum(x["cases"] or 0 for x in sets))
+    summary["sets"] = sets
+
+    os.makedirs(out_dir, exist_ok=True)
+    with open(os.path.join(out_dir, "summary.json"), "w") as f:
+        json.dump(summary, f, indent=2)
+    with open(os.path.join(out_dir, "results.csv"), "w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
+        w.writeheader()
+        w.writerows(rows)
+    return summary, rows
+
+
+def per_set_text(summary, key):
+    """'36% and 28%' for each case set, or None for a single run."""
+    vals = [x.get(key) for x in summary.get("sets", []) if x.get(key) is not None]
+    return " and ".join(f"{v:.0%}" for v in vals) if len(vals) > 1 else None
+
+
 def is_placeholder(summary) -> bool:
     eng = str(summary.get("settings", {}).get("engine", ""))
     return "StubEngine" in eng or "local" in eng
@@ -112,10 +166,15 @@ def header(fig, summary, eyebrow, title, subtitle):
         text(fig, x + w / 2, y + h / 2, "PLACEHOLDER ENGINE · NOT FOR PITCH", 11, MONO[500],
              T["danger"], ha="center", va="center")
     graph = str(st.get("graph", "")).replace("\\", "/").split("/")[-1]
+    engine = str(st.get("engine", "?"))
+    engine = engine[engine.find("(") + 1:engine.rfind(")")] if "(" in engine else engine
+    n_sets = len(summary.get("sets", [])) or 1
+    cases_txt = (f"{st.get('cases', '?')} cases in {n_sets} independent sets" if n_sets > 1
+                 else f"{st.get('cases', '?')} cases")
     text(fig, 0.05, 0.045,
-         f"SIMULATION, NOT REAL INCIDENTS   ·   {st.get('cases', '?')} cases   ·   {graph}   ·   "
+         f"SIMULATION, NOT REAL INCIDENTS   ·   {cases_txt}   ·   {graph}   ·   "
          f"{st.get('familiar_places', '?')} real places   ·   detection {st.get('pod', '?')} per pass   ·   "
-         f"engine {st.get('engine', '?')}", 10, MONO[400], T["ink3"])
+         f"engine {engine}", 10, MONO[400], T["ink3"])
 
 
 def readout(fig, x, y, label, value, value_color, note=None):
@@ -174,10 +233,12 @@ def pitch_chart(summary, rows, path):
     rule(fig, rx, 0.535, 0.21)
     ma, mb = ow.get("median_area_km2"), sd.get("median_area_km2")
     if ma and mb:
-        readout(fig, rx, 0.49, "Median area to find", f"{ma:g} km²", T["ink"], f"standard search {mb:g} km²")
+        readout(fig, rx, 0.49, "Median area to find", f"{ma:.2f} km²", T["ink"], f"standard search {mb:.2f} km²")
         rule(fig, rx, 0.325, 0.21)
         if ma < mb:
-            readout(fig, rx, 0.28, "Less area searched", f"{1 - ma / mb:.0%}", T["ink"], "median case")
+            per_set = per_set_text(summary, "area_reduction")
+            readout(fig, rx, 0.28, "Less area searched", f"{1 - ma / mb:.0%}", T["ink"],
+                    f"median case · per set {per_set}" if per_set else "median case")
     fig.savefig(path, facecolor=T["ground"])
     plt.close(fig)
 
@@ -217,11 +278,13 @@ def tip_chart(summary, path):
     rx = 0.715
     red = tv.get("area_reduction_from_tip")
     if red is not None:
-        readout(fig, rx, 0.70, "Smaller search with the tip", f"{red:.0%}", T["amber"], "median area to find")
+        per_set = per_set_text(summary, "tip_area_reduction")
+        readout(fig, rx, 0.70, "Smaller search with the tip", f"{red:.0%}", T["amber"],
+                f"median area · per set {per_set}" if per_set else "median area to find")
         rule(fig, rx, 0.535, 0.21)
     ma, mb = tv["median_area_km2_with_tip"], tv["median_area_km2_without_tip"]
     if ma and mb:
-        readout(fig, rx, 0.49, "Median area to find", f"{ma:g} km²", T["ink"], f"without the tip {mb:g} km²")
+        readout(fig, rx, 0.49, "Median area to find", f"{ma:.2f} km²", T["ink"], f"without the tip {mb:.2f} km²")
         rule(fig, rx, 0.325, 0.21)
     readout(fig, rx, 0.28, "Cases with a tip", f"{tv['cases_with_tip']}", T["ink"])
     fig.savefig(path, facecolor=T["ground"])
@@ -236,7 +299,9 @@ def how_we_tested(summary) -> str:
             "submitting.\n\n" if is_placeholder(summary) else "")
     lines = [
         "# How we tested it", "", warn +
-        f"We built a benchmark that runs {st.get('cases', '?')} simulated missing-person cases on the "
+        f"We built a benchmark that runs {st.get('cases', '?')} simulated missing-person cases"
+        + (f" (two independent sets of {summary['sets'][0]['cases']})" if len(summary.get("sets", [])) > 1 else "")
+        + " on the "
         f"real Edmonton walking network (OpenStreetMap, downtown and the river valley) with "
         f"{st.get('familiar_places', '?')} real cafés, parks and places of worship as familiar places. "
         "In each case a simulated person (80% with dementia) leaves a last-seen point and walks for 1 to 3 "
@@ -253,13 +318,18 @@ def how_we_tested(summary) -> str:
         "",
         f"**Result:** Overwatch found {ow['found_within_1km2']:.0%} of people within the first km² "
         f"searched, vs {sd['found_within_1km2']:.0%} for standard search"
-        + (f"; the median case needed {ow['median_area_km2']:g} km² vs {sd['median_area_km2']:g} km²."
-           if ow.get("median_area_km2") and sd.get("median_area_km2") else "."),
+        + (f". The median case needed {ow['median_area_km2']:g} km² vs {sd['median_area_km2']:g} km², "
+           f"{1 - ow['median_area_km2'] / sd['median_area_km2']:.0%} less area"
+           if ow.get("median_area_km2") and sd.get("median_area_km2") else "")
+        + (f" ({per_set_text(summary, 'area_reduction')} in the two sets measured separately)."
+           if per_set_text(summary, "area_reduction") else "."),
     ]
     if tv.get("area_reduction_from_tip") is not None:
+        tip_sets = per_set_text(summary, "tip_area_reduction")
         lines += ["", f"**Value of a tip:** in the {tv['cases_with_tip']} cases with a witness "
                       f"sighting, entering it shrank the median area Overwatch needed by "
-                      f"{tv['area_reduction_from_tip']:.0%}."]
+                      f"{tv['area_reduction_from_tip']:.0%}"
+                      + (f" ({tip_sets} in the two sets separately)." if tip_sets else ".")]
     lines += ["", "This is a simulation, not data from real incidents. The code is in `benchmark/` "
                   "and reruns with one command: `python benchmark/run_benchmark.py`."]
     return "\n".join(lines) + "\n"
@@ -267,9 +337,18 @@ def how_we_tested(summary) -> str:
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--results", default=os.path.join(HERE, "results"))
+    ap.add_argument("--results", default=os.path.join(HERE, "results"),
+                    help="one benchmark run folder (default benchmark/results)")
+    ap.add_argument("--combine", nargs="+", metavar="DIR",
+                    help="merge several runs, e.g. --combine benchmark/results/seed1 benchmark/results/seed2")
+    ap.add_argument("--out", default=os.path.join(HERE, "results", "final"),
+                    help="where combined outputs go (with --combine)")
     args = ap.parse_args()
-    summary, rows = load(args.results)
+    if args.combine:
+        summary, rows = combine(args.combine, args.out)
+        args.results = args.out
+    else:
+        summary, rows = load(args.results)
     pitch_chart(summary, rows, os.path.join(args.results, "pitch_chart.png"))
     made_tip = tip_chart(summary, os.path.join(args.results, "pitch_tip_chart.png"))
     text = how_we_tested(summary)
