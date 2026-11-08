@@ -1,6 +1,7 @@
 """Fake live stream so the frontend and everyone else can build from minute one.
 
-Runs the StubEngine (random-walk ghosts on real Edmonton coordinates) and sprinkles
+Runs the GhostEngine (particle filter on Edmonton's street graph; OVERWATCH_ENGINE=stub
+for the old random walk) and sprinkles
 in scripted evidence cards and tasking requests. Swap in the real engine later by
 changing `make_engine()` only.
 """
@@ -14,7 +15,7 @@ from contracts.models import (
     Evidence, EvidenceMsg, GeoPoint, GhostsMsg, LogMsg, TaskingMsg,
 )
 from backend.api.hub import CaseHub
-from backend.engine.interface import SearchEngine, StubEngine
+from backend.engine.interface import GhostEngine, SearchEngine, StubEngine
 
 FPS = float(os.getenv("OVERWATCH_FPS", "5"))
 GHOSTS = int(os.getenv("OVERWATCH_GHOSTS", "5000"))
@@ -42,8 +43,13 @@ FAKE_BEATS = [
 ]
 
 
+ENGINE = os.getenv("OVERWATCH_ENGINE", "ghost")   # "ghost" (real) or "stub" (old random walk)
+
+
 def make_engine() -> SearchEngine:
-    return StubEngine(n_ghosts=GHOSTS)
+    if ENGINE == "stub":
+        return StubEngine(n_ghosts=GHOSTS)
+    return GhostEngine(n_ghosts=GHOSTS)
 
 
 async def _propose(hub: CaseHub, engine: SearchEngine) -> None:
@@ -57,7 +63,7 @@ async def run_fake_case(hub: CaseHub) -> None:
     start = hub.profile.last_seen_time or datetime.now(timezone.utc)
     engine.reset(hub.profile, start)
     beats = list(FAKE_BEATS) if FAKE_BEATS_ON else []
-    applied: set[str] = set()
+    applied: dict[str, Evidence] = {}   # id -> version applied (a card can be replaced by id)
     tick = 0
     seconds = 0.0
     try:
@@ -65,10 +71,10 @@ async def run_fake_case(hub: CaseHub) -> None:
             engine.step(SIM_MINUTES_PER_TICK)
             # Apply evidence posted by real teammates (perception, agent, scenario)
             async with hub.lock:
-                pending = [e for e in hub.evidence if e.id not in applied]
+                pending = [e for e in hub.evidence if applied.get(e.id) is not e]
             for ev in pending:
                 engine.apply(ev)
-                applied.add(ev.id)
+                applied[ev.id] = ev
             if any(ev.kind in PROPOSE_ON for ev in pending):
                 await _propose(hub, engine)
 
@@ -77,7 +83,7 @@ async def run_fake_case(hub: CaseHub) -> None:
                 _, spec = beats.pop(0)
                 ev = Evidence(case_id=hub.profile.case_id, time=engine.frame().t, confirmed=True, **spec)
                 hub.evidence.append(ev)
-                applied.add(ev.id)
+                applied[ev.id] = ev
                 engine.apply(ev)
                 await hub.broadcast(EvidenceMsg(data=ev))
                 await hub.broadcast(LogMsg(data=hub.add_log("system", "evidence_added", ev.summary)))
