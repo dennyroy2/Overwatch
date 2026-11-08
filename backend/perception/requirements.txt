@@ -1,0 +1,12 @@
+# Perception only (steps 25-34). Kept apart from the root requirements.txt so nobody
+# needs PyTorch to run the demo: detection runs ahead of time and the sidecar JSON and
+# crops are committed. Install with:
+#   python3 -m venv backend/perception/.venv
+#   backend/perception/.venv/bin/pip install -r backend/perception/requirements.txt
+ultralytics>=8.3
+sahi>=0.11
+opencv-python-headless>=4.9
+numpy>=1.26
+httpx>=0.27
+pydantic>=2.7
+pytest>=8

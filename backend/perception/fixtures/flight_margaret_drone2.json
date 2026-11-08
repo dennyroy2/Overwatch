@@ -1,0 +1,125 @@
+{
+  "clip": "margaret_drone2",
+  "width": 1280,
+  "height": 720,
+  "fps": 30,
+  "note": "Route copied from scenario/margaret_drone2.json (synthetic, no real flight log). The camera block is ASSUMED (nadir, 84 degree horizontal field of view) until Akshat confirms the real pitch and field of view (ask #7).",
+  "camera": {
+    "pitch_deg": 90,
+    "fov_h_deg": 84
+  },
+  "route": [
+    {
+      "t_s": 0.0,
+      "lat": 53.533379,
+      "lon": -113.538293,
+      "alt_m": 40,
+      "heading_deg": 51
+    },
+    {
+      "t_s": 1.0,
+      "lat": 53.53341,
+      "lon": -113.538229,
+      "alt_m": 40,
+      "heading_deg": 51
+    },
+    {
+      "t_s": 2.0,
+      "lat": 53.533441,
+      "lon": -113.538164,
+      "alt_m": 40,
+      "heading_deg": 51
+    },
+    {
+      "t_s": 3.0,
+      "lat": 53.533473,
+      "lon": -113.538099,
+      "alt_m": 40,
+      "heading_deg": 51
+    },
+    {
+      "t_s": 4.0,
+      "lat": 53.533504,
+      "lon": -113.538034,
+      "alt_m": 40,
+      "heading_deg": 51
+    },
+    {
+      "t_s": 5.0,
+      "lat": 53.533535,
+      "lon": -113.537969,
+      "alt_m": 40,
+      "heading_deg": 51
+    },
+    {
+      "t_s": 6.0,
+      "lat": 53.533566,
+      "lon": -113.537904,
+      "alt_m": 40,
+      "heading_deg": 51
+    },
+    {
+      "t_s": 7.0,
+      "lat": 53.533597,
+      "lon": -113.537839,
+      "alt_m": 40,
+      "heading_deg": 51
+    },
+    {
+      "t_s": 8.0,
+      "lat": 53.533628,
+      "lon": -113.537774,
+      "alt_m": 40,
+      "heading_deg": 51
+    },
+    {
+      "t_s": 9.0,
+      "lat": 53.533659,
+      "lon": -113.53771,
+      "alt_m": 40,
+      "heading_deg": 51
+    },
+    {
+      "t_s": 10.0,
+      "lat": 53.533691,
+      "lon": -113.537645,
+      "alt_m": 40,
+      "heading_deg": 51
+    },
+    {
+      "t_s": 11.0,
+      "lat": 53.533722,
+      "lon": -113.53758,
+      "alt_m": 40,
+      "heading_deg": 51
+    },
+    {
+      "t_s": 12.0,
+      "lat": 53.533753,
+      "lon": -113.537515,
+      "alt_m": 40,
+      "heading_deg": 51
+    },
+    {
+      "t_s": 13.0,
+      "lat": 53.533784,
+      "lon": -113.53745,
+      "alt_m": 40,
+      "heading_deg": 51
+    },
+    {
+      "t_s": 14.0,
+      "lat": 53.533815,
+      "lon": -113.537385,
+      "alt_m": 40,
+      "heading_deg": 51
+    },
+    {
+      "t_s": 14.5,
+      "lat": 53.533831,
+      "lon": -113.537353,
+      "alt_m": 40,
+      "heading_deg": 51
+    }
+  ]
+}
