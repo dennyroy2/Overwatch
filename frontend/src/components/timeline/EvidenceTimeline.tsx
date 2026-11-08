@@ -1,7 +1,8 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import { focusPoint, visibleAt } from '@/lib/evidence'
 import { useNow } from '@/lib/useNow'
+import { useWhy } from '@/lib/whySelect'
 import { flyToPoint, frameRoute } from '@/map/camera'
 import { framePoints } from '@/lib/attributionFrame'
 import { attribution } from '@/stream/attribution'
@@ -31,6 +32,19 @@ export function EvidenceTimeline() {
     const replay = { mode, t: replayT }
     return [...order].reverse().filter((id) => visibleAt(replay, history.firstSeen.get(id)))
   }, [order, mode, replayT])
+
+  // "Why?" mode (step 37): the cards behind the selected cluster light up and the rest step back.
+  const why = useWhy()
+  const whySeq = useStore((s) => s.ui.whySeq)
+  const lit = useMemo(() => (why ? new Set(why.items.map((i) => i.id)) : null), [why])
+  const litKey = lit ? [...lit].join(',') : ''
+  useEffect(() => {
+    // When a cluster is picked, bring its first lit card into view (the rail may be longer than the screen).
+    if (!lit) return
+    const first = ids.find((id) => lit.has(id))
+    if (first) document.querySelector(`li[data-evidence-id="${first}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only when a cluster is picked or its evidence changes
+  }, [whySeq, litKey])
 
   const onSelect = (id: string) => {
     const same = selectedId === id
@@ -66,6 +80,7 @@ export function EvidenceTimeline() {
             now={now}
             selected={selectedId === id}
             hovered={hoveredId === id}
+            why={lit ? (lit.has(id) ? 'lit' : 'dim') : null}
             onSelect={onSelect}
             onHover={hoverEvidence}
           />

@@ -233,6 +233,33 @@ async function runOnce(browser, mode, n, header) {
     }
     act('read-cards', `${ids.length} cards`)
 
+    // the officer asks the biggest cluster "why?": the story types out, arcs go to the evidence behind it, Escape leaves
+    const why = await page.evaluate(() => {
+      const bs = [...document.querySelectorAll('button.ow-cluster')]
+      const pct = (b) => Number((b.getAttribute('aria-label') || '').match(/(\d+) percent/)?.[1] ?? 0)
+      bs.sort((a, b) => pct(b) - pct(a))
+      if (!bs[0]) return null
+      bs[0].click()
+      return { pct: pct(bs[0]), rings: bs.length }
+    })
+    if (why) {
+      await sleep(900)
+      const early = await page.evaluate(() => (document.querySelector('[data-testid=why-story]') || {}).textContent?.length ?? null)
+      await sleep(3800)
+      const card = await page.evaluate(() => {
+        const c = document.querySelector('[data-testid=why-card]')
+        return c && { typed: c.querySelector('[data-testid=why-story]')?.textContent?.length, full: c.querySelector('[data-testid=why-story-full]')?.textContent?.length,
+          evidence: c.querySelector('[data-testid=why-count]')?.textContent, pending: !!c.querySelector('[data-testid=why-story-pending]'), noEvidence: !!c.querySelector('[data-testid=why-no-evidence]'),
+          litCards: document.querySelectorAll('li[data-why="lit"]').length, litPins: document.querySelectorAll('.ow-pin[data-why="lit"]').length, story: c.querySelector('[data-testid=why-story-full]')?.textContent }
+      })
+      write({ type: 'driver.why', ...why, typedAfter0_9s: early, ...card, src: 'driver' })
+      await page.screenshot({ path: join(OUT, `shot-${tag}-why.png`) })
+      await page.keyboard.press('Escape')
+      await sleep(600)
+      const left = await page.evaluate(() => !document.querySelector('[data-testid=why-card]'))
+      act('why-mode', `cluster ${why.pct}%: ${card ? `${card.evidence} evidence, ${card.litCards} cards lit, story ${card.typed}/${card.full} chars` : 'no card'}; Escape left: ${left}`, !!card && left)
+    } else act('why-mode', 'no cluster ring to click', false)
+
     // the officer says it is the subject; the report opens
     const confirmed = await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find((x) => x.textContent.trim() === 'Confirm subject located'); if (b) b.click(); return !!b })
     act('confirm-found', confirmed ? 'Confirm subject located' : 'banner button not found', confirmed)

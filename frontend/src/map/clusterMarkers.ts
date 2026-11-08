@@ -8,12 +8,16 @@
 import { Marker, type Map as MapLibreMap } from 'maplibre-gl'
 import { ClusterTracker, ringDiameterPx, topIndices, type Track } from '@/lib/clusters'
 import { distanceMetres, lerpPoint, toLngLat } from '@/lib/geo'
+import { whyFor } from '@/lib/whySelect'
+import { frameRoute } from './camera'
 import { selectDisplayedClusters, useStore } from '@/store'
 import type { Cluster, GeoPoint } from '@/types'
 
 /** How quickly a ring glides toward its newest centre (time constant, ms). */
 const GLIDE_MS = 250
 const LABELLED = 3
+/** Evidence farther than this from its cluster makes "Why?" mode frame them together; closer, the camera stays where it is. */
+const WHY_FRAME_M = 250
 
 class ClusterMarker {
   readonly el: HTMLButtonElement
@@ -80,6 +84,20 @@ export function watchClusters(map: MapLibreMap): () => void {
     const cluster = selectDisplayedClusters(s).find((c) => c.id === m.track.clusterId) ?? null
     // Clicking the selected cluster again clears the selection.
     s.selectCluster(cluster && s.ui.selectedClusterId === cluster.id ? null : cluster)
+    enterWhy()
+  }
+
+  /** "Why?" mode (step 37) starts with the click: show the evidence rail, and frame the cluster with its evidence if they are spread out. */
+  const enterWhy = () => {
+    const s = useStore.getState()
+    const why = whyFor(s)
+    if (!why || why.items.length === 0 || s.ui.replay.mode !== 'live') return
+    if (!s.ui.panels.left) s.setPanel('left', true)
+    const places = why.items.flatMap((i) => (i.place ? [i.place] : []))
+    if (places.length === 0) return
+    const span = Math.max(...places.map((p) => distanceMetres(why.cluster.center, p)))
+    // Leave room on the left for the story card (about 26 rem wide), so no arc ends underneath it.
+    if (span >= WHY_FRAME_M) frameRoute(map, [why.cluster.center, ...places], { top: 110, bottom: 220, left: 400 + 440, right: 400 })
   }
 
   const sync = () => {

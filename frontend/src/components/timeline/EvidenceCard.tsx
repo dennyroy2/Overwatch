@@ -14,6 +14,8 @@ export interface EvidenceCardProps {
   now: number
   selected: boolean
   hovered: boolean
+  /** "Why?" mode (step 37): this card is behind the selected cluster (lit), or is not (dim). null when the mode is off. */
+  why?: 'lit' | 'dim' | null
   onSelect: (id: string) => void
   onHover: (id: string | null) => void
 }
@@ -26,7 +28,7 @@ const EASE = [0.16, 1, 0.3, 1] as const
  * (kind, summary, reliability, pin) with a brief cyan flash. While the note is waiting it shows a quiet cyan
  * "Parsing" state that settles to a plain note if nothing arrives.
  */
-export function EvidenceCard({ evidence: e, seenAt, now, selected, hovered, onSelect, onHover }: EvidenceCardProps) {
+export function EvidenceCard({ evidence: e, seenAt, now, selected, hovered, why = null, onSelect, onHover }: EvidenceCardProps) {
   const reduced = useReducedMotion()
   const ref = useRef<HTMLLIElement>(null)
   const parsing = isParsing(e, seenAt, now)
@@ -63,6 +65,7 @@ export function EvidenceCard({ evidence: e, seenAt, now, selected, hovered, onSe
       transition={{ duration: reduced ? 0 : 0.26, ease: EASE }}
       data-evidence-id={e.id}
       data-kind={e.kind}
+      data-why={why ?? undefined}
     >
       <button
         type="button"
@@ -74,7 +77,8 @@ export function EvidenceCard({ evidence: e, seenAt, now, selected, hovered, onSe
         aria-pressed={selected}
         className={cn(
           'w-full rounded-md border bg-panel p-2.5 text-left transition-colors',
-          selected ? 'border-amber bg-raised' : flash ? 'border-ai' : hovered ? 'border-warm' : 'border-line',
+          selected ? 'border-amber bg-raised' : why === 'lit' ? 'border-ai bg-raised shadow-[0_0_0_1px_var(--ow-cyan-dim)]' : flash ? 'border-ai' : hovered ? 'border-warm' : 'border-line',
+          why === 'dim' && 'opacity-45',
         )}
       >
         <div className="flex items-center gap-2">

@@ -99,6 +99,7 @@ export function analyse(events) {
   R.attribution = ofType('driver.attribution').map((a) => `${a.kind}: ${a.legend}`)
   R.report = ofType('driver.report').at(0) ?? null
   R.pdf = ofType('driver.pdf').at(0) ?? null
+  R.why = ofType('driver.why').at(0) ?? null
   R.actions = ofType('driver.action').map((a) => `${(a.t / 1000).toFixed(1)}s ${a.name} ${a.ok === false ? 'FAILED ' : ''}${a.detail ?? ''}`)
   R.timeouts = ofType('driver.timeout').map((a) => `${a.what} after ${sec(a.afterMs)}`)
   R.final = ofType('driver.final').at(0) ?? null
@@ -180,6 +181,7 @@ export function buildReport(dir) {
       L.push(`- Toasts: ${r.toasts.join(' | ') || 'none'}; connection: ${[...new Set(r.connectionStates)].join(' > ') || '-'}; sockets: ${r.sockets.opens} opened, closes ${r.sockets.closes.join(',') || 'none'}, errors ${r.sockets.errors}`)
       L.push(`- Clusters without a story in a frame: ${r.storyNull} frames; top cluster at the end: ${r.topCluster ? `${r.topCluster.p} at ${r.topCluster.lat}, ${r.topCluster.lon}` : '-'}`)
       if (r.report) L.push(`- Report on screen: outcome ${r.report.outcome}; sections ${r.report.headings.join(', ')}`)
+      if (r.why) L.push(`- Why mode: clicked the ${r.why.pct}% cluster; ${r.why.evidence} evidence behind it, ${r.why.litCards} cards and ${r.why.litPins} pins lit; story typed ${r.why.typedAfter0_9s ?? '-'} chars after 0.9 s and ${r.why.typed}/${r.why.full} after 4.7 s${r.why.pending ? ' (STORY PENDING)' : ''}${r.why.noEvidence ? ' (no evidence attached)' : ''}`)
       if (r.pdf) L.push(`- PDF: ${r.pdf.error ? 'ERROR ' + r.pdf.error : `status ${r.pdf.status}, ${r.pdf.type}, ${r.pdf.bytes} bytes`}`)
       if (r.console.errors.length) L.push(`- Console errors: ${r.console.errors.join(' | ')}`)
       if (r.console.warnings.length) L.push(`- Console warnings: ${r.console.warnings.join(' | ')}`)

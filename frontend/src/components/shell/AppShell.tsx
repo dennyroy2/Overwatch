@@ -12,6 +12,7 @@ import { Rail } from './Rail'
 import { CommandBar } from './CommandBar'
 import { Scrubber } from './Scrubber'
 import { PipSlot, ReportSlot } from './Slots'
+import { WhyCard } from '@/components/why/WhyCard'
 import { AttributionLegend } from './AttributionLegend'
 import { FoundBanner } from './FoundBanner'
 import { Toaster } from './Toaster'
@@ -62,6 +63,7 @@ export function AppShell({ map }: { map: React.ReactNode }) {
         <PipSlot open={panels.pip} />
         <Scrubber />
         <CommandBar />
+        <WhyCard />
         <AttributionLegend />
         <Toaster />
         <FoundBanner />

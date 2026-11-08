@@ -30,6 +30,11 @@ export function srgbToLinear(c: number): number {
   return Math.round(255 * (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4))
 }
 
+/** "#rrggbb" (sRGB) -> [r, g, b] in linear light, 0-255: what the map framebuffer wants (see GHOST_RGB_LINEAR). */
+export function hexToLinear(hex: string): [number, number, number] {
+  return [1, 3, 5].map((i) => srgbToLinear(parseInt(hex.slice(i, i + 2), 16))) as [number, number, number]
+}
+
 /**
  * What we actually write into the colour buffer. MEASURED (step 15): the map framebuffer treats shader
  * colours as LINEAR light and gamma-encodes on display, so brightness rises roughly as opacity^0.4, not

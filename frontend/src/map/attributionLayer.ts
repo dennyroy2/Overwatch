@@ -6,19 +6,18 @@
 import { ScatterplotLayer } from '@deck.gl/layers'
 import { attribution, type AttributionSnapshot } from '@/stream/attribution'
 import { currentBuffer, ghosts } from '@/stream/ghostBuffer'
-import { srgbToLinear } from '@/stream/smoother'
+import { hexToLinear, srgbToLinear } from '@/stream/smoother'
 import { tokens } from '@/lib/tokens'
 
 export const ATTRIBUTION_MS = 5000
 const FADE_IN_MS = 150
 const FADE_OUT_MS = 700
 
-const hex = (h: string): [number, number, number] => [1, 3, 5].map((i) => srgbToLinear(parseInt(h.slice(i, i + 2), 16))) as [number, number, number]
 /** Muted, so it reads as "gone" and never competes with the amber swarm. */
 const REMOVED_RGB = [...[201, 84, 74].map(srgbToLinear), 235] as [number, number, number, number]
 /** Cyan is the colour of AI analysis in this design; this is an analysis of what the engine did. Stayed is the quieter cyan, arrived the bright one. */
-const STAYED_RGB = [...hex(tokens.cyan), 120] as [number, number, number, number]
-const ARRIVED_RGB = [...hex(tokens.cyan), 255] as [number, number, number, number]
+const STAYED_RGB = [...hexToLinear(tokens.cyan), 120] as [number, number, number, number]
+const ARRIVED_RGB = [...hexToLinear(tokens.cyan), 255] as [number, number, number, number]
 const DOT_PX = 2.6
 
 let view: { id: string; shownAt: number; snap: AttributionSnapshot } | null = null

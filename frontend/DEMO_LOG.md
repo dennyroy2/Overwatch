@@ -10,7 +10,8 @@ comparison, `REPORT.md`, from the raw logs. This file is the kept summary.
   and 5173 are never touched, and the script refuses to start if its ports are taken. A run never sees another run's case.
 - A scripted **officer** drives the screen like a person: opens the demo case, waits for a drone recommendation, reads it
   for 1.5 s and approves it, lets the drone feed play, waits for the possible-match banner, clicks every evidence card (each
-  shows what it removed, kept and brought in), confirms the subject, and reads the report and fetches the PDF.
+  shows what it removed, kept and brought in), asks the biggest cluster "why?" (the story types out, arcs go to the evidence
+  behind it, Escape leaves), confirms the subject, and reads the report and fetches the PDF.
 - Two modes: **`builtin`** is the API's own tips (what `make dev` does); **`scripted`** is `make api-live` plus the scenario's
   tips (the screen's own demo script) plus the drone clue delivered by perception's `emit` (the real demo's shape).
 - Logged as timestamped JSON lines: every stream message (ghost frames summarised: sim time, count, replaced slots, alive

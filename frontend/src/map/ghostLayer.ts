@@ -9,6 +9,7 @@ import { ScatterplotLayer } from '@deck.gl/layers'
 import { TripsLayer } from '@deck.gl/geo-layers'
 import type { Map as MapLibreMap } from 'maplibre-gl'
 import { attributionLayers } from './attributionLayer'
+import { whyLayers } from './whyLayer'
 import { createGroundSampler, type GroundSampler } from './elevation'
 import { CELL_METRES, CORE_OPACITY, GlowEase, densityStats } from './glow'
 import { SoftDisc, WarmCore } from './softDisc'
@@ -132,8 +133,11 @@ function makeLayers(out: SmootherOutput, trails: TrailOutput, glow: { halo: numb
   // Ghosts that were just replaced stay and dissolve (step 35): the same halo and core, fading and shrinking to nothing.
   const dyingLayers = dying && dying.count > 0 ? dissolveLayers(dying, glow, common) : []
   // Order: dissolving ghosts under, then halo, trails, and cores on top.
-  const overlay = attributionLayers(now, 'highway-name-path') // what the selected card killed and kept (step 36), on top
-  return TRAILS_ON ? [...dyingLayers, ...haloLayer, ...trailLayer, ...coreLayer, ...overlay] : [...dyingLayers, ...haloLayer, ...coreLayer, ...overlay]
+  // "Why?" mode (step 37): a scrim over the swarm and the arcs to the evidence behind the selected cluster; then what the
+  // selected card removed and kept (step 36), on top. Both only on the live picture (`now` is 0 for a replayed one).
+  const why = now > 0 ? whyLayers(now, 'highway-name-path') : []
+  const overlay = attributionLayers(now, 'highway-name-path')
+  return TRAILS_ON ? [...dyingLayers, ...haloLayer, ...trailLayer, ...coreLayer, ...why, ...overlay] : [...dyingLayers, ...haloLayer, ...coreLayer, ...why, ...overlay]
 }
 
 /** The dissolving ghosts. Radii come per ghost, in pixels, already shrinking, so no minimum may hold them open. */

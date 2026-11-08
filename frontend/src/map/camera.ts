@@ -52,14 +52,17 @@ export function flyToArea(map: MapLibreMap, centre: GeoPoint, zoom: number): voi
 
 /**
  * Ease the camera so a whole set of points (a route and its target) fits between the two rails, above the time
- * bar. Keeps the current pitch and bearing. Used when an approved request's route starts to draw.
+ * bar (or inside the `padding` given, e.g. to leave room for a card). Keeps the current pitch and bearing. Used when an approved request's route starts to draw.
  */
-export function frameRoute(map: MapLibreMap, pts: readonly GeoPoint[]): void {
+export function frameRoute(
+  map: MapLibreMap,
+  pts: readonly GeoPoint[],
+  padding: { top: number; bottom: number; left: number; right: number } = { top: 110, bottom: 220, left: 400, right: 400 },
+): void {
   if (pts.length === 0) return
   const [first, ...rest] = pts.map(toLngLat)
   const bounds = rest.reduce((b, p) => b.extend(p), new LngLatBounds(first, first))
   const duration = Math.min(cameraMs(), 1800)
-  const padding = { top: 110, bottom: 220, left: 400, right: 400 }
   if (duration === 0) {
     const cam = map.cameraForBounds(bounds, { padding, maxZoom: 16.2 })
     if (cam) map.jumpTo(cam)

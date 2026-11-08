@@ -71,8 +71,8 @@ export interface UiState {
   pipRequestId: string | null
   /** Last-seen point picked on the map while the New case sheet is open. Draft input, not backend data. */
   draftLastSeen: GeoPoint | null
-  /** "why" mode etc. (step 37). */
-  modes: { why: boolean }
+  /** Counts the officer's explicit cluster clicks. "Why?" mode (step 37) is just "a cluster is selected"; this restarts its typing and arcs each time a cluster is picked, even the same one again. */
+  whySeq: number
 }
 
 export interface ReplayView {
@@ -123,7 +123,7 @@ export interface StoreState {
   hydrate: (r: Report) => void
   /** Clear everything derived from the backend (new case, or the server lost the case). */
   resetCaseData: () => void
-  setUi: (patch: Partial<Omit<UiState, 'panels' | 'modes' | 'pipRequestId' | 'attribution'>>) => void
+  setUi: (patch: Partial<Omit<UiState, 'panels' | 'whySeq' | 'pipRequestId' | 'attribution'>>) => void
   setDraftLastSeen: (p: GeoPoint | null) => void
   setReplayMode: (mode: PlaybackMode) => void
   selectEvidence: (id: string | null) => void
@@ -157,7 +157,7 @@ const initialUi = (): UiState => ({
   pipRequestId: null,
   attribution: null,
   draftLastSeen: null,
-  modes: { why: false },
+  whySeq: 0,
 })
 
 let toastSeq = 0
@@ -274,7 +274,7 @@ export const useStore = create<StoreState>()((set) => ({
   setReplayMode: (mode) => set((s) => ({ ui: { ...s.ui, replay: { mode } } })),
   setReplayView: (replayView) => set({ replayView }),
   selectCluster: (c) =>
-    set((s) => ({ ui: { ...s.ui, selectedClusterId: c ? c.id : null, selectedPlace: c ? c.center : null } })),
+    set((s) => ({ ui: { ...s.ui, selectedClusterId: c ? c.id : null, selectedPlace: c ? c.center : null, whySeq: c ? s.ui.whySeq + 1 : s.ui.whySeq } })),
   setDraftLastSeen: (draftLastSeen) => set((s) => ({ ui: { ...s.ui, draftLastSeen } })),
   setPanel: (panel, open) => set((s) => ({ ui: { ...s.ui, panels: { ...s.ui.panels, [panel]: open } } })),
 }))
