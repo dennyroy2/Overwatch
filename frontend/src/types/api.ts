@@ -89,6 +89,67 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/case/{case_id}/alert": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Latest Alert
+         * @description The latest suggested public-alert area (also pushed on the stream as type "alert").
+         */
+        get: operations["latest_alert_case__case_id__alert_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/case/{case_id}/questions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Family Questions
+         * @description Questions for the family, tailored by AI to this case (curated fallback).
+         */
+        get: operations["family_questions_case__case_id__questions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/case/{case_id}/answers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Family Answer
+         * @description A family answer. Place answers are resolved to the map (street data only) and become a
+         *     favourite_place card the ghosts react to; other answers become a note card.
+         */
+        post: operations["family_answer_case__case_id__answers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/report/{case_id}/pdf": {
         parameters: {
             query?: never;
@@ -151,6 +212,55 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * AlertArea
+         * @description Suggested area for a targeted public alert (Alberta's Missing Persons Act allows police to
+         *     alert specific communities). A suggestion only: an officer decides whether to send it.
+         */
+        AlertArea: {
+            /** Id */
+            id?: string;
+            /** Case Id */
+            case_id: string;
+            /**
+             * Version
+             * @description 1 = first alert; 2+ = second waves after the hot spot moved
+             */
+            version: number;
+            /** Polygon */
+            polygon: components["schemas"]["GeoPoint"][];
+            /** Area Km2 */
+            area_km2: number;
+            /**
+             * Covers
+             * @description Share of the remaining probability inside the area
+             */
+            covers: number;
+            /**
+             * Message
+             * @description Ready-to-send public message
+             */
+            message: string;
+            /**
+             * Reason
+             * @description Why this area, and what changed since the last version
+             */
+            reason: string;
+            /**
+             * Time
+             * Format: date-time
+             */
+            time?: string;
+        };
+        /** AlertMsg */
+        AlertMsg: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "alert";
+            data: components["schemas"]["AlertArea"];
+        };
         /**
          * CloseSearch
          * @description Officer ends the search. found=True logs found_confirmed before search_closed.
@@ -272,6 +382,45 @@ export interface components {
             type: "evidence";
             data: components["schemas"]["Evidence"];
         };
+        /** FamilyAnswer */
+        FamilyAnswer: {
+            /** Question Id */
+            question_id: string;
+            /** Answer */
+            answer: string;
+        };
+        /** FamilyAnswerRecord */
+        FamilyAnswerRecord: {
+            /** Question */
+            question: string;
+            /** Answer */
+            answer: string;
+            /** Evidence Id */
+            evidence_id?: string | null;
+            /**
+             * Time
+             * Format: date-time
+             */
+            time?: string;
+        };
+        /**
+         * FamilyQuestion
+         * @description A question for the family/caregiver. kind='place' answers become map pins.
+         */
+        FamilyQuestion: {
+            /** Id */
+            id: string;
+            /** Text */
+            text: string;
+            /** Why */
+            why: string;
+            /**
+             * Kind
+             * @default info
+             * @enum {string}
+             */
+            kind: "place" | "info";
+        };
         /** FoundEvent */
         FoundEvent: {
             /** Case Id */
@@ -325,6 +474,12 @@ export interface components {
              * @description Slots reused for a new ghost since the last frame: don't animate these, fade them in
              */
             respawned?: number[];
+            /**
+             * Left Area
+             * @description Chance she is no longer in the search area (bus, car, or beyond the map edge). Search planners call this 'rest of world'.
+             * @default 0
+             */
+            left_area: number;
         };
         /** GhostsMsg */
         GhostsMsg: {
@@ -372,6 +527,23 @@ export interface components {
             requests: components["schemas"]["TaskingRequest"][];
             /** Log */
             log: components["schemas"]["LogEntry"][];
+            /**
+             * Alerts
+             * @description Every suggested alert area, in order
+             */
+            alerts?: components["schemas"]["AlertArea"][];
+            /** Family Answers */
+            family_answers?: components["schemas"]["FamilyAnswerRecord"][];
+            /**
+             * Areas
+             * @description Most likely areas when the report was made
+             */
+            areas?: components["schemas"]["Cluster"][];
+            /**
+             * Left Area
+             * @description Chance she left the search area, at report time
+             */
+            left_area?: number | null;
         };
         /** SubjectProfile */
         SubjectProfile: {
@@ -634,6 +806,105 @@ export interface operations {
             };
         };
     };
+    latest_alert_case__case_id__alert_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AlertArea"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    family_questions_case__case_id__questions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FamilyQuestion"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    family_answer_case__case_id__answers_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FamilyAnswer"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     report_pdf_report__case_id__pdf_get: {
         parameters: {
             query?: never;
@@ -717,7 +988,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["GhostsMsg"] | components["schemas"]["EvidenceMsg"] | components["schemas"]["TaskingMsg"] | components["schemas"]["LogMsg"] | components["schemas"]["FoundMsg"];
+                    "application/json": components["schemas"]["GhostsMsg"] | components["schemas"]["EvidenceMsg"] | components["schemas"]["TaskingMsg"] | components["schemas"]["LogMsg"] | components["schemas"]["FoundMsg"] | components["schemas"]["AlertMsg"];
                 };
             };
         };
