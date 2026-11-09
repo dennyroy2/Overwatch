@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
+import { Plus } from 'lucide-react'
 import { useStore } from '@/store'
 import { ghosts } from '@/stream/ghostBuffer'
 import { perf } from '@/stream/perf'
-import { attachCase, closeCase } from '@/stream/client'
-import { openDemo } from '@/lib/openDemo'
+import { attachCase, stopStream } from '@/stream/client'
+import { openDemo, stopDemo } from '@/lib/openDemo'
 
 /**
  * Dev-only. Live counts so the data path can be verified by eye. Ghost counters are read from the
@@ -16,7 +17,7 @@ export function DebugPanel() {
   const connection = useStore((s) => s.connection)
   const openPip = useStore((s) => s.openPip)
   const caseId = useStore((s) => s.caseProfile?.case_id)
-  const [g, setG] = useState({ points: 0, frames: 0, fps: 0, frameAge: 0, workMs: 0, respawn: '-', dissolving: 0, peak: 0, typical: 0, halo: 0, trails: 0 })
+  const [g, setG] = useState({ points: 0, frames: 0, fps: 0, respawn: '-', dissolving: 0, peak: 0, typical: 0, halo: 0, trails: 0 })
   const [open, setOpen] = useState(false)
   useEffect(() => {
     const id = setInterval(() => {
@@ -24,9 +25,6 @@ export function DebugPanel() {
         points: ghosts.count,
         frames: ghosts.frame,
         fps: Math.round(perf.fps),
-        // How old the newest data frame is. ~0-200 ms with a 5 fps feed; much larger means the stream stalled.
-        frameAge: ghosts.receivedAt ? Math.round(performance.now() - ghosts.receivedAt) : 0,
-        workMs: +perf.workMs.toFixed(2),
         peak: perf.peakPerCell,
         typical: +perf.typicalPerCell.toFixed(1),
         halo: +perf.haloOpacity.toFixed(3),
@@ -49,10 +47,12 @@ export function DebugPanel() {
     return (
       <button
         data-testid="debug-pill"
+        aria-label="Open the debug panel"
+        title="Debug"
         onClick={() => setOpen(true)}
         className="pointer-events-auto absolute left-1/2 top-[4.25rem] z-20 -translate-x-1/2 rounded-md border border-line bg-panel px-2 py-1 font-mono text-xs text-ink-2 shadow-panel hover:text-ink"
       >
-        Debug · {connection.state}{g.fps > 0 ? ` · ${g.fps} fps` : ''}
+        <Plus className="size-3.5" aria-hidden />
       </button>
     )
   }
@@ -66,8 +66,6 @@ export function DebugPanel() {
       {row('fps', g.fps)}
       {row('ghost points', g.points)}
       {row('frames', g.frames)}
-      {row('frame age ms', g.frameAge)}
-      {row('render ms', g.workMs)}
       {row('respawned', g.respawn)}
       {row('dissolving', g.dissolving)}
       {row('peak / cell', g.peak)}
@@ -82,7 +80,7 @@ export function DebugPanel() {
         <button className="rounded-sm bg-control px-2 py-1 text-ink hover:bg-raised" onClick={openDemo}>Open demo</button>
         <button className="rounded-sm bg-control px-2 py-1 text-ink hover:bg-raised" onClick={() => attachCase('case_doesnotexist')}>Unknown case</button>
         <button className="rounded-sm bg-control px-2 py-1 text-ink hover:bg-raised" onClick={() => openPip(null)}>Drone feed</button>
-        <button className="rounded-sm bg-control px-2 py-1 text-ink hover:bg-raised" onClick={closeCase}>Close</button>
+        <button className="rounded-sm bg-control px-2 py-1 text-ink hover:bg-raised" onClick={() => { stopDemo(); stopStream() }}>Close</button>
       </div>
     </div>
   )

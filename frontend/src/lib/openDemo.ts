@@ -35,3 +35,11 @@ export function openDemo(): void {
     }
   })
 }
+
+/** Stop the demo's own scripted tips (and the watch for a server restart) without touching the screen. */
+export function stopDemo(): void {
+  cancelTips?.()
+  stopWatching?.()
+  cancelTips = null
+  stopWatching = null
+}

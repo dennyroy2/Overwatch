@@ -8,13 +8,10 @@ export interface StatusBarProps {
   /** Pre-formatted, e.g. "01:12:30". Undefined shows the empty placeholder. */
   sinceLastSeen?: string
   simClock?: string
-  aliveFraction?: number
   connection?: ConnectionState
   onNewCase?: () => void
   /** Extra controls at the right end (Close search). */
   actions?: React.ReactNode
-  /** Shown when the view is paused or replaying, so a frozen picture is never mistaken for the live one. */
-  viewNote?: string
 }
 
 const dot: Record<ConnectionState, string> = {
@@ -38,11 +35,9 @@ export function StatusBar({
   caseName,
   sinceLastSeen,
   simClock,
-  aliveFraction,
   connection = 'idle',
   onNewCase,
   actions,
-  viewNote,
 }: StatusBarProps) {
   return (
     <header className="pointer-events-auto absolute inset-x-3 top-3 z-20 flex h-11 items-center gap-6 rounded-lg border border-line bg-panel px-4 shadow-panel">
@@ -53,16 +48,11 @@ export function StatusBar({
       <div className="ml-auto flex items-center gap-6">
         <Readout label="Last seen" value={sinceLastSeen ?? '--:--:--'} />
         <Readout label="Sim time" value={simClock ?? '--:--:--'} />
-        <Readout label="Ghosts alive" value={aliveFraction === undefined ? '--%' : `${Math.round(aliveFraction * 100)}%`} />
-        <div className="flex items-center gap-2" role="status" aria-live="polite">
+        {/* Just the dot; the words stay for screen readers and as a tooltip. */}
+        <div className="flex items-center" role="status" aria-live="polite" title={connectionLabel[connection]}>
           <span className={cn('size-2 rounded-full', dot[connection])} aria-hidden />
-          <span className="text-sm text-ink-2">{connectionLabel[connection]}</span>
+          <span className="sr-only">{connectionLabel[connection]}</span>
         </div>
-        {viewNote && (
-          <span className="rounded-sm bg-amber-wash px-2 py-0.5 text-sm font-medium text-amber" role="status" data-testid="view-note">
-            {viewNote}
-          </span>
-        )}
         {actions}
         {onNewCase && (
           <Button variant="secondary" size="sm" onClick={onNewCase}>

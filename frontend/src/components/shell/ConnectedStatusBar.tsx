@@ -14,24 +14,19 @@ export function ConnectedStatusBar() {
   const name = useStore((s) => s.caseProfile?.name)
   const lastSeenTime = useStore((s) => s.caseProfile?.last_seen_time)
   const liveT = useStore((s) => s.ghostMeta.t)
-  const liveAlive = useStore((s) => s.ghostMeta.aliveFraction)
   // Paused or replaying: show the recorded moment, not the newest data.
   const replay = useStore((s) => (s.ui.replay.mode !== 'live' ? s.replayView : null))
-  const mode = useStore((s) => s.ui.replay.mode)
   const connection = useStore((s) => s.connection.state)
   const setPanel = useStore((s) => s.setPanel)
 
   const simMs = replay ? (replay.simTime ?? undefined) : liveT ? Date.parse(liveT) : undefined
-  const alive = replay ? replay.alive : liveAlive
   const lastMs = lastSeenTime ? Date.parse(lastSeenTime) : undefined
   return (
     <StatusBar
       caseName={name}
       simClock={simMs === undefined ? undefined : new Date(simMs).toLocaleTimeString('en-CA', { hour12: false })}
       sinceLastSeen={simMs !== undefined && lastMs !== undefined ? hms((simMs - lastMs) / 1000) : undefined}
-      aliveFraction={alive ?? undefined}
       connection={connection}
-      viewNote={mode === 'paused' ? 'Paused view' : mode === 'playing' ? 'Replaying' : undefined}
       actions={<CloseSearchControl />}
       onNewCase={() => { setPanel('sheetCollapsed', false); setPanel('newCase', true) }}
     />
