@@ -16,6 +16,8 @@ import { PipSlot, ReportSlot } from './Slots'
 import { WhyCard } from '@/components/why/WhyCard'
 import { AttributionLegend } from './AttributionLegend'
 import { FoundBanner } from './FoundBanner'
+import { SafetyBanner } from './SafetyBanner'
+import { CoordReadout } from '@/components/map/CoordReadout'
 import { Toaster } from './Toaster'
 
 /**
@@ -37,6 +39,8 @@ export function AppShell({ map }: { map: React.ReactNode }) {
       <div className="absolute inset-0 z-0">{map}</div>
       <div className="pointer-events-none absolute inset-0">
         <ConnectedStatusBar />
+        <SafetyBanner />
+        <CoordReadout />
         {panels.newCase ? (
           <NewCaseSheet />
         ) : (

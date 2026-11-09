@@ -15,6 +15,8 @@ export type LogEntry = S['LogEntry']
 export type FoundEvent = S['FoundEvent']
 export type Report = S['Report']
 export type CloseSearch = S['CloseSearch']
+export type BuildingCheck = S['BuildingCheck']
+export type Bolo = S['Bolo']
 
 export type GhostsMsg = S['GhostsMsg']
 export type EvidenceMsg = S['EvidenceMsg']

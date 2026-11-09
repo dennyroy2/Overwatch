@@ -104,7 +104,7 @@ export interface StoreState {
   log: LogEntry[]
   logKeys: Record<string, true>
   clusters: Cluster[]
-  ghostMeta: { t: string | null; aliveFraction: number | null }
+  ghostMeta: { t: string | null; aliveFraction: number | null; leftArea?: number | null }
   /** What the recording shows while paused or replaying (null when live). Never backend data: derived from it. */
   replayView: ReplayView | null
   found: FoundEvent | null
@@ -118,7 +118,7 @@ export interface StoreState {
   setConnection: (state: ConnectionState, attempt?: number) => void
   /** Route one stream message. Ghost positions are NOT handled here (see client.ts). */
   applyMessage: (msg: Exclude<StreamMessage, { type: 'ghosts' }>) => void
-  applyGhostMeta: (t: string, aliveFraction: number, clusters: Cluster[]) => void
+  applyGhostMeta: (t: string, aliveFraction: number, clusters: Cluster[], leftArea?: number | null) => void
   /** Merge a GET /report snapshot (upsert, never replace). */
   hydrate: (r: Report) => void
   /** Clear everything derived from the backend (new case, or the server lost the case). */
@@ -225,13 +225,13 @@ export const useStore = create<StoreState>()((set) => ({
       }
     }),
 
-  applyGhostMeta: (t, aliveFraction, clusters) =>
+  applyGhostMeta: (t, aliveFraction, clusters, leftArea = null) =>
     set((s) => {
       // Re-resolve the selection against this frame: follow the place, not the id.
       const sel = resolveSelection(clusters, s.ui.selectedPlace)
       const keep = s.ui.selectedPlace === null
       return {
-        ghostMeta: { t, aliveFraction },
+        ghostMeta: { t, aliveFraction, leftArea },
         clusters,
         ui: keep
           ? s.ui
