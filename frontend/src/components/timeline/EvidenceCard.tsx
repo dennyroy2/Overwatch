@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import { Sparkles } from 'lucide-react'
-import { KIND_LABEL, SOURCE_LABEL, cardText, isAiText, isConfirmed, isParsing, mediaSrc, reliabilityOf } from '@/lib/evidence'
+import { KIND_LABEL, SOURCE_LABEL, cardText, isAiText, isConfirmed, isParsing, mediaSrc } from '@/lib/evidence'
 import { clockTime } from '@/lib/ui'
 import { cn } from '@/lib/utils'
 import type { Evidence, WithId } from '@/types'
@@ -33,7 +33,6 @@ export function EvidenceCard({ evidence: e, seenAt, now, selected, hovered, why 
   const ref = useRef<HTMLLIElement>(null)
   const parsing = isParsing(e, seenAt, now)
   const ai = isAiText(e)
-  const pct = Math.round(reliabilityOf(e) * 100)
   const SourceIcon = SOURCE_ICON[e.source]
   const src = mediaSrc(e)
   const [imageFailed, setImageFailed] = useState(false) // a missing crop hides itself; it never breaks the card
@@ -116,19 +115,7 @@ export function EvidenceCard({ evidence: e, seenAt, now, selected, hovered, why 
           />
         )}
 
-        <p className="mt-1.5 text-xs text-ink-3">
-          {SOURCE_LABEL[e.source]}
-          <span aria-hidden> · </span>
-          <span className="font-mono" title="When it was entered on this screen">entered {clockTime(seenAt)}</span>
-        </p>
-
-        <div className="mt-2 flex items-center gap-2">
-          <span className="text-xs text-ink-3">Reliability</span>
-          <div className="h-1.5 flex-1 rounded-sm bg-control" role="meter" aria-label="Reliability" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}>
-            <div className="h-full rounded-sm bg-amber transition-[width] duration-[var(--ow-dur-base)]" style={{ width: `${pct}%` }} />
-          </div>
-          <span className="w-9 text-right font-mono text-xs text-ink-2">{pct}%</span>
-        </div>
+        <p className="mt-1.5 font-mono text-xs text-ink-3" title="When it was entered on this screen">{clockTime(seenAt)}</p>
       </button>
     </motion.li>
   )

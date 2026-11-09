@@ -1,6 +1,6 @@
 // Camera moves. All coordinate conversion goes through lib/geo.ts (hard rule 7).
 import { LngLatBounds, type Map as MapLibreMap } from 'maplibre-gl'
-import { ALBERTA_CENTRE, toLngLat } from '@/lib/geo'
+import { ALBERTA_CENTRE, EDMONTON_CENTRE, toLngLat } from '@/lib/geo'
 import { useStore, type StoreState } from '@/store'
 import type { GeoPoint } from '@/types'
 
@@ -30,6 +30,12 @@ function cameraMs(kind: 'long' | 'short' = 'long'): number {
   const name = kind === 'long' ? '--ow-dur-camera' : '--ow-dur-camera-short'
   const ms = parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name))
   return Number.isFinite(ms) ? ms : kind === 'long' ? 3000 : 1500
+}
+
+/** Where the page opens: the centre of Edmonton, looking straight down at city scale. */
+export const START_VIEW = { zoom: 11.6, pitch: 0, bearing: 0 } as const
+export function startCamera() {
+  return { center: toLngLat(EDMONTON_CENTRE), ...START_VIEW }
 }
 
 export function overviewCamera() {

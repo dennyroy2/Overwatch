@@ -67,6 +67,8 @@ export class History {
   logAt = new Map<string, number>()
   /** When the drone feed first opened, so a replay from before that has no feed on screen. */
   feedOpenedAt: number | undefined = undefined
+  /** Set when the simulation was stopped: the live edge stays here (wall-clock ms) instead of growing. */
+  haltedAt: number | null = null
   private count = 0
   private pendingFlags = new Uint8Array(0)
   private pendingAny = false
@@ -75,6 +77,7 @@ export class History {
 
   reset(): void {
     this.epoch = null
+    this.haltedAt = null
     this.keyframes = []
     this.events = []
     this.firstSeen = new Map()
@@ -98,7 +101,12 @@ export class History {
 
   /** The live edge in history time: "now" relative to the first frame. */
   liveT(nowMs: number): number {
-    return this.epoch === null ? 0 : nowMs - this.epoch
+    return this.epoch === null ? 0 : (this.haltedAt ?? nowMs) - this.epoch
+  }
+
+  /** The simulation stopped: the time bar's end stops growing and the live picture stops moving. */
+  halt(nowMs: number): void {
+    if (this.epoch !== null && this.haltedAt === null) this.haltedAt = nowMs
   }
 
   onFrame(f: FrameInfo): void {

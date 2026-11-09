@@ -65,7 +65,7 @@ export function DebugPanel() {
         aria-label="Hide the debug panel"
         title="Hide"
         onClick={() => setOpen(false)}
-        className="absolute right-1.5 top-1.5 grid size-6 place-items-center rounded-sm text-ink-2 hover:bg-raised hover:text-ink"
+        className="absolute left-1/2 top-1.5 grid size-6 -translate-x-1/2 place-items-center rounded-sm text-ink-2 hover:bg-raised hover:text-ink"
       >
         <Minus className="size-3.5" aria-hidden />
       </button>
