@@ -113,7 +113,23 @@ def test_drone_first_then_ground_team_to_confirm():
         eng.step(2)
     eng.apply(_ev("clue", SLOPE, 94, source="drone_ai", reliability=0.82, radius_m=50))
     second = eng.propose()
-    assert second and second[0].asset == "Ground Team 1"
+    # confident after the air search: an interdisciplinary task force goes in (field feedback)
+    assert second and second[0].asset == "Task Force 1" and second[0].kind == "task_force"
+    assert first[0].utm and first[0].utm.startswith("12U ")
+
+
+def test_police_only_mode_never_sends_volunteers():
+    eng = _engine()
+    eng.profile.weapon_access = True
+    for _ in range(35):
+        eng.step(2)
+    eng.apply(_ev("sighting", BUS_STOP, 35, source="transit", reliability=0.75, radius_m=100))
+    eng.propose()
+    for _ in range(12):
+        eng.step(2)
+    eng.apply(_ev("clue", SLOPE, 94, source="drone_ai", reliability=0.82, radius_m=50))
+    second = eng.propose()[0]
+    assert "volunteers" in " ".join(second.reasons) and "weapon" in " ".join(second.reasons)
 
 
 @pytest.mark.parametrize("mobility", ["medium"])

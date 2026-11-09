@@ -66,6 +66,8 @@ export function NewCaseSheet() {
   const [clothing, setClothing] = useState<string[]>([])
   const [clothingInput, setClothingInput] = useState('')
   const [notes, setNotes] = useState('')
+  const [weapon, setWeapon] = useState(false)
+  const [violence, setViolence] = useState(false)
   const [time, setTime] = useState(() => localInputValue(new Date()))
   const [submitted, setSubmitted] = useState(false)
 
@@ -99,6 +101,7 @@ export function NewCaseSheet() {
     launch({
       name: name.trim(), age: ageNum, condition, mobility, clothing, notes: notes.trim(),
       last_seen: draftPoint, last_seen_time: new Date(time).toISOString(),
+      weapon_access: weapon, violence_history: violence,
     })
   }
 
@@ -225,6 +228,22 @@ export function NewCaseSheet() {
           <Field id={ids.notes} label="Notes">
             <Textarea id={ids.notes} rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
           </Field>
+
+          <fieldset className="flex flex-col gap-1.5">
+            <legend className="text-sm text-ink-2">Safety</legend>
+            {[
+              { on: weapon, set: setWeapon, label: 'May have access to a weapon' },
+              { on: violence, set: setViolence, label: 'History of violence' },
+            ].map((o) => (
+              <label key={o.label} className="flex items-center gap-2 text-base text-ink">
+                <input type="checkbox" checked={o.on} onChange={(e) => o.set(e.target.checked)} className="size-4 accent-[var(--ow-danger)]" />
+                {o.label}
+              </label>
+            ))}
+            {(weapon || violence) && (
+              <p className="text-sm text-danger">Police-only mode: volunteer teams will not be requested.</p>
+            )}
+          </fieldset>
 
           <div className="flex flex-col gap-1.5" aria-live="polite">
             <span className="text-sm text-ink-2">Last seen</span>

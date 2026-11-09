@@ -31,7 +31,12 @@ CURATED: list[tuple[str, str, str]] = [
      "Most people with dementia don't respond to searchers calling out."),
     ("exit", "info", "Which door did {name} probably leave by, and in which direction?|"
      "Direction of travel predicts where people with dementia end up."),
+    ("background", "info", "Did {name} have military, police, survival or outdoor training, or a job that kept them outdoors?|"
+     "Training shapes behaviour, even with dementia: they may go further or avoid being seen."),
+    ("safety", "info", "Could {name} have access to a weapon, or is there any history of violence?|"
+     "If yes, police lead the search and volunteers do not approach."),
 ]
+ALWAYS = ("background", "safety")   # field feedback: always asked, even when AI tailors the rest
 
 SYSTEM = """You help a police officer interview the family of a missing person with dementia.
 Return the 6 most useful questions for THIS case as a JSON array of objects with keys
@@ -64,7 +69,7 @@ def questions(profile: SubjectProfile, known: list[str]) -> list[FamilyQuestion]
         text = _call(SYSTEM, prompt, max_tokens=700)
         parsed = _parse(text)
         if parsed:
-            result = parsed
+            result = parsed + [q for q in curated(profile) if q.id in ALWAYS]
     _cache[profile.case_id] = result
     return result
 

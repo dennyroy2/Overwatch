@@ -29,7 +29,7 @@ async def main() -> None:
     ls = scenario["case"]["last_seen"]
     cid = httpx.post(f"{API}/case", json=scenario["case"]).json()["case_id"]
     print(f"case {cid}: playing the Margaret scenario (about 50 seconds)\n")
-    seen = {"drone": None, "ground": None, "hot_at_park": False, "stories": set(), "updates": 0,
+    seen = {"drone": None, "ground": None, "other": None, "hot_at_park": False, "stories": set(), "updates": 0,
             "match": None, "alerts": []}
     template = re.compile(r"^\d+% of the remaining possibilities")
     shown = set()
@@ -54,7 +54,8 @@ async def main() -> None:
                       f"({km(f['location']['lat'], f['location']['lon'], *PARK):.2f} km from the park)")
             elif msg["type"] == "tasking":
                 r = msg["data"]
-                key = "drone" if r["asset"].startswith("Drone") else "ground"
+                key = ("drone" if r["asset"].startswith("Drone") else
+                       "ground" if r["asset"] in ("Task Force 1", "Ground Team 1", "Police Unit 1") else "other")
                 first = seen[key] is None or seen[key]["id"] != r["id"]
                 seen["updates"] += 0 if first else 1
                 seen[key] = r
@@ -85,7 +86,7 @@ async def main() -> None:
     checks = [
         ("Hot spot moved to Emily Murphy Park after the bus sighting", seen["hot_at_park"]),
         ("Drone 2 request appeared", seen["drone"] is not None),
-        ("Ground Team 1 request appeared after the drone clue", seen["ground"] is not None),
+        ("Task Force 1 request appeared after the drone clue", seen["ground"] is not None),
         ("Possible-match alert raised at the park (awaiting officer confirmation)",
          seen["match"] is not None and km(seen["match"]["location"]["lat"],
                                           seen["match"]["location"]["lon"], *PARK) < 0.4),

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
-import { Check, ChevronDown, Crosshair, Minus, Sparkles, X } from 'lucide-react'
+import { Building, Check, ChevronDown, Crosshair, ListChecks, Minus, ShieldExclamationPoint, Sparkles, X } from 'lucide-react'
 import { KIND_LABEL } from '@/lib/evidence'
 import { constraintRows, gainPercent, type ConstraintState, type Request } from '@/lib/tasking'
 import { cn } from '@/lib/utils'
@@ -44,6 +44,10 @@ export function TaskingCard({ request: r, evidence, hovered, sending, choice, lo
   const [more, setMore] = useState(false)
   const alternatives = r.alternatives ?? []
   const pct = gainPercent(r)
+  const tasks = r.tasks ?? []
+  const checks = r.checks ?? []
+  // Drone, helicopter and team requests have flight/field constraints; checklists (first hour, CCTV, buildings) don't
+  const showConstraints = (r.kind ?? 'search') === 'search' || Object.keys(r.constraints_ok ?? {}).length > 0
 
   return (
     <motion.li
@@ -76,6 +80,12 @@ export function TaskingCard({ request: r, evidence, hovered, sending, choice, lo
           </button>
         </header>
 
+        {r.utm && (
+          <p className="mt-1 font-mono text-xs text-ink-3" title="Target in UTM (WGS84), as search teams read it">
+            {r.utm}
+          </p>
+        )}
+
         <div className="mt-2.5 flex items-center gap-3">
           <GainArc gain={r.expected_gain} />
           <p className="text-base leading-snug text-ink-2">
@@ -95,7 +105,46 @@ export function TaskingCard({ request: r, evidence, hovered, sending, choice, lo
           </ul>
         )}
 
-        <ul className="mt-2.5 grid grid-cols-2 gap-x-3 gap-y-1" aria-label="Constraint checks">
+        {tasks.length > 0 && (
+          <div className="mt-2.5 border-t border-line pt-2">
+            <p className="flex items-center gap-1.5 text-sm font-medium text-ink">
+              <ListChecks className="size-3.5" aria-hidden /> To do
+            </p>
+            <ul className="mt-1 flex flex-col gap-1 pl-5">
+              {tasks.map((t, i) => (
+                <li key={i} className="list-disc text-sm leading-snug text-ink-2 marker:text-ink-3">{t}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {checks.length > 0 && (
+          <div className="mt-2.5 border-t border-line pt-2">
+            <p className="flex items-center gap-1.5 text-sm font-medium text-ink">
+              <Building className="size-3.5" aria-hidden /> Buildings to check
+              <span className="font-mono text-xs text-ink-3">{checks.length}</span>
+            </p>
+            <ol className="mt-1 flex flex-col gap-1.5">
+              {checks.map((b, i) => (
+                <li key={i} className="rounded-sm border border-line bg-raised px-2 py-1.5">
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="font-mono text-xs text-ink-3">{i + 1}</span>
+                    <span className="text-sm font-medium text-ink">{b.name}</span>
+                    <span className="ml-auto font-mono text-xs text-amber">{Math.round(b.share * 100)}%</span>
+                  </div>
+                  <p className="mt-0.5 flex gap-1 text-xs leading-snug text-ink-2">
+                    <ShieldExclamationPoint className="mt-px size-3 shrink-0 text-ink-3" aria-hidden />
+                    {b.access}
+                  </p>
+                  <p className="mt-0.5 text-xs leading-snug text-ink-3">{b.actions.join(' · ')}</p>
+                  <p className="mt-0.5 font-mono text-[10px] text-ink-3">{b.utm}</p>
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
+
+        {showConstraints && <ul className="mt-2.5 grid grid-cols-2 gap-x-3 gap-y-1" aria-label="Constraint checks">
           {constraintRows(r).map(({ key, label, state }) => {
             const { icon: Icon, cls, word } = STATE_STYLE[state]
             return (
@@ -106,7 +155,7 @@ export function TaskingCard({ request: r, evidence, hovered, sending, choice, lo
               </li>
             )
           })}
-        </ul>
+        </ul>}
 
         {evidence.length > 0 && (
           <div className="mt-2.5 flex flex-wrap items-center gap-1.5">

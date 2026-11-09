@@ -48,6 +48,8 @@ class SubjectProfile(BaseModel):
     notes: str = ""
     last_seen: GeoPoint | None = None
     last_seen_time: datetime | None = None
+    weapon_access: bool = Field(default_factory=lambda: False, description="May have a weapon: police-only mode (no volunteer teams)")
+    violence_history: bool = Field(default_factory=lambda: False, description="History of violence: police-only mode (no volunteer teams)")
 
 
 class Evidence(BaseModel):
@@ -110,6 +112,37 @@ class TaskingRequest(BaseModel):
     alternatives: list[str] = Field(default_factory=list)
     constraints_ok: dict[str, bool] = Field(default_factory=dict, description="battery, line_of_sight, airspace, wind")
     status: Literal["pending", "approved", "rejected"] = "pending"
+    kind: Literal["search", "task_force", "first_hour", "cctv", "buildings"] = Field(
+        default_factory=lambda: "search", description="search = drone/helicopter/team; first_hour = BOLO + CCTV + obvious places; "
+                              "cctv = footage request; buildings = building-by-building checks")
+    utm: str | None = Field(default_factory=lambda: None, description='Target in UTM, as search teams read it: "12U 0332116E 5935574N"')
+    checks: list[BuildingCheck] = Field(default_factory=list, description="Buildings to check, most likely first")
+    tasks: list[str] = Field(default_factory=list, description="Checklist items (first-hour and CCTV requests)")
+
+
+class BuildingCheck(BaseModel):
+    """One building in a likely area: what it is, whether a team can just walk in, and what to do."""
+    name: str
+    kind: Literal["residential", "business", "public", "care", "parkade", "industrial", "outbuilding", "other"]
+    access: str = Field(description='e.g. "Private home: owner consent or a warrant needed"')
+    actions: list[str]
+    location: GeoPoint
+    utm: str
+    share: float = Field(ge=0.0, le=1.0, description="Share of the area's probability next to this building")
+
+
+class Bolo(BaseModel):
+    """Be-on-the-lookout bulletin for patrol, transit, taxis and building staff."""
+    case_id: str
+    text: str
+    police_only: bool = False
+    time: datetime = Field(default_factory=utcnow)
+
+
+class SafetyUpdate(BaseModel):
+    weapon_access: bool | None = None
+    violence_history: bool | None = None
+    officer: str = "Officer"
 
 
 class Decision(BaseModel):
@@ -220,3 +253,4 @@ class Report(BaseModel):
     family_answers: list[FamilyAnswerRecord] = Field(default_factory=list)
     areas: list[Cluster] = Field(default_factory=list, description="Most likely areas when the report was made")
     left_area: float | None = Field(default=None, description="Chance she left the search area, at report time")
+    bolo: Bolo | None = None

@@ -30,11 +30,25 @@ Scenario ──────┘                          └─► tasking reques
 | POST | `/evidence` | `Evidence` (must reference an existing `case_id`) |
 | POST | `/decision` | `Decision` on a tasking request |
 | GET | `/report/{case_id}` | Full case record |
+| GET | `/case/{case_id}/bolo` | Be-on-the-lookout bulletin (text) for patrol, transit, taxis, building staff |
+| POST | `/case/{case_id}/safety` | `SafetyUpdate`: weapon access / history of violence → police-only mode |
+| GET | `/case/{case_id}/buildings` | Buildings in the most likely area: type, access, what to do, UTM |
+| GET | `/case/{case_id}/export.geojson` | Likely areas, alert area, searched areas, evidence, assignments: import into CalTopo |
+| GET | `/case/{case_id}/export.kml` | Same layers for ATAK / Google Earth |
 | WS | `/stream/{case_id}` | Messages: `{"type": "ghosts" \| "evidence" \| "tasking" \| "log" \| "found", "data": ...}` |
 
 `ghosts.data.positions` is `[[lon, lat, weight], ...]`, pushed ~5×/s.
 
 Stream settings (env vars): `OVERWATCH_GHOSTS` (default 5000), `OVERWATCH_FPS` (5), `OVERWATCH_SIM_SPEED` (sim minutes per tick, 0.5), `OVERWATCH_FAKE_BEATS` (1; set to 0, or run `make api-live`, to turn off the built-in fake evidence when the scenario or real officers post evidence). Any posted sighting or clue triggers new tasking requests.
+
+### Field practice (search and rescue feedback, Nov 8)
+- **First-hour checks** card at case open: send the BOLO, pull camera footage, re-search the home, call hospitals and transit.
+- **CCTV request** after a transit or witness sighting (bus and stop cameras, nearby businesses, doorbells).
+- **Building checks**: a hot spot among buildings lists them with what kind of building each is, whether a team can walk in (private home, business hours, restricted site) and what to do. Ground requests carry the same list. Data: `python data/export_buildings.py` (needs internet).
+- **Task Force 1**: after the air search, an area holding 60%+ of the probability gets one interdisciplinary task force (police, SAR, paramedics).
+- **Police-only mode**: `weapon_access` / `violence_history` on the profile → banner, no volunteer teams, BOLO says do not approach.
+- **UTM everywhere** (`backend/engine/utm.py`, `frontend/src/lib/utm.ts`): on every request, the BOLO, exports, and a CalTopo-style cursor readout (UTM, lat/lon, elevation, WGS84).
+- The status bar shows **In search area** (1 − `left_area`) instead of "Ghosts alive", which read as a survival chance.
 
 ## Folder ownership
 | Folder | Owner |

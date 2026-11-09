@@ -8,7 +8,8 @@ export interface StatusBarProps {
   /** Pre-formatted, e.g. "01:12:30". Undefined shows the empty placeholder. */
   sinceLastSeen?: string
   simClock?: string
-  aliveFraction?: number
+  /** Chance the person is still inside the search area (1 - left_area). */
+  inAreaFraction?: number
   connection?: ConnectionState
   onNewCase?: () => void
   /** Extra controls at the right end (Close search). */
@@ -38,7 +39,7 @@ export function StatusBar({
   caseName,
   sinceLastSeen,
   simClock,
-  aliveFraction,
+  inAreaFraction,
   connection = 'idle',
   onNewCase,
   actions,
@@ -53,7 +54,7 @@ export function StatusBar({
       <div className="ml-auto flex items-center gap-6">
         <Readout label="Last seen" value={sinceLastSeen ?? '--:--:--'} />
         <Readout label="Sim time" value={simClock ?? '--:--:--'} />
-        <Readout label="Ghosts alive" value={aliveFraction === undefined ? '--%' : `${Math.round(aliveFraction * 100)}%`} />
+        <Readout label="In search area" value={inAreaFraction === undefined ? '--%' : `${Math.round(inAreaFraction * 100)}%`} />
         <div className="flex items-center gap-2" role="status" aria-live="polite">
           <span className={cn('size-2 rounded-full', dot[connection])} aria-hidden />
           <span className="text-sm text-ink-2">{connectionLabel[connection]}</span>
