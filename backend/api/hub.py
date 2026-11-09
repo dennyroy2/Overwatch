@@ -31,6 +31,9 @@ class CaseHub:
     family_answers: list = field(default_factory=list)   # FamilyAnswerRecord
     last_left_area: float | None = None                  # from the latest ghost frame
     last_clusters: list = field(default_factory=list)    # from the latest ghost frame
+    first_hour_sent: bool = False                        # BOLO + CCTV + obvious places, once per case
+    cctv_sent: int = 0                                   # camera-footage requests so far
+    engine: object = None                                # the running engine (for building checks)
 
     async def broadcast(self, msg) -> None:
         payload = _stream_adapter.dump_json(msg).decode()

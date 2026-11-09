@@ -31,7 +31,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from contracts.models import (
     AlertArea, CloseSearch, utcnow, FamilyAnswer, FamilyAnswerRecord, FamilyQuestion,
     Decision, Evidence, EvidenceMsg, LogMsg, Report, StreamMessage, SubjectProfile,
+    Bolo, BuildingCheck, SafetyUpdate,
 )
+import json
+
+from backend.api import export, field
+from backend.engine import buildings
+from backend.engine.ghost_engine import safety_words
 from backend.agent.hook import needs_parsing, schedule_upgrade
 from backend.agent import family
 from backend.api.fake_stream import run_fake_case
@@ -55,6 +61,9 @@ async def create_case(profile: SubjectProfile) -> SubjectProfile:
         profile.last_seen = EDMONTON_DEFAULT
     hub = registry.create(profile)
     hub.add_log("officer", "case_opened", f"{profile.name}, {profile.age}, {profile.condition}")
+    if field.police_only(profile):
+        hub.add_log("officer", "safety_flag",
+                    f"{safety_words(profile)} Police-only mode: volunteers do not approach.")
     return profile
 
 
@@ -81,6 +90,9 @@ async def decide(decision: Decision) -> dict:
         req.status = "approved" if decision.approved else "rejected"
         detail = f"{req.asset}: {req.status}" + (f" ({decision.reason})" if decision.reason else "")
         await hub.broadcast(LogMsg(data=hub.add_log(decision.officer, "decision", detail)))
+        if decision.approved and req.kind == "first_hour":
+            text = field.bolo(hub.profile).text
+            await hub.broadcast(LogMsg(data=hub.add_log(decision.officer, "bolo_sent", text.replace("\n", " | "))))
         return {"ok": True, "status": req.status}
     raise HTTPException(404, f"Unknown request {decision.request_id}")
 
@@ -93,7 +105,61 @@ def report(case_id: str) -> Report:
     return Report(case=hub.profile, evidence=hub.evidence,
                   requests=list(hub.requests.values()), log=hub.log,
                   alerts=hub.alerts, family_answers=hub.family_answers,
-                  areas=hub.last_clusters, left_area=hub.last_left_area)
+                  areas=hub.last_clusters, left_area=hub.last_left_area, bolo=field.bolo(hub.profile))
+
+
+def _hub(case_id: str):
+    hub = registry.get(case_id)
+    if hub is None:
+        raise HTTPException(404, f"Unknown case {case_id}")
+    return hub
+
+
+@app.get("/case/{case_id}/bolo", response_model=Bolo)
+def case_bolo(case_id: str) -> Bolo:
+    """Be-on-the-lookout bulletin for patrol, transit, taxis and building staff."""
+    return field.bolo(_hub(case_id).profile)
+
+
+@app.post("/case/{case_id}/safety", response_model=SubjectProfile)
+async def set_safety(case_id: str, body: SafetyUpdate) -> SubjectProfile:
+    """Weapon access / history of violence: police-only mode (no volunteer teams are requested)."""
+    hub = _hub(case_id)
+    if body.weapon_access is not None:
+        hub.profile.weapon_access = body.weapon_access
+    if body.violence_history is not None:
+        hub.profile.violence_history = body.violence_history
+    on = field.police_only(hub.profile)
+    detail = (f"{safety_words(hub.profile)} Police-only mode: volunteers do not approach." if on
+              else "Safety concern cleared: volunteer teams may be requested again.")
+    await hub.broadcast(LogMsg(data=hub.add_log(body.officer, "safety_flag", detail)))
+    return hub.profile
+
+
+@app.get("/case/{case_id}/buildings", response_model=list[BuildingCheck])
+def case_buildings(case_id: str) -> list[BuildingCheck]:
+    """Buildings in the most likely area: type, access and what to do at each."""
+    hub = _hub(case_id)
+    if hub.engine is None or not hub.last_clusters or not hasattr(hub.engine, "g"):
+        return []
+    c = hub.last_clusters[0].center
+    return buildings.checks_near(hub.engine, c.lon, c.lat)
+
+
+@app.get("/case/{case_id}/export.geojson")
+def export_geojson(case_id: str) -> Response:
+    """Likely areas, alert area, searched areas, evidence and assignments for CalTopo (import as GeoJSON)."""
+    hub = _hub(case_id)
+    return Response(json.dumps(export.geojson(hub)), media_type="application/geo+json",
+                    headers={"Content-Disposition": f'attachment; filename="overwatch_{case_id}.geojson"'})
+
+
+@app.get("/case/{case_id}/export.kml")
+def export_kml(case_id: str) -> Response:
+    """Same layers as KML for ATAK, CalTopo or Google Earth."""
+    hub = _hub(case_id)
+    return Response(export.kml(hub), media_type="application/vnd.google-earth.kml+xml",
+                    headers={"Content-Disposition": f'attachment; filename="overwatch_{case_id}.kml"'})
 
 
 @app.get("/case/{case_id}/alert", response_model=AlertArea)

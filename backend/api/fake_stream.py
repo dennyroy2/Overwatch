@@ -13,8 +13,10 @@ import os
 from datetime import datetime, timedelta, timezone
 
 from contracts.models import (
-    Evidence, EvidenceMsg, FoundEvent, FoundMsg, GeoPoint, GhostsMsg, LogMsg, TaskingMsg,
+    Evidence, EvidenceMsg, FoundEvent, FoundMsg, GeoPoint, GhostsMsg, LogMsg, TaskingMsg, TaskingRequest,
 )
+from backend.api import field
+from backend.engine import buildings
 from backend.agent.narrator import narrator
 from backend.api.alerts import maybe_alert
 from backend.api.hub import CaseHub
@@ -28,6 +30,7 @@ FAKE_BEATS_ON = os.getenv("OVERWATCH_FAKE_BEATS", "1").lower() not in ("0", "fal
 
 # Evidence that should make the engine propose new tasking requests
 PROPOSE_ON = ("sighting", "clue")
+FIRST_HOUR_AT_S = 1.5        # first-hour checks card shortly after the case opens
 
 # Fictional demo beats (location approximate; Edmonton river valley area)
 FAKE_BEATS = [
@@ -55,11 +58,63 @@ def make_engine() -> SearchEngine:
     return GhostEngine(n_ghosts=GHOSTS)
 
 
+GROUND = ("Ground Team 1", "Police Unit 1", "Task Force 1")
+
+
+async def _send_request(hub: CaseHub, req: TaskingRequest) -> None:
+    hub.requests[req.id] = req
+    await hub.broadcast(TaskingMsg(data=req))
+    if req.kind in ("search", "task_force"):
+        narrator.schedule_reasons(hub, req)      # AI wording follows, same request id
+
+
 async def _propose(hub: CaseHub, engine: SearchEngine) -> None:
     for req in engine.propose():
-        hub.requests[req.id] = req
-        await hub.broadcast(TaskingMsg(data=req))
-        narrator.schedule_reasons(hub, req)          # AI wording follows, same request id
+        if req.asset in GROUND and hasattr(engine, "g"):
+            # A ground team gets the buildings in its area: each needs a different kind of access
+            lon = sum(p.lon for p in req.target_area) / len(req.target_area)
+            lat = sum(p.lat for p in req.target_area) / len(req.target_area)
+            req.checks = buildings.checks_near(engine, lon, lat)
+        await _send_request(hub, req)
+
+
+async def _field_requests(hub: CaseHub, engine: SearchEngine, new: list[Evidence]) -> None:
+    """CCTV after a transit or witness sighting."""
+    for ev in new:
+        if hub.cctv_sent < field.MAX_CCTV:
+            req = field.cctv_request(hub.profile, ev, engine)
+            if req:
+                hub.cctv_sent += 1
+                await _send_request(hub, req)
+
+
+BUILDINGS_MIN_P = 0.35      # a hot spot this strong, among buildings, gets a building-by-building list
+
+
+async def _maybe_building_checks(hub: CaseHub, engine: SearchEngine, clusters) -> None:
+    """'We narrowed it to 6 buildings, then what?': once a hot spot sits among buildings, list them
+    with their access rules. Once per area; ground requests carry their own list."""
+    if not clusters or not hasattr(engine, "g"):
+        return
+    top = clusters[0]
+    if top.probability < BUILDINGS_MIN_P:
+        return
+    c = (top.center.lon, top.center.lat)
+    ls = hub.profile.last_seen
+    if ls is not None and _metres(ls, top.center) < 400:
+        return                                   # still at the start: the first-hour checks cover it
+    for req in hub.requests.values():
+        if req.kind in ("buildings", "task_force") or req.asset in GROUND:
+            lon = sum(p.lon for p in req.target_area) / len(req.target_area)
+            lat = sum(p.lat for p in req.target_area) / len(req.target_area)
+            if _metres(GeoPoint(lat=lat, lon=lon), top.center) < 400:
+                return
+    near = [e for e in hub.evidence if e.id in top.evidence_ids]
+    why = (f"Hot spot: {top.probability:.0%} of the possibilities are here"
+           + (f", near: {near[-1].summary}." if near else "."))
+    req = field.buildings_request(hub.profile, engine, c[0], c[1], why, top.evidence_ids)
+    if req:
+        await _send_request(hub, req)
 
 
 # A detection from a sensor (drone, camera, ground team) that lands where the engine already
@@ -114,6 +169,8 @@ async def run_fake_case(hub: CaseHub) -> None:
     engine = make_engine()
     start = hub.profile.last_seen_time or datetime.now(timezone.utc)
     engine.reset(hub.profile, start)
+    hub.engine = engine
+    await asyncio.to_thread(buildings.load)        # read the building file now, not mid-demo
     beats = list(FAKE_BEATS)[hub.beats_sent:] if FAKE_BEATS_ON else []
     applied: dict[str, Evidence] = {}   # id -> version applied (a card can be replaced by id)
     tick = 0
@@ -130,7 +187,14 @@ async def run_fake_case(hub: CaseHub) -> None:
                 await _log_search_result(hub, engine, ev)
             if any(ev.kind in PROPOSE_ON for ev in pending):
                 await _propose(hub, engine)
+            await _field_requests(hub, engine, pending)
             await _check_possible_match(hub, engine, pending)
+            if not hub.first_hour_sent and seconds >= FIRST_HOUR_AT_S:
+                hub.first_hour_sent = True
+                now = getattr(engine, "t", None) or engine.frame().t
+                req = field.first_hour_request(hub.profile, now, engine)
+                if req:
+                    await _send_request(hub, req)
 
             # Scripted fake beats
             new = list(pending)
@@ -148,12 +212,15 @@ async def run_fake_case(hub: CaseHub) -> None:
                 await hub.broadcast(LogMsg(data=hub.add_log("system", "evidence_added", ev.summary)))
                 if ev.kind in PROPOSE_ON:
                     await _propose(hub, engine)
+                await _field_requests(hub, engine, [ev])
                 await _check_possible_match(hub, engine, [ev])
 
             await maybe_alert(hub, engine, seconds, new)  # targeted public alert area (+ second waves)
 
             frame = engine.frame()
             hub.last_left_area, hub.last_clusters = frame.left_area, frame.clusters
+            if tick % int(max(FPS, 1)) == 0:            # once a second
+                await _maybe_building_checks(hub, engine, frame.clusters)
             narrator.decorate(hub, frame)                # AI cluster stories once ready
             await hub.broadcast(GhostsMsg(data=frame))
             tick += 1

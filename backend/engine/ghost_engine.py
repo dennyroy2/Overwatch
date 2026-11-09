@@ -30,6 +30,7 @@ from pathlib import Path
 
 import numpy as np
 
+from backend.engine.utm import utm_str
 from contracts.models import (
     Cluster, Evidence, GeoPoint, GhostFrame, SubjectProfile, TaskingRequest,
 )
@@ -60,6 +61,7 @@ BEHAVIOUR = dict(
     p_left_prior=0.08,     # prior chance she left the area (bus, car) before police arrived
     edge_band_m=150.0,     # ghosts this close to the map edge may already be beyond it
 )
+TASK_FORCE_P = 0.6         # after the air search, this much probability in one area = send a task force
 DRONE_RANGE_M = 1500.0     # beyond this from the command post, the helicopter goes instead
 AERIAL = {"Drone 2", "Air 1"}
 BACKGROUND_AREA_M2 = 10e6  # where a mistaken report could have put her (~10 km^2)
@@ -316,10 +318,13 @@ class GhostEngine:
             c = self.g.to_xy(cl.center.lon, cl.center.lat)
             before = {a for p, a in self.proposed if np.linalg.norm(c - p) < 300}
             far = float(np.linalg.norm(c - self.base_xy)) > DRONE_RANGE_M
+            ground = {"Ground Team 1", "Police Unit 1", "Task Force 1"}
             if not before:
                 asset = "Air 1" if far else "Drone 2"
-            elif before & AERIAL and "Ground Team 1" not in before and cl.probability >= 0.5:
-                asset = "Ground Team 1"
+            elif before & AERIAL and not before & ground and cl.probability >= TASK_FORCE_P:
+                asset = "Task Force 1"            # confident: send police + SAR + EMS together
+            elif before & AERIAL and not before & ground and cl.probability >= 0.5:
+                asset = "Police Unit 1" if self.police_only else "Ground Team 1"
             else:
                 continue
             self.proposed.append((c, asset))
@@ -605,6 +610,12 @@ class GhostEngine:
             text += " Supported by: " + "; ".join(e.summary for e in evid[:3]) + "."
         return text
 
+    @property
+    def police_only(self) -> bool:
+        """Weapon access or a history of violence: volunteers must not approach."""
+        p = self.profile
+        return bool(p and (getattr(p, "weapon_access", False) or getattr(p, "violence_history", False)))
+
     def _request(self, cl: Cluster, c: np.ndarray, others: list[Cluster], asset: str) -> TaskingRequest:
         dist = float(np.linalg.norm(c - self.base_xy))
         drone = asset.startswith("Drone")
@@ -621,16 +632,27 @@ class GhostEngine:
         poa = cl.probability * (1 - self.p_out)
         reasons = [f"{likelihood_words(poa).capitalize()}: {cl.probability:.0%} of the remaining possibilities "
                    f"are within 350 m (POA {poa:.0%} x POD {pod:.0%} = POS {poa * pod:.0%})."]
-        if asset.startswith("Ground"):
+        if asset.startswith("Ground") or asset.startswith("Police"):
             reasons.append("Already looked at from the air; a ground team can confirm in person.")
+        if asset == "Task Force 1":
+            reasons.append("High confidence after the air search: send one task force together (police, "
+                           "search and rescue, paramedics) to confirm and give care on the spot."
+                           if not self.police_only else
+                           "High confidence after the air search: police-led task force (police and "
+                           "paramedics; volunteers stay back).")
+        if self.police_only and not (drone or heli):
+            reasons.append("Safety: " + safety_words(self.profile) + " Police lead; volunteers do not approach.")
         if heli:
             reasons.append("Beyond drone range from the command post; Air 1's infrared covers it fastest.")
         reasons += [e.summary for e in sorted(evid, key=lambda e: e.time, reverse=True)[:3]]
         if others:
             reasons.append(f"Next most likely area holds {others[0].probability:.0%}.")
         speed_m_min = 600.0 if drone else 2500.0 if heli else 250.0   # drone, helicopter, drive-then-walk
+        lon_c, lat_c = self._xy_to_lonlat(c)
         return TaskingRequest(
             case_id=self.case_id, asset=asset,
+            kind="task_force" if asset == "Task Force 1" else "search",
+            utm=utm_str(lon_c, lat_c),
             target_area=[to_pt(p) for p in corners],
             route=[to_pt(self.base_xy), to_pt(c)],
             expected_gain=round(min(poa * pod, 1.0), 4),
@@ -641,6 +663,15 @@ class GhostEngine:
             constraints_ok=({"battery": True, "airspace": True, "wind": True, "line_of_sight": dist < DRONE_RANGE_M}
                             if drone else {"airspace": True, "weather": True} if heli else {"daylight": True}),
         )
+
+
+def safety_words(profile) -> str:
+    parts = []
+    if getattr(profile, "weapon_access", False):
+        parts.append("may have access to a weapon")
+    if getattr(profile, "violence_history", False):
+        parts.append("history of violence reported")
+    return (" and ".join(parts) or "safety concern").capitalize() + "."
 
 
 def likelihood_words(p: float) -> str:
