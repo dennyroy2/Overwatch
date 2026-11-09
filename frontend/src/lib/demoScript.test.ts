@@ -60,11 +60,39 @@ describe('demo tips', () => {
     c.advance(QUIET_AFTER_MS - 1)
     expect(posted).toHaveLength(0)
     c.advance(1)
+    expect(posted).toHaveLength(0) // the first beat is due 2 s after the takeover (scenario at_s 2)
+    c.advance(2000)
     expect(posted.map((p) => p.kind)).toEqual(['last_seen'])
-    c.advance(6000)
+    c.advance(6000) // 8 s: the favourite place
     expect(posted).toHaveLength(2)
     c.advance(60_000)
     expect(posted.map((p) => p.kind)).toEqual(['last_seen', 'favourite_place', 'searched_area', 'sighting', 'clue'])
+  })
+
+  it("plays the scenario's own times (Akshat's ask #8): 2, 8, 34, 40 and 48 s", () => {
+    expect(DEMO_TIPS.map((x) => x.afterS)).toEqual([2, 8, 34, 40, 48])
+    expect(DEMO_TIPS.map((x) => x.minutesAfter)).toEqual([0, 0, 85, 35, 120])
+  })
+
+  it('skips its drone clue when one is already on screen (perception delivered it), and posts it when not', () => {
+    const withClue = setup({ hasDroneEvidence: () => true })
+    startDemoTips(withClue.deps)
+    withClue.c.advance(QUIET_AFTER_MS + 120_000)
+    expect(withClue.posted.map((p) => p.kind)).toEqual(['last_seen', 'favourite_place', 'searched_area', 'sighting']) // no clue
+    const without = setup({ hasDroneEvidence: () => false })
+    startDemoTips(without.deps)
+    without.c.advance(QUIET_AFTER_MS + 120_000)
+    expect(without.posted.map((p) => p.kind)).toEqual(['last_seen', 'favourite_place', 'searched_area', 'sighting', 'clue'])
+  })
+
+  it('checks for a drone clue at the moment the beat is due, not when the demo opens', () => {
+    let present = false
+    const { c, deps, posted } = setup({ hasDroneEvidence: () => present })
+    startDemoTips(deps)
+    c.advance(QUIET_AFTER_MS + 41_000) // four beats posted, the clue (48 s) not yet due
+    present = true // perception's clue arrives in the meantime
+    c.advance(30_000)
+    expect(posted.map((p) => p.kind)).not.toContain('clue')
   })
 
   it('stops when cancelled or when another case is open', () => {
@@ -76,7 +104,7 @@ describe('demo tips', () => {
     let id = 'case_1'
     const b = setup({ caseId: () => id })
     startDemoTips(b.deps)
-    b.c.advance(QUIET_AFTER_MS)
+    b.c.advance(QUIET_AFTER_MS + 2000)
     id = 'case_2'
     b.c.advance(120_000)
     expect(b.posted).toHaveLength(1)
@@ -86,7 +114,7 @@ describe('demo tips', () => {
     const onError = vi.fn()
     const { c, deps } = setup({ post: () => Promise.reject(new Error('down')), onError })
     startDemoTips(deps)
-    c.advance(QUIET_AFTER_MS)
+    c.advance(QUIET_AFTER_MS + 2000)
     await Promise.resolve(); await Promise.resolve()
     expect(onError).toHaveBeenCalledWith('Could not send a demo tip. Is the API running?')
   })
@@ -111,7 +139,7 @@ describe('demo tips', () => {
   })
 })
 
-function c0(s: ReturnType<typeof setup>) { s.c.advance(QUIET_AFTER_MS) }
+function c0(s: ReturnType<typeof setup>) { s.c.advance(QUIET_AFTER_MS + 2000) }
 
 describe('postEvidence', () => {
   it('POSTs JSON to /evidence and throws on a refusal', async () => {

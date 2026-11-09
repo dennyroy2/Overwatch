@@ -243,6 +243,9 @@
 .ow-pin:focus-visible .ow-pin__body { transform: scale(1.18); }
 .ow-pin[data-selected="true"] .ow-pin__body { border-color: var(--ow-amber); color: var(--ow-amber); transform: scale(1.18); }
 .ow-pin:focus-visible { outline: 2px solid var(--ow-amber); outline-offset: 3px; border-radius: 9999px; }
+/* "Why?" mode (step 37): the pins behind the selected cluster glow cyan; the others step back. */
+.ow-pin[data-why="lit"] .ow-pin__body { border-color: var(--ow-cyan); color: var(--ow-cyan); transform: scale(1.22); box-shadow: 0 0 0 1.5px rgb(0 0 0 / 0.7), 0 0 14px rgb(92 211 232 / 0.55); }
+.ow-pin[data-why="dim"] { opacity: 0.4; }
 .ow-pin--new::after {
   content: "";
   position: absolute;
@@ -291,3 +294,8 @@
   100% { transform: scale(2.6); opacity: 0; }
 }
 @media (prefers-reduced-motion: reduce) { .ow-found__pulse { animation: none; opacity: 0.5; } }
+
+/* "Why?" story card (step 37): a blinking caret while the story types. Still under reduced motion. */
+.ow-caret { display: inline-block; width: 2px; height: 1em; margin-left: 1px; vertical-align: -2px; background: var(--ow-cyan); animation: ow-caret 0.9s steps(1) infinite; }
+@keyframes ow-caret { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .ow-caret { animation: none; } }

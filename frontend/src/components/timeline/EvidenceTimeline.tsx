@@ -1,8 +1,12 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import { focusPoint, visibleAt } from '@/lib/evidence'
 import { useNow } from '@/lib/useNow'
-import { flyToPoint } from '@/map/camera'
+import { useWhy } from '@/lib/whySelect'
+import { flyToPoint, frameRoute } from '@/map/camera'
+import { framePoints } from '@/lib/attributionFrame'
+import { attribution } from '@/stream/attribution'
+import { currentBuffer, ghosts } from '@/stream/ghostBuffer'
 import { getMap } from '@/map/mapRef'
 import { useStore } from '@/store'
 import { history } from '@/stream/history'
@@ -29,14 +33,33 @@ export function EvidenceTimeline() {
     return [...order].reverse().filter((id) => visibleAt(replay, history.firstSeen.get(id)))
   }, [order, mode, replayT])
 
+  // "Why?" mode (step 37): the cards behind the selected cluster light up and the rest step back.
+  const why = useWhy()
+  const whySeq = useStore((s) => s.ui.whySeq)
+  const lit = useMemo(() => (why ? new Set(why.items.map((i) => i.id)) : null), [why])
+  const litKey = lit ? [...lit].join(',') : ''
+  useEffect(() => {
+    // When a cluster is picked, bring its first lit card into view (the rail may be longer than the screen).
+    if (!lit) return
+    const first = ids.find((id) => lit.has(id))
+    if (first) document.querySelector(`li[data-evidence-id="${first}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only when a cluster is picked or its evidence changes
+  }, [whySeq, litKey])
+
   const onSelect = (id: string) => {
     const same = selectedId === id
     selectEvidence(same ? null : id)
-    // Clicking a card flies the camera to its mark.
+    // Clicking a card flies the camera to its mark. If the card changed the swarm over a wide area (a sighting
+    // removes a cloud in one place and brings one up in another), frame the whole before-and-after instead, so
+    // the red and cyan dots the overlay shows are all on screen (step 36).
     const e = byId[id]
     const p = e ? focusPoint(e) : null
     const map = getMap()
-    if (!same && p && map) flyToPoint(map, p)
+    if (same || !map) return
+    const snap = mode === 'live' && e && e.kind !== 'note' ? attribution.snapshot(id, ghosts.count, currentBuffer()) : null
+    const frame = snap ? framePoints(snap.removed, snap.removedCount, snap.arrived, snap.arrivedCount, p) : null
+    if (frame) frameRoute(map, frame)
+    else if (p) flyToPoint(map, p)
   }
 
   if (ids.length === 0) {
@@ -57,6 +80,7 @@ export function EvidenceTimeline() {
             now={now}
             selected={selectedId === id}
             hovered={hoveredId === id}
+            why={lit ? (lit.has(id) ? 'lit' : 'dim') : null}
             onSelect={onSelect}
             onHover={hoverEvidence}
           />

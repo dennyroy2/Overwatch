@@ -11,7 +11,9 @@
     "preview": "vite preview",
     "test": "vitest run",
     "check:geo": "bash scripts/check-geo.sh",
-    "measure:fps": "node scripts/measure-fps.mjs"
+    "measure:fps": "node scripts/measure-fps.mjs",
+    "demo:log": "node scripts/demo-log.mjs",
+    "demo:report": "node scripts/demo-report.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

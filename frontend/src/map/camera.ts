@@ -25,11 +25,11 @@ export function whenIdle(map: Pick<MapLibreMap, 'loaded' | 'once'>, fn: () => vo
 export const OVERVIEW = { zoom: 4.6, pitch: 0, bearing: 0 } as const
 export const CASE_VIEW = { zoom: 14.6, pitch: 55, bearing: -17 } as const
 
-/** Camera duration from the motion token (0 under prefers-reduced-motion). */
-function cameraMs(): number {
-  const raw = getComputedStyle(document.documentElement).getPropertyValue('--ow-dur-camera')
-  const ms = parseFloat(raw)
-  return Number.isFinite(ms) ? ms : 2400
+/** Camera duration from a motion token (0 under prefers-reduced-motion). Long: a case opening or closing. Short: everything else. */
+function cameraMs(kind: 'long' | 'short' = 'long'): number {
+  const name = kind === 'long' ? '--ow-dur-camera' : '--ow-dur-camera-short'
+  const ms = parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name))
+  return Number.isFinite(ms) ? ms : kind === 'long' ? 3000 : 1500
 }
 
 export function overviewCamera() {
@@ -45,32 +45,35 @@ export function flyToCase(map: MapLibreMap, lastSeen: GeoPoint): void {
 
 export function flyToArea(map: MapLibreMap, centre: GeoPoint, zoom: number): void {
   const target = { center: toLngLat(centre), zoom, pitch: 0, bearing: 0 }
-  const duration = cameraMs()
+  const duration = cameraMs('short')
   if (duration === 0) map.jumpTo(target)
-  else whenIdle(map, () => map.flyTo({ ...target, duration: Math.min(duration, 1400), freezeElevation: FREEZE }))
+  else whenIdle(map, () => map.flyTo({ ...target, duration, freezeElevation: FREEZE }))
 }
 
 /**
  * Ease the camera so a whole set of points (a route and its target) fits between the two rails, above the time
- * bar. Keeps the current pitch and bearing. Used when an approved request's route starts to draw.
+ * bar (or inside the `padding` given, e.g. to leave room for a card). Keeps the current pitch and bearing. Used when an approved request's route starts to draw.
  */
-export function frameRoute(map: MapLibreMap, pts: readonly GeoPoint[]): void {
+export function frameRoute(
+  map: MapLibreMap,
+  pts: readonly GeoPoint[],
+  padding: { top: number; bottom: number; left: number; right: number } = { top: 110, bottom: 220, left: 400, right: 400 },
+): void {
   if (pts.length === 0) return
   const [first, ...rest] = pts.map(toLngLat)
   const bounds = rest.reduce((b, p) => b.extend(p), new LngLatBounds(first, first))
-  const duration = Math.min(cameraMs(), 1800)
-  const padding = { top: 110, bottom: 220, left: 400, right: 400 }
+  const duration = cameraMs('short')
   if (duration === 0) {
-    const cam = map.cameraForBounds(bounds, { padding, maxZoom: 16.2 })
-    if (cam) map.jumpTo(cam)
+    const cam = map.cameraForBounds(bounds, { padding, maxZoom: 16.2, bearing: map.getBearing() })
+    if (cam) map.jumpTo({ ...cam, bearing: map.getBearing(), pitch: map.getPitch() })
   } else {
-    whenIdle(map, () => map.fitBounds(bounds, { padding, maxZoom: 16.2, duration, freezeElevation: FREEZE }))
+    whenIdle(map, () => map.fitBounds(bounds, { padding, maxZoom: 16.2, duration, bearing: map.getBearing(), pitch: map.getPitch(), freezeElevation: FREEZE }))
   }
 }
 
 /** Gently centre on a point (same zoom, pitch and bearing). Used when a new located item arrives. */
 export function easeToPoint(map: MapLibreMap, p: GeoPoint): void {
-  const duration = Math.min(cameraMs(), 1400)
+  const duration = cameraMs('short')
   if (duration === 0) map.jumpTo({ center: toLngLat(p) })
   else whenIdle(map, () => map.easeTo({ center: toLngLat(p), duration, freezeElevation: FREEZE }))
 }
@@ -78,7 +81,7 @@ export function easeToPoint(map: MapLibreMap, p: GeoPoint): void {
 /** Fly to a point, zooming in at least to `minZoom` (used when the officer clicks a card). */
 export function flyToPoint(map: MapLibreMap, p: GeoPoint, minZoom = 15.2): void {
   const target = { center: toLngLat(p), zoom: Math.max(map.getZoom(), minZoom) }
-  const duration = Math.min(cameraMs(), 1600)
+  const duration = cameraMs('short')
   if (duration === 0) map.jumpTo(target)
   else whenIdle(map, () => map.flyTo({ ...target, duration, freezeElevation: FREEZE }))
 }

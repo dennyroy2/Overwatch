@@ -139,3 +139,44 @@ describe('ReplayRenderer trails', () => {
     }
   })
 })
+
+describe('ReplayRenderer: the dissolve, replayed (step 38 "ghosts un-dying")', () => {
+  // slot 1 is replaced between the keyframes at 2 s and 3 s: the replay swaps old for new at 2.5 s
+  const h = build(6, { atFrameMs: 3000, slot: 1, newX: 500 })
+  const r = new ReplayRenderer()
+  const dying = (T: number, ms?: number) => r.render(h, T, 40, 3, ms)!.dying
+
+  it('keeps the old ghost where it was and fades it out over 600 ms from the swap, then it is gone', () => {
+    expect(dying(2400).count).toBe(0) // before the swap the old ghost is just an ordinary ghost
+    const start = dying(2500)
+    expect(start.count).toBe(1)
+    expect(start.pos[0]).toBeCloseTo(120, 3) // slot 1 at the 2 s keyframe: 100 + 2 * 10
+    expect(start.col[3]).toBe(GHOST_ALPHA)
+    expect(start.haloRadius[0]).toBeCloseTo(40, 3)
+    const mid = dying(2800)
+    expect(mid.col[3]).toBeLessThan(GHOST_ALPHA)
+    expect(mid.col[3]).toBeGreaterThan(0)
+    expect(mid.haloRadius[0]).toBeLessThan(40)
+    expect(dying(3100).count).toBe(0) // 600 ms after the swap
+  })
+
+  it('only the replaced slot dissolves, and the new ghost fades in meanwhile', () => {
+    const rf = r.render(h, 2700, 40, 3)!
+    expect(rf.dying.count).toBe(1) // slot 0 was never replaced
+    expect(x(rf, 1)).toBeCloseTo(500 + (3000 - 3000) / 100, 3) // the new ghost is at its new place
+    expect(a(rf, 1)).toBeGreaterThan(0)
+    expect(a(rf, 1)).toBeLessThan(GHOST_ALPHA) // still fading in
+  })
+
+  it('un-dies: scrubbing BACKWARDS across the swap brings the old ghost back, never the other way', () => {
+    const alphas: number[] = []
+    for (let T = 3100; T >= 2500; T -= 50) alphas.push(dying(T).count ? dying(T).col[3] : 0)
+    for (let k = 1; k < alphas.length; k++) expect(alphas[k]).toBeGreaterThanOrEqual(alphas[k - 1])
+    expect(alphas[0]).toBe(0)
+    expect(alphas.at(-1)).toBe(GHOST_ALPHA)
+  })
+
+  it('shows nothing when the dissolve is switched off (reduced motion)', () => {
+    expect(dying(2600, 0).count).toBe(0)
+  })
+})

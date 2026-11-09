@@ -10,8 +10,8 @@
 // It follows the store only (hard rule 3): nothing draws on a click, only when the stream says "approved".
 import { Marker, type Map as MapLibreMap } from 'maplibre-gl'
 import { toLngLat, toLonLat } from '@/lib/geo'
-import { requestState } from '@/lib/decision'
 import { visibleAt } from '@/lib/evidence'
+import { requestStateAt } from '@/lib/replayState'
 import { ROUTE_MS, easeInOut, partialRoute, pointAlong } from '@/lib/route'
 import { areaCentre, decisionFor, effectiveAsset, targetRing, type Request } from '@/lib/tasking'
 import { useStore } from '@/store'
@@ -46,6 +46,7 @@ export function watchRoutes(map: MapLibreMap): () => void {
   let raf = 0
   const seenWaiting = new Set<string>() // requests we saw while they were still waiting on the officer
   const shown = new Set<string>() // approved requests already handled (animated or drawn static)
+  const everShown = new Set<string>() // approved requests drawn at any time, so coming back from a replay never replays their animation
   const anims = new Map<string, Anim>()
   const labels = new Map<string, { marker: Marker; el: HTMLDivElement }>()
   let last: { requests: unknown; log: unknown; decisions: unknown; mode: string; t: number | null } = { requests: null, log: null, decisions: null, mode: '', t: null }
@@ -132,7 +133,7 @@ export function watchRoutes(map: MapLibreMap): () => void {
 
     if (s.requests.order.length === 0 && (shown.size > 0 || seenWaiting.size > 0)) {
       // A new case or a lost one: forget everything.
-      shown.clear(); seenWaiting.clear(); anims.clear()
+      shown.clear(); seenWaiting.clear(); anims.clear(); everShown.clear()
     }
     const replay = { mode: s.ui.replay.mode, t }
     const startNow: Request[] = []
@@ -142,13 +143,23 @@ export function watchRoutes(map: MapLibreMap): () => void {
         if (shown.has(id) && s.ui.replay.mode !== 'live') { shown.delete(id); anims.delete(id) }
         continue
       }
-      const st = requestState(r, s.log, s.decisions[id])
-      if (st === 'pending' || st === 'sending') seenWaiting.add(id)
-      else if (st === 'approved' && !shown.has(id)) {
+      // As it was at the replay moment: before its approval was confirmed it is still waiting (step 38).
+      const st = requestStateAt(r, s.log, s.decisions[id], replay, history)
+      const live = s.ui.replay.mode === 'live'
+      if (live && (st === 'pending' || st === 'sending')) seenWaiting.add(id)
+      if (!live && st !== 'approved' && shown.has(id)) {
+        // Scrubbed back to before this approval: its route and area are not there yet.
+        shown.delete(id)
+        anims.delete(id)
+      }
+      if (st === 'approved' && !shown.has(id)) {
         shown.add(id)
-        // Animate only a decision we watched happen, live. A request that arrives already approved just appears.
-        if (seenWaiting.has(id) && s.ui.replay.mode === 'live' && !prefersReducedMotion() && r.route.length >= 2) startNow.push(r)
-        else if (seenWaiting.has(id) && s.ui.replay.mode === 'live') frameRoute(map, [...r.route, ...r.target_area])
+        const first = !everShown.has(id)
+        everShown.add(id)
+        // Animate only a decision we watched happen, live, once. A request that arrives already approved, or that
+        // comes back after a replay, just appears.
+        if (first && seenWaiting.has(id) && live && !prefersReducedMotion() && r.route.length >= 2) startNow.push(r)
+        else if (first && seenWaiting.has(id) && live) frameRoute(map, [...r.route, ...r.target_area])
       }
     }
     for (const r of startNow) {

@@ -14,6 +14,7 @@ import { toLngLat, toLonLat } from '@/lib/geo'
 import { useStore } from '@/store'
 import { history } from '@/stream/history'
 import { easeToPoint } from './camera'
+import { whyLitIds } from '@/lib/whySelect'
 import type { Evidence, EvidenceKind, WithId } from '@/types'
 
 const SOURCE_ID = 'evidence-areas'
@@ -96,7 +97,8 @@ export function watchEvidence(map: MapLibreMap): () => void {
   const pins = new Map<string, PinMarker>()
   const eased = new Set<string>()
   let ready = false
-  let last = { evidence: null as unknown, meta: null as unknown, selected: null as unknown, hovered: null as unknown, mode: '', t: null as unknown }
+  let last = { evidence: null as unknown, meta: null as unknown, selected: null as unknown, hovered: null as unknown, mode: '', t: null as unknown, why: '' }
+  const whyKey = (s: ReturnType<typeof useStore.getState>): string => { const w = whyLitIds(s); return w ? [...w].join(',') || '-' : '' }
 
   const onPinClick = (id: string) => {
     const s = useStore.getState()
@@ -110,9 +112,11 @@ export function watchEvidence(map: MapLibreMap): () => void {
     const t = s.replayView?.t ?? null
     if (
       last.evidence === s.evidence && last.meta === s.evidenceMeta && last.selected === s.ui.selectedEvidenceId &&
-      last.hovered === s.ui.hoveredEvidenceId && last.mode === s.ui.replay.mode && last.t === t
+      last.hovered === s.ui.hoveredEvidenceId && last.mode === s.ui.replay.mode && last.t === t && last.why === whyKey(s)
     ) return
-    last = { evidence: s.evidence, meta: s.evidenceMeta, selected: s.ui.selectedEvidenceId, hovered: s.ui.hoveredEvidenceId, mode: s.ui.replay.mode, t }
+    last = { evidence: s.evidence, meta: s.evidenceMeta, selected: s.ui.selectedEvidenceId, hovered: s.ui.hoveredEvidenceId, mode: s.ui.replay.mode, t, why: whyKey(s) }
+    // "Why?" mode (step 37): the pins of the evidence behind the selected cluster are lit, the others step back.
+    const lit = whyLitIds(s)
 
     const replay = { mode: s.ui.replay.mode, t }
     const visible = s.evidence.order.filter((id) => visibleAt(replay, history.firstSeen.get(id)))
@@ -128,11 +132,13 @@ export function watchEvidence(map: MapLibreMap): () => void {
         alive.add(id)
         const m = s.evidenceMeta[id]
         const existing = pins.get(id)
-        if (existing) existing.update(e, sel, hov)
+        const whyState = lit ? (lit.has(id) ? 'lit' : 'dim') : ''
+        if (existing) { existing.update(e, sel, hov); existing.el.dataset.why = whyState }
         else {
           const isNew = !!m?.live && Date.now() - m.seenAt < NEW_PULSE_MS
           const pin = new PinMarker(map, e, isNew, { click: onPinClick, hover: onPinHover })
           pin.update(e, sel, hov)
+          pin.el.dataset.why = whyState
           pins.set(id, pin)
         }
       }
@@ -173,7 +179,7 @@ export function watchEvidence(map: MapLibreMap): () => void {
     map.addLayer({ id: 'evidence-areas-line', type: 'line', source: SOURCE_ID, paint: { 'line-color': '#f3ead9', 'line-opacity': 0.5, 'line-width': 1.2, 'line-dasharray': [3, 2] } }, below)
     map.addLayer({ id: 'evidence-areas-hi', type: 'line', source: SOURCE_ID, filter: ['==', ['get', 'id'], ''], paint: { 'line-color': '#ffb224', 'line-width': 2.5 } }, below)
     ready = true
-    last = { evidence: null, meta: null, selected: null, hovered: null, mode: '', t: null } // force a redraw into the new source
+    last = { evidence: null, meta: null, selected: null, hovered: null, mode: '', t: null, why: '' } // force a redraw into the new source
     sync()
   }
   if (map.loaded()) init()

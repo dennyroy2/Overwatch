@@ -8,6 +8,8 @@ export const perf = {
   peakPerCell: 0,
   /** Ghosts carrying a trail (step 16). */
   trails: 0,
+  /** Ghosts that were just replaced and are still dissolving (step 35). */
+  dissolving: 0,
   typicalPerCell: 0,
   haloOpacity: 0,
 }

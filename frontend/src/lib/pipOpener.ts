@@ -4,6 +4,7 @@
 import { decisionFor, effectiveAsset } from '@/lib/tasking'
 import { requestState } from '@/lib/decision'
 import { isDroneAsset } from '@/lib/footage'
+import { history } from '@/stream/history'
 import { useStore } from '@/store'
 
 export function startPipOpener(): () => void {
@@ -27,7 +28,10 @@ export function startPipOpener(): () => void {
         handled.add(id)
         if (!seenWaiting.has(id)) continue
         const asset = effectiveAsset(r.asset, decisionFor(s.log, { asset: r.asset, status: 'approved' })?.reason)
-        if (isDroneAsset(asset)) s.openPip(id)
+        if (isDroneAsset(asset)) {
+          s.openPip(id)
+          history.noteFeedOpened(performance.now()) // so a replay from before this moment shows no feed
+        }
       }
     }
   }

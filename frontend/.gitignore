@@ -9,3 +9,5 @@ dist-ssr
 *.tsbuildinfo
 # Footage comes from Drive, never from git (sidecar JSON and crops are committed)
 public/footage/*.mp4
+# Raw demo logs from `npm run demo:log` (REPORT.md and the notes in DEMO_LOG.md are the kept summary)
+demo-logs/

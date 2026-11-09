@@ -3,6 +3,8 @@
 // (hard rule 8). The marker stays after a "Not a match" dismissal so the sighting is not lost.
 import { Marker, type Map as MapLibreMap } from 'maplibre-gl'
 import { foundKey } from '@/lib/close'
+import { foundVisibleAt } from '@/lib/replayState'
+import { history } from '@/stream/history'
 import { toLngLat } from '@/lib/geo'
 import { useStore } from '@/store'
 import { flyToPoint } from './camera'
@@ -13,12 +15,14 @@ export function watchFound(map: MapLibreMap): () => void {
 
   const sync = () => {
     const s = useStore.getState()
-    const key = foundKey(s.found)
+    // Only from the moment it arrived, while a recorded moment is on screen (step 38).
+    const visible = foundVisibleAt({ mode: s.ui.replay.mode, t: s.replayView?.t ?? null }, history)
+    const key = visible ? foundKey(s.found) : null
     if (key === shownKey) return
     shownKey = key
     marker?.remove()
     marker = null
-    const f = s.found
+    const f = visible ? s.found : null
     if (!f) return
     const el = document.createElement('div')
     el.className = 'ow-found'
