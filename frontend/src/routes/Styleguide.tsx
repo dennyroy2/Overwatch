@@ -124,7 +124,7 @@ export default function Styleguide() {
             ))}
             <div className="rounded-lg bg-raised px-4 py-3 text-sm text-ink-2 shadow-panel">shadow-panel</div>
             <div className="font-mono text-sm text-ink-3">
-              fast 120ms · base 220ms · slow 420ms · camera 2400ms · ease-out expo
+              fast 120ms · base 220ms · slow 420ms · camera 3000ms · camera-short 1500ms · ease-out expo
             </div>
           </div>
         </Section>

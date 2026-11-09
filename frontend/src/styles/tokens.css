@@ -91,9 +91,10 @@
   --ow-dur-fast: 120ms;
   --ow-dur-base: 220ms;
   --ow-dur-slow: 420ms;
-  --ow-dur-camera: 2400ms;   /* map fly-ins */
+  --ow-dur-camera: 3000ms;   /* the long fly-in when a case opens or closes */
+  --ow-dur-camera-short: 1500ms; /* every other camera move: to a card, a route, a new clue */
 }
 
 @media (prefers-reduced-motion: reduce) {
-  :root { --ow-dur-fast: 0ms; --ow-dur-base: 0ms; --ow-dur-slow: 0ms; --ow-dur-camera: 0ms; }
+  :root { --ow-dur-fast: 0ms; --ow-dur-base: 0ms; --ow-dur-slow: 0ms; --ow-dur-camera: 0ms; --ow-dur-camera-short: 0ms; }
 }
