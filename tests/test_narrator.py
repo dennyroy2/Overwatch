@@ -16,7 +16,7 @@ T0 = datetime(2026, 11, 8, 14, 0, tzinfo=timezone(timedelta(hours=-7)))
 class FakeHub:
     def __init__(self):
         self.profile = SubjectProfile(case_id="c", name="Margaret", age=79, mobility="low",
-                                      clothing=["blue puffer jacket"],
+                                      clothing=["grey hooded jacket"],
                                       last_seen=GeoPoint(lat=53.5422, lon=-113.5337), last_seen_time=T0)
         self.evidence = [Evidence(id="ev1", case_id="c", kind="sighting", source="transit",
                                   time=T0 + timedelta(minutes=35), reliability=0.75,

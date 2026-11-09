@@ -180,6 +180,142 @@
         }
       }
     },
+    "/case/{case_id}/alert": {
+      "get": {
+        "summary": "Latest Alert",
+        "description": "The latest suggested public-alert area (also pushed on the stream as type \"alert\").",
+        "operationId": "latest_alert_case__case_id__alert_get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertArea"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/case/{case_id}/questions": {
+      "get": {
+        "summary": "Family Questions",
+        "description": "Questions for the family, tailored by AI to this case (curated fallback).",
+        "operationId": "family_questions_case__case_id__questions_get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FamilyQuestion"
+                  },
+                  "title": "Response Family Questions Case  Case Id  Questions Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/case/{case_id}/answers": {
+      "post": {
+        "summary": "Family Answer",
+        "description": "A family answer. Place answers are resolved to the map (street data only) and become a\nfavourite_place card the ghosts react to; other answers become a note card.",
+        "operationId": "family_answer_case__case_id__answers_post",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FamilyAnswer"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Family Answer Case  Case Id  Answers Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/report/{case_id}/pdf": {
       "get": {
         "summary": "Report Pdf",
@@ -293,6 +429,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/FoundMsg"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AlertMsg"
                     }
                   ],
                   "title": "Response Stream Schema Schema Stream Get",
@@ -303,7 +442,8 @@
                       "evidence": "#/components/schemas/EvidenceMsg",
                       "tasking": "#/components/schemas/TaskingMsg",
                       "log": "#/components/schemas/LogMsg",
-                      "found": "#/components/schemas/FoundMsg"
+                      "found": "#/components/schemas/FoundMsg",
+                      "alert": "#/components/schemas/AlertMsg"
                     }
                   }
                 }
@@ -316,6 +456,86 @@
   },
   "components": {
     "schemas": {
+      "AlertArea": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "case_id": {
+            "type": "string",
+            "title": "Case Id"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version",
+            "description": "1 = first alert; 2+ = second waves after the hot spot moved"
+          },
+          "polygon": {
+            "items": {
+              "$ref": "#/components/schemas/GeoPoint"
+            },
+            "type": "array",
+            "title": "Polygon"
+          },
+          "area_km2": {
+            "type": "number",
+            "title": "Area Km2"
+          },
+          "covers": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Covers",
+            "description": "Share of the remaining probability inside the area"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Ready-to-send public message"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason",
+            "description": "Why this area, and what changed since the last version"
+          },
+          "time": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Time"
+          }
+        },
+        "type": "object",
+        "required": [
+          "case_id",
+          "version",
+          "polygon",
+          "area_km2",
+          "covers",
+          "message",
+          "reason"
+        ],
+        "title": "AlertArea",
+        "description": "Suggested area for a targeted public alert (Alberta's Missing Persons Act allows police to\nalert specific communities). A suggestion only: an officer decides whether to send it."
+      },
+      "AlertMsg": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "alert",
+            "title": "Type",
+            "default": "alert"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AlertArea"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "AlertMsg"
+      },
       "CloseSearch": {
         "properties": {
           "found": {
@@ -579,6 +799,91 @@
         ],
         "title": "EvidenceMsg"
       },
+      "FamilyAnswer": {
+        "properties": {
+          "question_id": {
+            "type": "string",
+            "title": "Question Id"
+          },
+          "answer": {
+            "type": "string",
+            "title": "Answer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "question_id",
+          "answer"
+        ],
+        "title": "FamilyAnswer"
+      },
+      "FamilyAnswerRecord": {
+        "properties": {
+          "question": {
+            "type": "string",
+            "title": "Question"
+          },
+          "answer": {
+            "type": "string",
+            "title": "Answer"
+          },
+          "evidence_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Id"
+          },
+          "time": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Time"
+          }
+        },
+        "type": "object",
+        "required": [
+          "question",
+          "answer"
+        ],
+        "title": "FamilyAnswerRecord"
+      },
+      "FamilyQuestion": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "why": {
+            "type": "string",
+            "title": "Why"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "place",
+              "info"
+            ],
+            "title": "Kind",
+            "default": "info"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "text",
+          "why"
+        ],
+        "title": "FamilyQuestion",
+        "description": "A question for the family/caregiver. kind='place' answers become map pins."
+      },
       "FoundEvent": {
         "properties": {
           "case_id": {
@@ -690,6 +995,14 @@
             "type": "array",
             "title": "Respawned",
             "description": "Slots reused for a new ghost since the last frame: don't animate these, fade them in"
+          },
+          "left_area": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Left Area",
+            "description": "Chance she is no longer in the search area (bus, car, or beyond the map edge). Search planners call this 'rest of world'.",
+            "default": 0.0
           }
         },
         "type": "object",
@@ -804,6 +1117,41 @@
             },
             "type": "array",
             "title": "Log"
+          },
+          "alerts": {
+            "items": {
+              "$ref": "#/components/schemas/AlertArea"
+            },
+            "type": "array",
+            "title": "Alerts",
+            "description": "Every suggested alert area, in order"
+          },
+          "family_answers": {
+            "items": {
+              "$ref": "#/components/schemas/FamilyAnswerRecord"
+            },
+            "type": "array",
+            "title": "Family Answers"
+          },
+          "areas": {
+            "items": {
+              "$ref": "#/components/schemas/Cluster"
+            },
+            "type": "array",
+            "title": "Areas",
+            "description": "Most likely areas when the report was made"
+          },
+          "left_area": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Left Area",
+            "description": "Chance she left the search area, at report time"
           }
         },
         "type": "object",

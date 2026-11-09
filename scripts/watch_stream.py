@@ -14,7 +14,7 @@ API = "http://localhost:8000"
 async def main() -> None:
     case = httpx.post(f"{API}/case", json={
         "name": "Margaret (fictional)", "age": 79, "condition": "dementia",
-        "mobility": "low", "clothing": ["blue puffer jacket", "grey pants"],
+        "mobility": "low", "clothing": ["grey hooded jacket", "dark track pants"],
     }).json()
     print("case:", case["case_id"])
     async with websockets.connect(f"ws://localhost:8000/stream/{case['case_id']}") as ws:

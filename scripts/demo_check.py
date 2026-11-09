@@ -30,7 +30,7 @@ async def main() -> None:
     cid = httpx.post(f"{API}/case", json=scenario["case"]).json()["case_id"]
     print(f"case {cid}: playing the Margaret scenario (about 50 seconds)\n")
     seen = {"drone": None, "ground": None, "hot_at_park": False, "stories": set(), "updates": 0,
-            "match": None}
+            "match": None, "alerts": []}
     template = re.compile(r"^\d+% of the remaining possibilities")
     shown = set()
     async with websockets.connect(f"ws://localhost:8000/stream/{cid}", max_size=None) as ws:
@@ -42,6 +42,11 @@ async def main() -> None:
             el = time.time() - t0
             if msg["type"] == "evidence" and msg["data"]["kind"] != "note":
                 print(f"[{el:3.0f}s] card: {msg['data']['summary'][:80]}")
+            elif msg["type"] == "alert":
+                a = msg["data"]
+                seen["alerts"].append(a)
+                print(f"[{el:3.0f}s] public alert area v{a['version']}: {a['area_km2']} km², "
+                      f"covers {a['covers']:.0%}. {a['reason'][:110]}")
             elif msg["type"] == "found":
                 f = msg["data"]
                 seen["match"] = f
@@ -84,6 +89,8 @@ async def main() -> None:
         ("Possible-match alert raised at the park (awaiting officer confirmation)",
          seen["match"] is not None and km(seen["match"]["location"]["lat"],
                                           seen["match"]["location"]["lon"], *PARK) < 0.4),
+        ("Public alert area suggested, with a second wave after the bus sighting (no spam)",
+         1 < len(seen["alerts"]) <= 3),
         ("Claude rewrote the request reasons", ai_reasons),
         ("Claude wrote at least one hot-spot story", ai_story),
     ]

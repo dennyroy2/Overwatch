@@ -90,6 +90,11 @@ class GhostFrame(BaseModel):
         default_factory=list,
         description="Slots reused for a new ghost since the last frame: don't animate these, fade them in",
     )
+    left_area: float = Field(
+        0.0, ge=0.0, le=1.0,
+        description="Chance she is no longer in the search area (bus, car, or beyond the map edge). "
+                    "Search planners call this 'rest of world'.",
+    )
 
 
 class TaskingRequest(BaseModel):
@@ -135,6 +140,40 @@ class FoundEvent(BaseModel):
     note: str = "Possible match located. Awaiting officer confirmation."
 
 
+class AlertArea(BaseModel):
+    """Suggested area for a targeted public alert (Alberta's Missing Persons Act allows police to
+    alert specific communities). A suggestion only: an officer decides whether to send it."""
+    id: str = Field(default_factory=lambda: new_id("alert"))
+    case_id: str
+    version: int = Field(description="1 = first alert; 2+ = second waves after the hot spot moved")
+    polygon: list[GeoPoint]
+    area_km2: float
+    covers: float = Field(ge=0.0, le=1.0, description="Share of the remaining probability inside the area")
+    message: str = Field(description="Ready-to-send public message")
+    reason: str = Field(description="Why this area, and what changed since the last version")
+    time: datetime = Field(default_factory=utcnow)
+
+
+class FamilyQuestion(BaseModel):
+    """A question for the family/caregiver. kind='place' answers become map pins."""
+    id: str
+    text: str
+    why: str
+    kind: Literal["place", "info"] = "info"
+
+
+class FamilyAnswer(BaseModel):
+    question_id: str
+    answer: str
+
+
+class FamilyAnswerRecord(BaseModel):
+    question: str
+    answer: str
+    evidence_id: str | None = None
+    time: datetime = Field(default_factory=utcnow)
+
+
 # ---------------------------------------------------------------- WebSocket envelope
 class GhostsMsg(BaseModel):
     type: Literal["ghosts"] = "ghosts"
@@ -161,8 +200,13 @@ class FoundMsg(BaseModel):
     data: FoundEvent
 
 
+class AlertMsg(BaseModel):
+    type: Literal["alert"] = "alert"
+    data: AlertArea
+
+
 StreamMessage = Annotated[
-    Union[GhostsMsg, EvidenceMsg, TaskingMsg, LogMsg, FoundMsg],
+    Union[GhostsMsg, EvidenceMsg, TaskingMsg, LogMsg, FoundMsg, AlertMsg],
     Field(discriminator="type"),
 ]
 
@@ -172,3 +216,7 @@ class Report(BaseModel):
     evidence: list[Evidence]
     requests: list[TaskingRequest]
     log: list[LogEntry]
+    alerts: list[AlertArea] = Field(default_factory=list, description="Every suggested alert area, in order")
+    family_answers: list[FamilyAnswerRecord] = Field(default_factory=list)
+    areas: list[Cluster] = Field(default_factory=list, description="Most likely areas when the report was made")
+    left_area: float | None = Field(default=None, description="Chance she left the search area, at report time")

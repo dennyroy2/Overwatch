@@ -16,6 +16,7 @@ from contracts.models import (
     Evidence, EvidenceMsg, FoundEvent, FoundMsg, GeoPoint, GhostsMsg, LogMsg, TaskingMsg,
 )
 from backend.agent.narrator import narrator
+from backend.api.alerts import maybe_alert
 from backend.api.hub import CaseHub
 from backend.engine.interface import GhostEngine, SearchEngine, StubEngine
 
@@ -32,16 +33,16 @@ PROPOSE_ON = ("sighting", "clue")
 FAKE_BEATS = [
     (6, dict(kind="favourite_place", source="family", reliability=0.8,
              location=GeoPoint(lat=53.5405, lon=-113.5097), radius_m=150,
-             summary="Family: she loves the coffee shop on 109 St")),
+             summary="Family: she often walks to a bakery near Jasper Ave")),
     (14, dict(kind="sighting", source="transit", reliability=0.75,
               location=GeoPoint(lat=53.5330, lon=-113.5250), radius_m=250,
-              summary="Bus driver: woman in a blue jacket got off near the river valley stop")),
+              summary="Bus driver: woman in a grey hooded jacket got off near the river valley stop")),
     (24, dict(kind="searched_area", source="ground_team", reliability=0.9, detection_prob=0.7,
               location=GeoPoint(lat=53.5440, lon=-113.5300), radius_m=400,
               summary="Ground Team 1 searched blocks north of Jasper Ave, nothing found")),
     (34, dict(kind="clue", source="drone_ai", reliability=0.82,
               location=GeoPoint(lat=53.5310, lon=-113.5205), radius_m=120,
-              summary="Drone 2: possible blue puffer jacket in ravine (82%)")),
+              summary="Drone 2: possible grey hooded jacket in ravine (82%)")),
 ]
 
 
@@ -97,11 +98,23 @@ async def _check_possible_match(hub: CaseHub, engine: SearchEngine, new: list[Ev
             return
 
 
+async def _log_search_result(hub: CaseHub, engine: SearchEngine, ev: Evidence) -> None:
+    """After an area is searched with nothing found, record what that search was worth in
+    search-planning terms (POA x POD = POS), as an After Action Report would."""
+    info = getattr(engine, "last_search", None)
+    if ev.kind != "searched_area" or not info or info.get("evidence_id") != ev.id:
+        return
+    detail = (f"{ev.summary} Area held {info['poa']:.0%} of the probability (POA); "
+              f"detection {info['pod']:.0%} (POD); probability of success {info['pos']:.0%} (POS). "
+              "Nothing found: that probability moves elsewhere.")
+    await hub.broadcast(LogMsg(data=hub.add_log("system", "search_result", detail)))
+
+
 async def run_fake_case(hub: CaseHub) -> None:
     engine = make_engine()
     start = hub.profile.last_seen_time or datetime.now(timezone.utc)
     engine.reset(hub.profile, start)
-    beats = list(FAKE_BEATS) if FAKE_BEATS_ON else []
+    beats = list(FAKE_BEATS)[hub.beats_sent:] if FAKE_BEATS_ON else []
     applied: dict[str, Evidence] = {}   # id -> version applied (a card can be replaced by id)
     tick = 0
     seconds = 0.0
@@ -114,24 +127,33 @@ async def run_fake_case(hub: CaseHub) -> None:
             for ev in pending:
                 engine.apply(ev)
                 applied[ev.id] = ev
+                await _log_search_result(hub, engine, ev)
             if any(ev.kind in PROPOSE_ON for ev in pending):
                 await _propose(hub, engine)
             await _check_possible_match(hub, engine, pending)
 
             # Scripted fake beats
+            new = list(pending)
             while beats and seconds >= beats[0][0]:
                 _, spec = beats.pop(0)
-                ev = Evidence(case_id=hub.profile.case_id, time=engine.frame().t, confirmed=True, **spec)
+                hub.beats_sent += 1
+                now = getattr(engine, "t", None) or engine.frame().t
+                ev = Evidence(case_id=hub.profile.case_id, time=now, confirmed=True, **spec)
                 hub.evidence.append(ev)
                 applied[ev.id] = ev
                 engine.apply(ev)
+                new.append(ev)
+                await _log_search_result(hub, engine, ev)
                 await hub.broadcast(EvidenceMsg(data=ev))
                 await hub.broadcast(LogMsg(data=hub.add_log("system", "evidence_added", ev.summary)))
                 if ev.kind in PROPOSE_ON:
                     await _propose(hub, engine)
                 await _check_possible_match(hub, engine, [ev])
 
+            await maybe_alert(hub, engine, seconds, new)  # targeted public alert area (+ second waves)
+
             frame = engine.frame()
+            hub.last_left_area, hub.last_clusters = frame.left_area, frame.clusters
             narrator.decorate(hub, frame)                # AI cluster stories once ready
             await hub.broadcast(GhostsMsg(data=frame))
             tick += 1
