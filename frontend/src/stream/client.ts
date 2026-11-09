@@ -89,6 +89,17 @@ export function closeCase(): void {
   store().setPanel('newCase', true)
 }
 
+/**
+ * Stop the simulation and leave the screen exactly as it is: the stream closes (so the server's run stops and nothing
+ * reconnects), but the case, the cards, the ghosts and the camera stay where they were. Unlike `closeCase`, which clears
+ * the screen and flies the camera back out to Alberta.
+ */
+export function stopStream(): void {
+  stop(session)
+  session = null
+  store().setConnection('idle')
+}
+
 function begin(init: { caseId: string | null; profile: SubjectProfile | null }): void {
   stop(session)
   resetGhosts()

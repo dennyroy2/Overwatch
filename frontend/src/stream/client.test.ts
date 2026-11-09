@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { closeCase, openCase } from './client'
+import { closeCase, openCase, stopStream } from './client'
 import { useStore } from '@/store'
 import type { SubjectProfile } from '@/types'
 
@@ -48,5 +48,17 @@ describe('stream client recovery', () => {
     await vi.waitFor(() => expect(FakeSocket.all).toHaveLength(1))
     FakeSocket.all[0].onclose?.({ code: 4404 })        // never connected: not a restart
     expect(useStore.getState().toasts.map((t) => t.text).join()).not.toMatch(/restarted/)
+  })
+
+  it('stops the stream but keeps the case on screen, and does not reconnect (the debug Close button)', async () => {
+    openCase(profile)
+    await vi.waitFor(() => expect(FakeSocket.all).toHaveLength(1))
+    FakeSocket.all[0].onopen?.()
+    stopStream()
+    expect(useStore.getState().connection.state).toBe('idle')
+    expect(useStore.getState().caseProfile?.case_id).toBe('case_1') // still there: nothing cleared, so the camera stays put
+    FakeSocket.all[0].onclose?.({ code: 1006 })                      // a late close from the dropped socket
+    await new Promise((r) => setTimeout(r, 50))
+    expect(FakeSocket.all).toHaveLength(1)                           // never reconnected
   })
 })

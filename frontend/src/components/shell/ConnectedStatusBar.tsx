@@ -20,7 +20,6 @@ export function ConnectedStatusBar() {
   const leftArea = useStore((s) => s.ghostMeta.leftArea)
   // Paused or replaying: show the recorded moment, not the newest data.
   const replay = useStore((s) => (s.ui.replay.mode !== 'live' ? s.replayView : null))
-  const mode = useStore((s) => s.ui.replay.mode)
   const connection = useStore((s) => s.connection.state)
   const setPanel = useStore((s) => s.setPanel)
 
