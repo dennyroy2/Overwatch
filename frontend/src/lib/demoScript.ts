@@ -21,25 +21,25 @@ type DemoTip = Pick<Evidence, 'kind' | 'source' | 'reliability' | 'location' | '
     minutesAfter: number
   }
 
-/** The same five beats as `scenario/margaret.json` (grey hooded jacket), spread over about 45 seconds. */
+/** The same five beats as `scenario/margaret.json` (grey hooded jacket), at the scenario's own times (2, 8, 34, 40 and 48 s; Akshat's ask #8) and story minutes. */
 export const DEMO_TIPS: readonly DemoTip[] = [
-  { afterS: 0, minutesAfter: 0, kind: 'last_seen', source: 'family', reliability: 0.95,
+  { afterS: 2, minutesAfter: 0, kind: 'last_seen', source: 'family', reliability: 0.95,
     location: DEMO_PLACES.lastSeen, radius_m: 50,
     summary: 'Daughter: last saw Margaret at 124 St & Jasper Ave around 2 PM',
     raw_text: 'My mom left her apartment on 124 Street around two. She was wearing her grey hooded jacket.' },
-  { afterS: 6, minutesAfter: 0, kind: 'favourite_place', source: 'family', reliability: 0.8,
+  { afterS: 8, minutesAfter: 0, kind: 'favourite_place', source: 'family', reliability: 0.8,
     location: DEMO_PLACES.railtownPark, radius_m: 150,
     summary: 'Family: she walks in Railtown Park (110 St & 104 Ave) most afternoons',
     raw_text: 'She loves Railtown Park, she walks there almost every afternoon.' },
-  { afterS: 16, minutesAfter: 50, kind: 'searched_area', source: 'ground_team', reliability: 0.9, detection_prob: 0.7,
+  { afterS: 34, minutesAfter: 85, kind: 'searched_area', source: 'ground_team', reliability: 0.9, detection_prob: 0.7,
     location: DEMO_PLACES.railtownPark, radius_m: 300,
     summary: 'Ground Team 1 searched 300 m around Railtown Park. Nothing found.',
     raw_text: 'Team 1 cleared the blocks around Railtown Park, no sign of her.' },
-  { afterS: 26, minutesAfter: 35, kind: 'sighting', source: 'transit', reliability: 0.75,
+  { afterS: 40, minutesAfter: 35, kind: 'sighting', source: 'transit', reliability: 0.75,
     location: DEMO_PLACES.busStop, radius_m: 100,
     summary: 'Bus driver: woman in a grey hooded jacket got off at Groat Rd & Emily Murphy Park Rd',
     raw_text: "I'm a bus driver. An older lady in a grey hoodie got off at the Emily Murphy Park stop on Groat Road, maybe 2:35." },
-  { afterS: 43, minutesAfter: 95, kind: 'clue', source: 'drone_ai', reliability: 0.82,
+  { afterS: 48, minutesAfter: 120, kind: 'clue', source: 'drone_ai', reliability: 0.82,
     location: DEMO_PLACES.droneSpot, radius_m: 50,
     summary: 'Drone 2: possible person in grey hooded jacket lying on the grassy bank by the water, Emily Murphy Park (82%)',
     raw_text: null },
