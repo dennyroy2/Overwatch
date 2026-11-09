@@ -4,7 +4,7 @@ import { focusPoint, visibleAt } from '@/lib/evidence'
 import { useNow } from '@/lib/useNow'
 import { useWhy } from '@/lib/whySelect'
 import { flyToPoint, frameRoute } from '@/map/camera'
-import { framePoints } from '@/lib/attributionFrame'
+import { focusCard } from '@/lib/cardFocus'
 import { attribution } from '@/stream/attribution'
 import { currentBuffer, ghosts } from '@/stream/ghostBuffer'
 import { getMap } from '@/map/mapRef'
@@ -56,10 +56,11 @@ export function EvidenceTimeline() {
     const p = e ? focusPoint(e) : null
     const map = getMap()
     if (same || !map) return
-    const snap = mode === 'live' && e && e.kind !== 'note' ? attribution.snapshot(id, ghosts.count, currentBuffer()) : null
-    const frame = snap ? framePoints(snap.removed, snap.removedCount, snap.arrived, snap.arrivedCount, p) : null
-    if (frame) frameRoute(map, frame)
-    else if (p) flyToPoint(map, p)
+    focusCard(p, {
+      snapshot: () => (mode === 'live' && e && e.kind !== 'note' ? attribution.snapshot(id, ghosts.count, currentBuffer()) : null),
+      frameRoute: (frame) => frameRoute(map, frame),
+      flyTo: (pt) => flyToPoint(map, pt),
+    })
   }
 
   if (ids.length === 0) {
