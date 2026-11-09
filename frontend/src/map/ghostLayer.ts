@@ -8,7 +8,7 @@ import { MapboxOverlay } from '@deck.gl/mapbox'
 import { ScatterplotLayer } from '@deck.gl/layers'
 import { TripsLayer } from '@deck.gl/geo-layers'
 import type { Map as MapLibreMap } from 'maplibre-gl'
-import { attributionLayers } from './attributionLayer'
+import { attributionLayers, swarmDimFactor } from './attributionLayer'
 import { whyLayers } from './whyLayer'
 import { createGroundSampler, type GroundSampler } from './elevation'
 import { CELL_METRES, CORE_OPACITY, GlowEase, densityStats } from './glow'
@@ -72,6 +72,12 @@ const NO_TRAILS: TrailOutput = { length: 0, path: new Float32Array(0), timestamp
 const TRAILS_ON = !(import.meta.env.DEV && new URLSearchParams(window.location.search).get('trails') === '0')
 
 function makeLayers(out: SmootherOutput, trails: TrailOutput, glow: { halo: number; core: number }, dying: DissolveOutput | null = null, now = 0) {
+  // While a card's red/cyan overlay shows (step 36), the amber swarm steps back so the ghosts visibly change colour.
+  // Live picture only (`now` is 0 for a replayed one).
+  if (now > 0) {
+    const k = swarmDimFactor(now)
+    if (k < 1) glow = { halo: glow.halo * k, core: glow.core * k }
+  }
   const data = () => ({
     length: out.count,
     attributes: {
