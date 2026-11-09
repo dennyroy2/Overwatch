@@ -27,6 +27,7 @@ const UVICORN = join(ROOT, '.venv/bin/uvicorn')
 
 const args = process.argv.slice(2)
 const opt = (name, dflt) => { const i = args.indexOf('--' + name); return i >= 0 ? args[i + 1] : dflt }
+const [VW, VH] = (opt('viewport', process.env.OW_VIEWPORT ?? '1440x900')).split('x').map(Number)
 const RUNS = Number(opt('runs', 3))
 const MODES = opt('modes', 'builtin,scripted').split(',')
 const STAMP = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
@@ -201,8 +202,9 @@ async function runOnce(browser, mode, n, header) {
       act('approve-drone', clicked ? JSON.stringify(clicked) : 'no Approve button found', !!clicked)
       await waitFor('the drone feed opens', () => !!document.querySelector('section[aria-label="Drone feed"]'), 10000)
       await sleep(2500)
-      if (mode === 'scripted') {
-        // the clip's clue, delivered by perception's emit, the way the scripted demo does it
+      // Perception only feeds the drone panel; the scenario's own drone clue is the single source (ask #4, Akshat). Pass
+      // `--emit yes` to also post perception's detections as evidence, the way step 33 once did.
+      if (mode === 'scripted' && opt('emit', 'no') === 'yes') {
         emit = spawn(PY, ['-m', 'backend.perception.emit', '--case', caseId, '--clip', 'margaret_drone2', '--api', `http://localhost:${API_PORT}`], { cwd: ROOT })
         let o = ''
         emit.stdout.on('data', (d) => (o += d)); emit.stderr.on('data', (d) => (o += d))
@@ -305,8 +307,8 @@ console.log(`Logging ${RUNS} run(s) of each mode (${MODES.join(', ')}) to ${OUT}
 const web = spawn('npx', ['vite', '--port', String(WEB_PORT), '--strictPort'], { cwd: FRONT, detached: true, stdio: 'ignore', env: { ...process.env, VITE_API_URL: `http://localhost:${API_PORT}` } })
 kids.push(web)
 await waitHttp(`http://localhost:${WEB_PORT}/`)
-const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--enable-gpu', '--use-angle=metal', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'], defaultViewport: { width: 1440, height: 900 } })
-const header = { commit: sh('git rev-parse --short HEAD'), branch: sh('git branch --show-current'), chrome: await browser.version(), node: process.version, viewport: '1440x900' }
+const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--enable-gpu', '--use-angle=metal', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'], defaultViewport: { width: VW, height: VH } })
+const header = { commit: sh('git rev-parse --short HEAD'), branch: sh('git branch --show-current'), chrome: await browser.version(), node: process.version, viewport: `${VW}x${VH}` }
 writeFileSync(join(OUT, 'environment.json'), JSON.stringify({ ...header, runs: RUNS, modes: MODES, started: new Date().toISOString() }, null, 1))
 try {
   for (let n = 1; n <= RUNS; n++) for (const mode of MODES) await runOnce(browser, mode, n, header)

@@ -93,6 +93,28 @@ export function startDemoTips(deps: DemoDeps): () => void {
   }
 }
 
+/**
+ * Tells when the server restarted under the demo: the same case is still open but everything it had is gone (the
+ * client reopens it from the start). Feed it the case id and evidence count on every change of the screen's state;
+ * it answers true once, when the schedule should start over. A different case id means someone opened another case,
+ * which is not a restart; it answers false from then on.
+ */
+export function restartDetector(): (caseId: string | null, evidenceCount: number) => boolean {
+  let id: string | null = null
+  let had = false
+  let other = false
+  return (caseId, evidenceCount) => {
+    if (other) return false
+    if (caseId !== null) {
+      if (id === null) id = caseId
+      else if (caseId !== id) { other = true; return false }
+    }
+    if (evidenceCount > 0) { had = true; return false }
+    if (had && caseId !== null && caseId === id) { had = false; return true }
+    return false
+  }
+}
+
 export async function postEvidence(ev: Partial<Evidence>, fetchImpl: typeof fetch = fetch): Promise<void> {
   const res = await fetchImpl(`${API_URL}/evidence`, {
     method: 'POST',
