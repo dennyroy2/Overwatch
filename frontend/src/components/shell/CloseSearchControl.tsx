@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { FileText, Flag, Loader2, MapPinCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { closedOutcome } from '@/lib/close'
+import { closedAt } from '@/lib/replayState'
+import { history } from '@/stream/history'
 import { useStore } from '@/store'
 import { useCloseSearch } from './useCloseSearch'
 
@@ -12,7 +13,10 @@ import { useCloseSearch } from './useCloseSearch'
  */
 export function CloseSearchControl() {
   const hasCase = useStore((s) => s.caseProfile !== null)
-  const outcome = useStore((s) => closedOutcome(s.log))
+  const log = useStore((s) => s.log)
+  const mode = useStore((s) => s.ui.replay.mode)
+  const replayT = useStore((s) => s.replayView?.t ?? null)
+  const outcome = closedAt(log, { mode, t: replayT }, history) // a replay before the search closed shows it open
   const closing = useStore((s) => s.closing)
   const setPanel = useStore((s) => s.setPanel)
   const reportOpen = useStore((s) => s.ui.panels.report)

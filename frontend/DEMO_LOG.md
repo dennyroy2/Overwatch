@@ -25,7 +25,7 @@ comparison, `REPORT.md`, from the raw logs. This file is the kept summary.
 | | builtin | scripted |
 |---|---|---|
 | socket open, first ghost frame | 0.2 s, 0.3 s | 0.2 s, 0.3 s |
-| tips (in order) | 6.5 s family favourite place; 15.0 s bus driver (blue jacket); 25.5 s ground team searched; 35.9 s drone clue (blue puffer) | 9.1 s daughter's last-seen; 15.1 s coffee shop; 25.1 s ground team searched; 35.1 s bus driver (grey hooded jacket); 43.6 s drone clue (perception's, 90%) |
+| tips (in order) | 6.5 s family favourite place; 15.0 s bus driver (blue jacket); 25.5 s ground team searched; 35.9 s drone clue (blue puffer) | 9.1 s daughter's last-seen; 15.1 s Railtown Park (was the coffee shop until Akshat's scenario change); 25.1 s ground team searched; 35.1 s bus driver (grey hooded jacket); 43.6 s drone clue (perception's, 90%) |
 | first drone recommendation | 15.0 s (after the bus driver) | 35.3 s (after the bus driver) |
 | officer approves, feed opens | 16.6 s | 36.9 s |
 | possible-match banner, feed held on the clue | 36.0 s, video 4.0 s | 43.7 s, video 4.0 s |

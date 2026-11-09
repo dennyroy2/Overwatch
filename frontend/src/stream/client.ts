@@ -190,6 +190,7 @@ function route(msg: StreamMessage): void {
       store().applyMessage(msg)
       return
     case 'log':
+      history.noteLog(performance.now(), msg.data.action) // when 'search_closed' and friends arrived, so a replay shows them at the right time
       store().applyMessage(msg)
       return
     default: {

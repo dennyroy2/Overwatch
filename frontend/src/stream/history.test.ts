@@ -122,3 +122,27 @@ describe('History', () => {
     expect(h.firstSeen.size).toBe(0)
   })
 })
+
+describe('History: when things happened (step 38)', () => {
+  it('remembers the first decision, log entry and feed opening, the possible match, and forgets all on reset', () => {
+    const h = new History()
+    h.noteDecision(100, 'r', 'approved') // before the case started: no epoch, ignored
+    h.onFrame({ arrivalMs: 1000, cur: new Float32Array(8), count: 2, allRespawned: true, wasRespawned: () => false, simTime: 0, clusters: [], alive: 1 })
+    h.noteDecision(5000, 'r1', 'approved')
+    h.noteDecision(9000, 'r1', 'rejected') // a later change does not move the first
+    h.noteLog(6000, 'search_closed')
+    h.noteLog(8000, 'search_closed')
+    h.noteFeedOpened(3000)
+    h.noteFeedOpened(7000)
+    h.noteEvent(4000, 'found')
+    expect(h.decisions.get('r1')).toEqual({ t: 4000, state: 'approved' })
+    expect(h.decisions.has('r')).toBe(false)
+    expect(h.logAt.get('search_closed')).toBe(5000)
+    expect(h.feedOpenedAt).toBe(2000)
+    expect(h.foundAt).toBe(3000)
+    h.reset()
+    expect(h.decisions.size + h.logAt.size).toBe(0)
+    expect(h.feedOpenedAt).toBeUndefined()
+    expect(h.foundAt).toBeUndefined()
+  })
+})

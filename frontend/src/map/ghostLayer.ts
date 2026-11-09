@@ -249,7 +249,8 @@ export function attachGhosts(map: MapLibreMap): GhostLayerHandle {
   const drawReplay = (now: number) => {
     if (playback.version !== renderedVersion || playback.mode === 'playing') {
       renderedVersion = playback.version
-      replayFrame = renderer.render(history, playback.T)
+      replayFrame = renderer.render(history, playback.T, liveHaloPixels(map), CORE.radiusPixels, smoother.dissolve.durationMs)
+      perf.dissolving = replayFrame ? replayFrame.dying.count : 0
       if (replayFrame && replayFrame.out.count > 0) {
         const d = densityStats(replayFrame.out.pos, replayFrame.out.count, CELL_METRES, 3)
         glow.setDensity(d.meanOccupied)
@@ -267,7 +268,7 @@ export function attachGhosts(map: MapLibreMap): GhostLayerHandle {
     glow.step(now)
     perf.haloOpacity = glow.halo
     if (replayFrame && replayFrame.out.count > 0 && now < settleUntil) {
-      overlay.setProps({ layers: makeLayers(replayFrame.out, TRAILS_ON ? replayFrame.trails : NO_TRAILS, glow) })
+      overlay.setProps({ layers: makeLayers(replayFrame.out, TRAILS_ON ? replayFrame.trails : NO_TRAILS, glow, replayFrame.dying) })
       drawnEmpty = false
     }
   }
@@ -323,6 +324,7 @@ export function attachGhosts(map: MapLibreMap): GhostLayerHandle {
     w.__history = history
     w.__playback = playback
     w.__attribution = attribution
+    w.__replayRenderer = renderer
   }
   // New terrain tiles arriving is the only thing that can fill grid holes; camera moves don't matter.
   const onSourceData = (e: { sourceId?: string }) => { if (e.sourceId === 'terrain-dem') sampler.markStale() }

@@ -61,6 +61,12 @@ export class History {
   events: HistoryEvent[] = []
   /** When each evidence/request id was FIRST seen, ms since epoch (an upsert later never moves it). */
   firstSeen = new Map<string, number>()
+  /** When the stream first confirmed each request as approved or rejected (so a replay shows it pending before that). */
+  decisions = new Map<string, { t: number; state: 'approved' | 'rejected' }>()
+  /** When each kind of log entry first arrived ('search_closed', 'found_confirmed'...), ms since epoch. */
+  logAt = new Map<string, number>()
+  /** When the drone feed first opened, so a replay from before that has no feed on screen. */
+  feedOpenedAt: number | undefined = undefined
   private count = 0
   private pendingFlags = new Uint8Array(0)
   private pendingAny = false
@@ -72,6 +78,9 @@ export class History {
     this.keyframes = []
     this.events = []
     this.firstSeen = new Map()
+    this.decisions = new Map()
+    this.logAt = new Map()
+    this.feedOpenedAt = undefined
     this.count = 0
     this.pendingAny = false
     this.pendingAll = false
@@ -177,6 +186,29 @@ export class History {
       this.firstSeen.set(id, t)
     }
     this.events.push({ t, kind, id })
+  }
+
+  /** The stream just confirmed request `id` as approved or rejected. Only the first time counts. */
+  noteDecision(arrivalMs: number, id: string, state: 'approved' | 'rejected'): void {
+    if (this.epoch === null || this.decisions.has(id)) return
+    this.decisions.set(id, { t: arrivalMs - this.epoch, state })
+  }
+
+  /** A log entry arrived. Only the first of each action is kept. */
+  noteLog(arrivalMs: number, action: string): void {
+    if (this.epoch === null || this.logAt.has(action)) return
+    this.logAt.set(action, arrivalMs - this.epoch)
+  }
+
+  /** The drone feed opened. */
+  noteFeedOpened(arrivalMs: number): void {
+    if (this.epoch === null || this.feedOpenedAt !== undefined) return
+    this.feedOpenedAt = arrivalMs - this.epoch
+  }
+
+  /** When the possible-match message first arrived, or undefined. */
+  get foundAt(): number | undefined {
+    return this.events.find((e) => e.kind === 'found')?.t
   }
 
   /** Approximate size of the recording in bytes (for the dev HUD and tests). */

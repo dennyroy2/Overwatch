@@ -1,7 +1,9 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { Loader2, MapPinCheck, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { closedOutcome, foundKey } from '@/lib/close'
+import { foundKey } from '@/lib/close'
+import { closedAt, foundVisibleAt } from '@/lib/replayState'
+import { history } from '@/stream/history'
 import { useStore } from '@/store'
 import { useCloseSearch } from './useCloseSearch'
 
@@ -15,12 +17,17 @@ export function FoundBanner() {
   const reduced = useReducedMotion()
   const found = useStore((s) => s.found)
   const dismissed = useStore((s) => s.foundDismissed)
-  const closed = useStore((s) => closedOutcome(s.log) !== null)
+  const mode = useStore((s) => s.ui.replay.mode)
+  const replayT = useStore((s) => s.replayView?.t ?? null)
+  const log = useStore((s) => s.log)
+  // While the picture is a recorded moment, the banner is there only from the moment it arrived until the search closed.
+  const replay = { mode, t: replayT }
+  const closed = closedAt(log, replay, history) !== null
   const closing = useStore((s) => s.closing)
   const dismiss = useStore((s) => s.dismissFound)
   const close = useCloseSearch()
   const key = foundKey(found)
-  const visible = !!found && key !== dismissed && !closed
+  const visible = !!found && key !== dismissed && !closed && foundVisibleAt(replay, history)
 
   return (
     <AnimatePresence>

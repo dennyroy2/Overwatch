@@ -3,6 +3,7 @@ import { AnimatePresence } from 'framer-motion'
 import { Check, X } from 'lucide-react'
 import { requestState } from '@/lib/decision'
 import { visibleAt } from '@/lib/evidence'
+import { requestStateAt } from '@/lib/replayState'
 import { areaCentre, decisionFor, splitRequests, type Request } from '@/lib/tasking'
 import { clockTime } from '@/lib/ui'
 import { cn } from '@/lib/utils'
@@ -17,6 +18,8 @@ import { TaskingCard } from './TaskingCard'
  * "Decided" list with one line per request. Shows only what the store holds (hard rule 3), and while the view
  * is paused or replaying only what had arrived by that moment.
  */
+const isDecided = (s: ReturnType<typeof requestState>) => s === 'approved' || s === 'rejected'
+
 export function TaskingList() {
   const order = useStore((s) => s.requests.order)
   const byId = useStore((s) => s.requests.byId)
@@ -30,9 +33,12 @@ export function TaskingList() {
   const selectEvidence = useStore((s) => s.selectEvidence)
   const setPanel = useStore((s) => s.setPanel)
 
+  // While the picture is a recorded moment, a request is shown as it was THEN: a decision the stream confirmed later
+  // has not happened yet (step 38).
+  const stateAt = (r: Request) => requestStateAt(r, log, inflight[r.id], { mode, t: replayT }, history)
   const { pending, decided } = useMemo(() => {
     const replay = { mode, t: replayT }
-    return splitRequests(order, byId, (id) => visibleAt(replay, history.firstSeen.get(id)), (r) => requestState(r, log, inflight[r.id]))
+    return splitRequests(order, byId, (id) => visibleAt(replay, history.firstSeen.get(id)), (r) => requestStateAt(r, log, inflight[r.id], replay, history))
   }, [order, byId, mode, replayT, log, inflight])
 
   const showEvidence = (id: string) => {
@@ -58,9 +64,10 @@ export function TaskingList() {
               request={byId[id]}
               evidence={(byId[id].evidence_ids ?? []).flatMap((eid) => (evidence[eid] ? [evidence[eid]] : []))}
               hovered={hoveredId === id}
-              sending={requestState(byId[id], log, inflight[id]) === 'sending'}
+              sending={stateAt(byId[id]) === 'sending'}
               choice={inflight[id]?.choice ?? null}
-              locked={mode === 'playing'}
+              // No deciding while a replay plays, or on a request that is waiting only as it WAS (it has been decided since).
+              locked={mode === 'playing' || isDecided(requestState(byId[id], log, inflight[id]))}
               onHover={hoverRequest}
               onShowEvidence={showEvidence}
               onShowArea={showArea}
@@ -77,7 +84,7 @@ export function TaskingList() {
           <ul className="flex flex-col gap-1">
             {decided.map((id) => {
               const r = byId[id]
-              const state = requestState(r, log, inflight[id])
+              const state = stateAt(r)
               const d = decisionFor(log, { asset: r.asset, status: state === 'rejected' ? 'rejected' : 'approved' })
               const ok = state === 'approved'
               return (

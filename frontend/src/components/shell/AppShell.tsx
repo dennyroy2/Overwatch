@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { ClipboardList, ListChecks } from 'lucide-react'
 import { startAttributionTrigger } from '@/lib/attributionTrigger'
+import { startDecisionRecorder } from '@/lib/decisionRecorder'
 import { startPipOpener } from '@/lib/pipOpener'
 import { selectPendingCount, useStore } from '@/store'
 import { NewCaseSheet } from '@/components/case/NewCaseSheet'
@@ -30,6 +31,7 @@ export function AppShell({ map }: { map: React.ReactNode }) {
   const hasRequests = useStore((s) => s.requests.order.length > 0)
   useEffect(() => startPipOpener(), []) // the drone feed opens when a drone request is approved
   useEffect(() => startAttributionTrigger(), []) // selecting a card shows what it killed and kept
+  useEffect(() => startDecisionRecorder(), []) // notes when each decision was confirmed, for the replay
   return (
     <div className="relative h-full w-full overflow-hidden bg-ground">
       <div className="absolute inset-0 z-0">{map}</div>

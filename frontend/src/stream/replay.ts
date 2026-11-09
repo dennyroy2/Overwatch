@@ -5,6 +5,7 @@
 // Between two keyframes ghosts glide linearly. A slot that was RESPAWNED in that interval is a new ghost, so
 // it does not glide: it shows its old position until the middle of the interval, then its new position
 // fading in over FADE_MS, the same behaviour as the live smoother.
+import { DISSOLVE_MS, type DissolveOutput } from './dissolve'
 import { FADE_MS, GHOST_ALPHA, GHOST_RGB_LINEAR, weightBrightness, type SmootherOutput } from './smoother'
 import { HISTORY, TRAIL_MS, TRAIL_SLOTS, type TrailOutput, VERTS } from './trails'
 import type { History, Keyframe } from './history'
@@ -13,6 +14,8 @@ import type { Cluster } from '@/types'
 export interface ReplayFrame {
   out: SmootherOutput
   trails: TrailOutput
+  /** The ghosts that were replaced just before this moment, still fading out where they were (step 35's dissolve, replayed). */
+  dying: DissolveOutput
   simTime: number
   alive: number | null
   clusters: readonly Cluster[]
@@ -21,6 +24,7 @@ export interface ReplayFrame {
 }
 
 const clamp01 = (x: number) => (x < 0 ? 0 : x > 1 ? 1 : x)
+const smooth = (t: number): number => t * t * (3 - 2 * t)
 
 const flagged = (k: Keyframe, slot: number): boolean =>
   k.respawned === 'all' || (k.respawned !== null && k.respawned[slot] === 1)
@@ -40,8 +44,13 @@ export function locate(keyframes: readonly Keyframe[], T: number): number {
 export class ReplayRenderer {
   private outs: [SmootherOutput, SmootherOutput] = [this.makeOut(0), this.makeOut(0)]
   private trailOuts: [TrailOutput, TrailOutput] = [this.makeTrails(0), this.makeTrails(0)]
+  private dyingOuts: [DissolveOutput, DissolveOutput] = [this.makeDying(0), this.makeDying(0)]
   private flip = 0
   private allocated = 0
+
+  private makeDying(slots: number): DissolveOutput {
+    return { pos: new Float32Array(slots * 3), col: new Uint8ClampedArray(slots * 4), haloRadius: new Float32Array(slots), coreRadius: new Float32Array(slots), count: 0 }
+  }
 
   private makeOut(slots: number): SmootherOutput {
     return { pos: new Float32Array(slots * 3), col: new Uint8ClampedArray(slots * 4), count: 0 }
@@ -87,8 +96,43 @@ export class ReplayRenderer {
     return 1
   }
 
+  /**
+   * The ghosts replaced in the half-second-to-1.5-second before `T`, drawn where they were and fading out over
+   * `dissolveMs` from the middle of their interval (where the replay swaps old for new). Scrubbing BACKWARDS across
+   * that moment brings them back: they un-die. `haloPx` and `corePx` are the live ghosts' radii they shrink from.
+   */
+  private fillDying(ks: readonly Keyframe[], i: number, T: number, dissolveMs: number, haloPx: number, corePx: number, out: DissolveOutput): void {
+    let n = 0
+    const [r, g, bl] = GHOST_RGB_LINEAR
+    if (dissolveMs > 0) {
+      for (const j of [i - 1, i]) {
+        const a = ks[j]
+        const b = ks[j + 1]
+        if (!a || !b || b.respawned === null || a.count !== b.count) continue
+        const age = T - (a.t + (b.t - a.t) * 0.5)
+        if (age < 0 || age >= dissolveMs) continue
+        const k = 1 - smooth(age / dissolveMs)
+        for (let s = 0; s < a.count; s++) {
+          if (!flagged(b, s)) continue
+          const bright = weightBrightness(a.weight[s] / 255)
+          out.pos[n * 3] = a.pos[s * 3]
+          out.pos[n * 3 + 1] = a.pos[s * 3 + 1]
+          out.pos[n * 3 + 2] = a.pos[s * 3 + 2]
+          out.col[n * 4] = r
+          out.col[n * 4 + 1] = g
+          out.col[n * 4 + 2] = bl
+          out.col[n * 4 + 3] = Math.round(GHOST_ALPHA * k * bright)
+          out.haloRadius[n] = haloPx * k
+          out.coreRadius[n] = corePx * k
+          n++
+        }
+      }
+    }
+    out.count = n
+  }
+
   /** The moment at history time `T`. Returns null if nothing is recorded. */
-  render(h: History, T: number): ReplayFrame | null {
+  render(h: History, T: number, haloPx = 0, corePx = 0, dissolveMs = DISSOLVE_MS): ReplayFrame | null {
     const ks = h.keyframes
     if (ks.length === 0) return null
     const i = locate(ks, T)
@@ -98,11 +142,13 @@ export class ReplayRenderer {
       this.outs = [this.makeOut(count), this.makeOut(count)]
       const trails = Math.min(TRAIL_SLOTS, count)
       this.trailOuts = [this.makeTrails(trails), this.makeTrails(trails)]
+      this.dyingOuts = [this.makeDying(count), this.makeDying(count)]
       this.allocated = count
     }
     this.flip = this.flip === 0 ? 1 : 0
     const out = this.outs[this.flip]
     const trails = this.trailOuts[this.flip]
+    const dying = this.dyingOuts[this.flip]
     out.count = count
     const [r, g, bl] = GHOST_RGB_LINEAR
     for (let s = 0; s < count; s++) {
@@ -114,10 +160,11 @@ export class ReplayRenderer {
       out.col[o + 3] = Math.round(GHOST_ALPHA * this.fade(ks, i, s, T) * weightBrightness(k.weight[s] / 255))
     }
     this.fillTrails(ks, count, T, trails)
+    this.fillDying(ks, i, T, dissolveMs, haloPx, corePx, dying)
     const next = ks[i + 1]
     const u = next && next.t > k.t ? clamp01((T - k.t) / (next.t - k.t)) : 0
     const simTime = next ? k.simTime + (next.simTime - k.simTime) * u : k.simTime // the sim clock keeps ticking smoothly
-    return { out, trails, simTime, alive: k.alive, clusters: k.clusters, keyframe: i }
+    return { out, trails, dying, simTime, alive: k.alive, clusters: k.clusters, keyframe: i }
   }
 
   /** Reconstruct the last ~3 s of motion for the tracked ghosts from the keyframes. */

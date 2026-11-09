@@ -1,4 +1,6 @@
 import { DroneFeed } from '@/components/pip/DroneFeed'
+import { feedVisibleAt } from '@/lib/replayState'
+import { history } from '@/stream/history'
 import { useStore } from '@/store'
 import { ReportView } from '@/panels/ReportView'
 
@@ -6,7 +8,10 @@ import { ReportView } from '@/panels/ReportView'
 export function PipSlot({ open }: { open: boolean }) {
   const requestId = useStore((s) => s.ui.pipRequestId)
   const closePip = useStore((s) => s.closePip)
-  if (!open) return null
+  const mode = useStore((s) => s.ui.replay.mode)
+  const replayT = useStore((s) => s.replayView?.t ?? null)
+  // A replay from before the feed opened has no feed on screen (it comes back when the replay reaches that moment).
+  if (!feedVisibleAt(open, { mode, t: replayT }, history)) return null
   return <DroneFeed requestId={requestId} onClose={closePip} />
 }
 

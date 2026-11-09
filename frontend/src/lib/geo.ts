@@ -71,9 +71,9 @@ export const EDMONTON_CENTRE: GeoPoint = { lat: 53.5461, lon: -113.4938 }
 export const DEMO_LAST_SEEN: GeoPoint = { lat: 53.5422, lon: -113.5337 }
 
 /** Places in the demo story (scenario/margaret.json), for the demo tips in lib/demoScript.ts. Fictional. */
-export const DEMO_PLACES: Record<'lastSeen' | 'coffeeShop' | 'busStop' | 'droneSpot', GeoPoint> = {
+export const DEMO_PLACES: Record<'lastSeen' | 'railtownPark' | 'busStop' | 'droneSpot', GeoPoint> = {
   lastSeen: DEMO_LAST_SEEN,
-  coffeeShop: { lat: 53.5424, lon: -113.5091 },   // 109 St & Jasper Ave
+  railtownPark: { lat: 53.5434, lon: -113.5104 }, // Railtown Park, 110 St & 104 Ave (the favourite place and the ground team's search)
   busStop: { lat: 53.5328, lon: -113.5395 },      // Groat Rd & Emily Murphy Park Rd
   droneSpot: { lat: 53.534, lon: -113.537 },      // the grassy bank by the water
 }
