@@ -32,7 +32,6 @@ export function ConnectedStatusBar() {
       sinceLastSeen={simMs !== undefined && lastMs !== undefined ? hms((simMs - lastMs) / 1000) : undefined}
       inAreaFraction={leftArea == null ? undefined : 1 - leftArea}
       connection={connection}
-      viewNote={mode === 'paused' ? 'Paused view' : mode === 'playing' ? 'Replaying' : undefined}
       actions={<><ExportMenu /><CloseSearchControl /></>}
       onNewCase={() => { setPanel('sheetCollapsed', false); setPanel('newCase', true) }}
     />
