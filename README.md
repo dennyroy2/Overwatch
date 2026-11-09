@@ -50,13 +50,5 @@ Stream settings (env vars): `OVERWATCH_GHOSTS` (default 5000), `OVERWATCH_FPS` (
 - **UTM everywhere** (`backend/engine/utm.py`, `frontend/src/lib/utm.ts`): on every request, the BOLO, exports, and a CalTopo-style cursor readout (UTM, lat/lon, elevation, WGS84).
 - The status bar shows **In search area** (1 − `left_area`) instead of "Ghosts alive", which read as a survival chance.
 
-## Folder ownership
-| Folder | Owner |
-| --- | --- |
-| `contracts/`, `backend/engine/`, `backend/agent/`, `backend/api/` | Rishaan |
-| `frontend/`, `backend/perception/` | Denny |
-| `data/`, `scenario/` | Akshat |
-| `benchmark/`, `backend/report/`, `frontend/src/panels/` | Varad |
-
 ## Map data
 `backend/engine/graph.py` loads `data/graphs/<name>.graphml`. If missing, it downloads the Edmonton demo area (downtown + river valley) walk network from OpenStreetMap via OSMnx and caches it.
