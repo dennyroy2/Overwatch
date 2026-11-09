@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { attributionShownFor, clickEvidenceCard, startAttributionTrigger } from './attributionTrigger'
-import { ATTRIBUTION_MS, attributionOpacity } from '@/map/attributionLayer'
+import { ATTRIBUTION_MS, attributionOpacity, hideAttribution, showAttribution, swarmDimFactor } from '@/map/attributionLayer'
 import { attribution } from '@/stream/attribution'
 import { FLOATS_PER_GHOST, ghosts } from '@/stream/ghostBuffer'
 import { useStore } from '@/store'
@@ -21,6 +21,22 @@ describe('attributionOpacity', () => {
     expect(attributionOpacity(2000)).toBe(1)
     expect(attributionOpacity(ATTRIBUTION_MS - 350)).toBeCloseTo(0.5)
     expect(attributionOpacity(ATTRIBUTION_MS)).toBe(0)
+  })
+})
+
+describe('swarmDimFactor', () => {
+  it('leaves the amber swarm alone with no overlay, and steps it back while one shows, following its fade', () => {
+    attribution.reset()
+    hideAttribution()
+    expect(swarmDimFactor(1000)).toBe(1)
+    attribution.noteEvidence('s1', 'sighting', 0, new Float32Array(0))
+    showAttribution('s1', 1000)
+    expect(swarmDimFactor(1000)).toBe(1) // fade starts at full brightness
+    expect(swarmDimFactor(3000)).toBeCloseTo(0.2)
+    expect(swarmDimFactor(1000 + ATTRIBUTION_MS)).toBe(1)
+    hideAttribution()
+    expect(swarmDimFactor(3000)).toBe(1)
+    attribution.reset()
   })
 })
 

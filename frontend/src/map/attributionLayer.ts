@@ -16,9 +16,12 @@ const FADE_OUT_MS = 700
 /** Muted, so it reads as "gone" and never competes with the amber swarm. */
 const REMOVED_RGB = [...[201, 84, 74].map(srgbToLinear), 235] as [number, number, number, number]
 /** Cyan is the colour of AI analysis in this design; this is an analysis of what the engine did. Stayed is the quieter cyan, arrived the bright one. */
-const STAYED_RGB = [...hexToLinear(tokens.cyan), 120] as [number, number, number, number]
+const STAYED_RGB = [...hexToLinear(tokens.cyan), 170] as [number, number, number, number]
 const ARRIVED_RGB = [...hexToLinear(tokens.cyan), 255] as [number, number, number, number]
-const DOT_PX = 2.6
+const DOT_PX = 3.4
+/** While a card's colours show, the amber swarm steps back to this share of its brightness, so the ghosts read as
+ * turning red and cyan instead of small dots lost on a bright glow. */
+const SWARM_WHILE_SHOWN = 0.2
 
 let view: { id: string; shownAt: number; snap: AttributionSnapshot } | null = null
 
@@ -28,6 +31,13 @@ export function attributionOpacity(ageMs: number): number {
   if (ageMs < FADE_IN_MS) return ageMs / FADE_IN_MS
   if (ageMs > ATTRIBUTION_MS - FADE_OUT_MS) return (ATTRIBUTION_MS - ageMs) / FADE_OUT_MS
   return 1
+}
+
+/** What the amber swarm's opacity is multiplied by at `now`: 1 with no overlay, down to SWARM_WHILE_SHOWN while one
+ * shows, following the overlay's own fade in and out. */
+export function swarmDimFactor(now: number): number {
+  if (!view) return 1
+  return 1 - (1 - SWARM_WHILE_SHOWN) * attributionOpacity(now - view.shownAt)
 }
 
 /** Show the overlay for evidence `id`. Returns what it shows, or null if this view has no record of that card. */
