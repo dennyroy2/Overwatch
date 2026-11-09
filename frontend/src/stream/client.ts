@@ -172,7 +172,7 @@ function route(msg: StreamMessage): void {
     case 'ghosts': {
       // Positions go to typed arrays (no React); only small metadata goes to the store.
       pushFrame(msg.data.positions, msg.data.t, readRespawned(msg.data))
-      store().applyGhostMeta(msg.data.t, msg.data.alive_fraction, msg.data.clusters ?? [])
+      store().applyGhostMeta(msg.data.t, msg.data.alive_fraction, msg.data.clusters ?? [], msg.data.left_area ?? null)
       return
     }
     case 'evidence':

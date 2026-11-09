@@ -89,6 +89,106 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/case/{case_id}/bolo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Case Bolo
+         * @description Be-on-the-lookout bulletin for patrol, transit, taxis and building staff.
+         */
+        get: operations["case_bolo_case__case_id__bolo_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/case/{case_id}/safety": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set Safety
+         * @description Weapon access / history of violence: police-only mode (no volunteer teams are requested).
+         */
+        post: operations["set_safety_case__case_id__safety_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/case/{case_id}/buildings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Case Buildings
+         * @description Buildings in the most likely area: type, access and what to do at each.
+         */
+        get: operations["case_buildings_case__case_id__buildings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/case/{case_id}/export.geojson": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Geojson
+         * @description Likely areas, alert area, searched areas, evidence and assignments for CalTopo (import as GeoJSON).
+         */
+        get: operations["export_geojson_case__case_id__export_geojson_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/case/{case_id}/export.kml": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Kml
+         * @description Same layers as KML for ATAK, CalTopo or Google Earth.
+         */
+        get: operations["export_kml_case__case_id__export_kml_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/case/{case_id}/alert": {
         parameters: {
             query?: never;
@@ -260,6 +360,54 @@ export interface components {
              */
             type: "alert";
             data: components["schemas"]["AlertArea"];
+        };
+        /**
+         * Bolo
+         * @description Be-on-the-lookout bulletin for patrol, transit, taxis and building staff.
+         */
+        Bolo: {
+            /** Case Id */
+            case_id: string;
+            /** Text */
+            text: string;
+            /**
+             * Police Only
+             * @default false
+             */
+            police_only: boolean;
+            /**
+             * Time
+             * Format: date-time
+             */
+            time?: string;
+        };
+        /**
+         * BuildingCheck
+         * @description One building in a likely area: what it is, whether a team can just walk in, and what to do.
+         */
+        BuildingCheck: {
+            /** Name */
+            name: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "residential" | "business" | "public" | "care" | "parkade" | "industrial" | "outbuilding" | "other";
+            /**
+             * Access
+             * @description e.g. "Private home: owner consent or a warrant needed"
+             */
+            access: string;
+            /** Actions */
+            actions: string[];
+            location: components["schemas"]["GeoPoint"];
+            /** Utm */
+            utm: string;
+            /**
+             * Share
+             * @description Share of the area's probability next to this building
+             */
+            share: number;
         };
         /**
          * CloseSearch
@@ -544,6 +692,19 @@ export interface components {
              * @description Chance she left the search area, at report time
              */
             left_area?: number | null;
+            bolo?: components["schemas"]["Bolo"] | null;
+        };
+        /** SafetyUpdate */
+        SafetyUpdate: {
+            /** Weapon Access */
+            weapon_access?: boolean | null;
+            /** Violence History */
+            violence_history?: boolean | null;
+            /**
+             * Officer
+             * @default Officer
+             */
+            officer: string;
         };
         /** SubjectProfile */
         SubjectProfile: {
@@ -578,6 +739,16 @@ export interface components {
             last_seen?: components["schemas"]["GeoPoint"] | null;
             /** Last Seen Time */
             last_seen_time?: string | null;
+            /**
+             * Weapon Access
+             * @description May have a weapon: police-only mode (no volunteer teams)
+             */
+            weapon_access?: boolean;
+            /**
+             * Violence History
+             * @description History of violence: police-only mode (no volunteer teams)
+             */
+            violence_history?: boolean;
         };
         /** TaskingMsg */
         TaskingMsg: {
@@ -629,6 +800,27 @@ export interface components {
              * @enum {string}
              */
             status: "pending" | "approved" | "rejected";
+            /**
+             * Kind
+             * @description search = drone/helicopter/team; first_hour = BOLO + CCTV + obvious places; cctv = footage request; buildings = building-by-building checks
+             * @enum {string}
+             */
+            kind?: "search" | "task_force" | "first_hour" | "cctv" | "buildings";
+            /**
+             * Utm
+             * @description Target in UTM, as search teams read it: "12U 0332116E 5935574N"
+             */
+            utm?: string | null;
+            /**
+             * Checks
+             * @description Buildings to check, most likely first
+             */
+            checks?: components["schemas"]["BuildingCheck"][];
+            /**
+             * Tasks
+             * @description Checklist items (first-hour and CCTV requests)
+             */
+            tasks?: string[];
         };
         /** ValidationError */
         ValidationError: {
@@ -793,6 +985,165 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Report"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    case_bolo_case__case_id__bolo_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Bolo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_safety_case__case_id__safety_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SafetyUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubjectProfile"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    case_buildings_case__case_id__buildings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BuildingCheck"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_geojson_case__case_id__export_geojson_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_kml_case__case_id__export_kml_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
