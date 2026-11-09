@@ -52,7 +52,7 @@ export function StatusBar({
         <Readout label="Last seen" value={sinceLastSeen ?? '--:--:--'} />
         <Readout label="Sim time" value={simClock ?? '--:--:--'} />
         <Readout label="In search area" value={inAreaFraction === undefined ? '--%' : `${Math.round(inAreaFraction * 100)}%`} />
-        <div className="flex items-center gap-2" role="status" aria-live="polite">
+        <div className="flex items-center" role="status" aria-live="polite" title={connectionLabel[connection]}>
           <span className={cn('size-2 rounded-full', dot[connection])} aria-hidden />
           <span className="sr-only">{connectionLabel[connection]}</span>
         </div>

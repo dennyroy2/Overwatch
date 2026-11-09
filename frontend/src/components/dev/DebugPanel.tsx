@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Plus } from 'lucide-react'
+import { Minus, Plus } from 'lucide-react'
 import { useStore } from '@/store'
 import { ghosts } from '@/stream/ghostBuffer'
 import { perf } from '@/stream/perf'
@@ -59,8 +59,16 @@ export function DebugPanel() {
   return (
     <div
       data-testid="debug-panel"
-      className="pointer-events-auto absolute top-[4.25rem] left-1/2 z-20 w-64 -translate-x-1/2 rounded-lg border border-line bg-panel p-3 font-mono text-xs shadow-panel"
+      className="pointer-events-auto absolute top-[4.25rem] left-1/2 z-20 w-64 -translate-x-1/2 rounded-lg border border-line bg-panel p-3 pt-8 font-mono text-xs shadow-panel"
     >
+      <button
+        aria-label="Hide the debug panel"
+        title="Hide"
+        onClick={() => setOpen(false)}
+        className="absolute left-1/2 top-1.5 grid size-6 -translate-x-1/2 place-items-center rounded-sm text-ink-2 hover:bg-raised hover:text-ink"
+      >
+        <Minus className="size-3.5" aria-hidden />
+      </button>
       {row('connection', `${connection.state}${connection.attempt ? ` #${connection.attempt}` : ''}`)}
       {row('case', caseId ?? '-')}
       {row('fps', g.fps)}
@@ -76,7 +84,6 @@ export function DebugPanel() {
       {row('requests', requests)}
       {row('log', log)}
       <div className="mt-2 flex flex-wrap gap-1.5">
-        <button className="rounded-sm bg-control px-2 py-1 text-ink hover:bg-raised" onClick={() => setOpen(false)}>Hide</button>
         <button className="rounded-sm bg-control px-2 py-1 text-ink hover:bg-raised" onClick={openDemo}>Open demo</button>
         <button className="rounded-sm bg-control px-2 py-1 text-ink hover:bg-raised" onClick={() => attachCase('case_doesnotexist')}>Unknown case</button>
         <button className="rounded-sm bg-control px-2 py-1 text-ink hover:bg-raised" onClick={() => openPip(null)}>Drone feed</button>

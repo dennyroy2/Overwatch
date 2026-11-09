@@ -4,9 +4,8 @@ import { focusPoint, visibleAt } from '@/lib/evidence'
 import { useNow } from '@/lib/useNow'
 import { useWhy } from '@/lib/whySelect'
 import { flyToPoint, frameRoute } from '@/map/camera'
-import { framePoints } from '@/lib/attributionFrame'
-import { attribution } from '@/stream/attribution'
-import { currentBuffer, ghosts } from '@/stream/ghostBuffer'
+import { focusCard } from '@/lib/cardFocus'
+import { clickEvidenceCard } from '@/lib/attributionTrigger'
 import { getMap } from '@/map/mapRef'
 import { useStore } from '@/store'
 import { history } from '@/stream/history'
@@ -24,7 +23,6 @@ export function EvidenceTimeline() {
   const replayT = useStore((s) => s.replayView?.t ?? null)
   const selectedId = useStore((s) => s.ui.selectedEvidenceId)
   const hoveredId = useStore((s) => s.ui.hoveredEvidenceId)
-  const selectEvidence = useStore((s) => s.selectEvidence)
   const hoverEvidence = useStore((s) => s.hoverEvidence)
   const now = useNow(500)
 
@@ -47,19 +45,20 @@ export function EvidenceTimeline() {
   }, [whySeq, litKey])
 
   const onSelect = (id: string) => {
-    const same = selectedId === id
-    selectEvidence(same ? null : id)
+    // Every click on a card shows that card's red/cyan colours (step 36); a click on the card whose colours are
+    // showing deselects it. See lib/attributionTrigger.ts.
+    const { selected, snapshot } = clickEvidenceCard(id)
     // Clicking a card flies the camera to its mark. If the card changed the swarm over a wide area (a sighting
     // removes a cloud in one place and brings one up in another), frame the whole before-and-after instead, so
-    // the red and cyan dots the overlay shows are all on screen (step 36).
+    // the red and cyan dots the overlay shows are all on screen.
     const e = byId[id]
-    const p = e ? focusPoint(e) : null
     const map = getMap()
-    if (same || !map) return
-    const snap = mode === 'live' && e && e.kind !== 'note' ? attribution.snapshot(id, ghosts.count, currentBuffer()) : null
-    const frame = snap ? framePoints(snap.removed, snap.removedCount, snap.arrived, snap.arrivedCount, p) : null
-    if (frame) frameRoute(map, frame)
-    else if (p) flyToPoint(map, p)
+    if (!selected || !map) return
+    focusCard(e ? focusPoint(e) : null, {
+      snapshot: () => snapshot,
+      frameRoute: (frame) => frameRoute(map, frame),
+      flyTo: (pt) => flyToPoint(map, pt),
+    })
   }
 
   if (ids.length === 0) {

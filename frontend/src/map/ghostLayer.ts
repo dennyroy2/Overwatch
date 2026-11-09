@@ -281,7 +281,9 @@ export function attachGhosts(map: MapLibreMap): GhostLayerHandle {
       if (sampler.takeSwapped() && ghosts.count > 0) sampler.apply(currentBuffer(), ghosts.count)
     }
     playback.advance(now)
-    const out = smoother.tick(now) // always tick: the live picture keeps going behind a paused one
+    // A stopped simulation (debug Close, subject found) freezes the live clock: nothing moves, the picture stays.
+    const liveNow = history.haltedAt ?? now
+    const out = smoother.tick(liveNow) // always tick: the live picture keeps going behind a paused one
     lastLive = out
     if (!playback.isLive) {
       drawReplay(now)
@@ -294,12 +296,12 @@ export function attachGhosts(map: MapLibreMap): GhostLayerHandle {
         useStore.getState().setReplayView(null)
       }
       if (out.count > 0) {
-        glow.step(now)
+        glow.step(liveNow)
         perf.haloOpacity = glow.halo
         // With trails off (dev switch), skip building them too, so the measurement shows the real saving.
-        const dying = smoother.dissolve.tick(now, liveHaloPixels(map), CORE.radiusPixels)
+        const dying = smoother.dissolve.tick(liveNow, liveHaloPixels(map), CORE.radiusPixels)
         perf.dissolving = dying.count
-        overlay.setProps({ layers: makeLayers(out, TRAILS_ON ? trails.tick(now, out.pos) : NO_TRAILS, glow, dying, now) })
+        overlay.setProps({ layers: makeLayers(out, TRAILS_ON ? trails.tick(liveNow, out.pos) : NO_TRAILS, glow, dying, now) })
         drawnEmpty = false
       } else if (!drawnEmpty) {
         overlay.setProps({ layers: [] })

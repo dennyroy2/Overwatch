@@ -14,6 +14,18 @@ function frame(arrivalMs: number, xs: number[], over: Partial<FrameInfo> = {}): 
 }
 
 describe('History', () => {
+  it('stops its live edge growing once halted (the simulation was stopped), and starts again after a reset', () => {
+    const h = new History()
+    h.onFrame(frame(1000, [1]))
+    expect(h.liveT(6000)).toBe(5000)
+    h.halt(6000)
+    expect(h.liveT(6000)).toBe(5000)
+    expect(h.liveT(60000)).toBe(5000) // a minute later it has not moved
+    h.reset()
+    h.onFrame(frame(100, [1]))
+    expect(h.liveT(900)).toBe(800)    // a new case runs again
+  })
+
   it('records one keyframe per KEYFRAME_MS, however fast frames arrive', () => {
     const h = new History()
     for (let t = 0; t <= 3000; t += 200) h.onFrame(frame(1000 + t, [t]))

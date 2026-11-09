@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { AttributionControl, Map as MapLibreMap } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import { overviewCamera, watchCase } from '@/map/camera'
+import { startCamera, watchCase } from '@/map/camera'
 import { setMap } from '@/map/mapRef'
 import { watchClusters } from '@/map/clusterMarkers'
 import { watchDraftLastSeen } from '@/map/draftMarker'
@@ -36,7 +36,7 @@ export function MapView() {
       map = new MapLibreMap({
         container: container.current,
         style,
-        ...overviewCamera(),
+        ...startCamera(),
         maxPitch: 80,
         attributionControl: false,
       })
