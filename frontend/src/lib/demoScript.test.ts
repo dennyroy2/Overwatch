@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { DEMO_TIPS, QUIET_AFTER_MS, buildDemoEvidence, postEvidence, startDemoTips, type DemoDeps } from './demoScript'
+import { DEMO_TIPS, QUIET_AFTER_MS, buildDemoEvidence, postEvidence, restartDetector, startDemoTips, type DemoDeps } from './demoScript'
 
 /** A fake clock: timers run when `advance` passes their time. */
 function clock() {
@@ -149,5 +149,30 @@ describe('postEvidence', () => {
     expect(JSON.parse(ok.mock.calls[0][1].body)).toEqual({ case_id: 'c' })
     const bad = vi.fn().mockResolvedValue({ ok: false, status: 404 })
     await expect(postEvidence({}, bad as unknown as typeof fetch)).rejects.toThrow('404')
+  })
+})
+
+describe('restartDetector', () => {
+  it('says "start over" once when the same case loses everything it had', () => {
+    const d = restartDetector()
+    expect(d('case_1', 0)).toBe(false) // nothing yet
+    expect(d('case_1', 2)).toBe(false)
+    expect(d('case_1', 0)).toBe(true)  // the server restarted and the case was reopened
+    expect(d('case_1', 0)).toBe(false) // only once
+    expect(d('case_1', 1)).toBe(false)
+    expect(d('case_1', 0)).toBe(true)  // and again on a second restart
+  })
+  it('sees the reset even when the case id is briefly missing in between', () => {
+    const d = restartDetector()
+    d('case_1', 3)
+    expect(d(null, 0)).toBe(false)
+    expect(d('case_1', 0)).toBe(true)
+  })
+  it('does not fire for a different case, and stays quiet afterwards', () => {
+    const d = restartDetector()
+    d('case_1', 3)
+    expect(d('case_2', 0)).toBe(false)
+    d('case_2', 2)
+    expect(d('case_2', 0)).toBe(false)
   })
 })
